@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PizzaShop.Api/PizzaShop.Api.csproj" />
+    <Project Path="src/PizzaShop.Application/PizzaShop.Application.csproj" />
+    <Project Path="src/PizzaShop.Domain/PizzaShop.Domain.csproj" />
+    <Project Path="src/PizzaShop.Infrastructure/PizzaShop.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PizzaShop.Api.Tests/PizzaShop.Api.Tests.csproj" />
+    <Project Path="tests/PizzaShop.Application.Tests/PizzaShop.Application.Tests.csproj" />
+    <Project Path="tests/PizzaShop.Domain.Tests/PizzaShop.Domain.Tests.csproj" />
+  </Folder>
+</Solution>
