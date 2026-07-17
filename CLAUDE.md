@@ -1,0 +1,166 @@
+# PizzaShop — kontekst projektu dla Claude Code
+
+## Czym jest ten projekt
+Aplikacja e-commerce do zamawiania pizzy online: katalog produktów (pizze, dodatki, promocje),
+koszyk, składanie zamówień, płatności, panel klienta, panel administratora/restauracji,
+śledzenie statusu zamówienia w czasie rzeczywistym.
+
+## Stack technologiczny
+- **.NET 8**, C#
+- **ASP.NET Core Web API** (kontrolery, minimal API tam gdzie to sensowne)
+- **Entity Framework Core** + **PostgreSQL**
+- **Clean Architecture**: warstwy `Domain`, `Application`, `Infrastructure`, `Api`
+- **JWT** do autentykacji/autoryzacji (role: Customer, Employee, RestaurantAdmin, SuperAdmin — patrz "Role i uprawnienia")
+- **SignalR** do live-trackingu statusu zamówienia — dokładny graf stanów `OrderStatus`
+  jest jednym źródłem prawdy w `docs/domain-model.md` (sekcja 5.3), nie duplikować go tutaj
+- **Płatności: PayU** — integracja przez `IPaymentGateway` (interfejs w `Application`,
+  implementacja w `Infrastructure`). Na dev/test używamy środowiska **PayU Sandbox**
+  (osobne konto testowe, testowe transakcje, przełączenie na produkcję to tylko zmiana
+  kluczy API w konfiguracji). Endpoint webhooka/notyfikacji PayU w `Api` **nie może** być
+  chroniony JWT (wywołuje go PayU, nie zalogowany użytkownik) — musi zamiast tego
+  weryfikować podpis/sekcję żądania zgodnie z dokumentacją PayU, inaczej jest podatny na
+  sfałszowane potwierdzenia płatności
+- **xUnit + Moq** do testów jednostkowych, **FluentAssertions** jeśli potrzebne
+- Frontend: poza zakresem na start (API-first). Jeśli dojdzie frontend, ustalimy osobno.
+
+## Zakres biznesowy
+Jedna pizzeria, jedna lokalizacja (nie multi-tenant). Rola `RestaurantAdmin` to rola
+operacyjna dla personelu tej jednej restauracji — nie zakładamy modelu wielu niezależnych
+restauracji na wspólnej platformie. Nie projektuj encji/relacji pod multi-tenancy
+(np. `RestaurantId` jako partycjonowanie danych) bez wyraźnej decyzji zmieniającej ten zakres.
+
+### Role i uprawnienia
+- **Customer** — klient. Przegląda menu, składa zamówienia (jako gość albo zalogowany),
+  śledzi status własnego zamówienia, zbiera i wydaje punkty lojalnościowe (tylko z kontem).
+- **Employee** (pracownik) — obsługa kuchni/dostawy. Widzi kolejkę przychodzących zamówień,
+  zmienia status realizacji (Kitchen → Delivery/Ready for pickup → Delivered/Collected),
+  ustawia `EstimatedReadyAt`. Brak dostępu do zarządzania menu, cenami, promocjami czy
+  obszarem dostawy.
+- **RestaurantAdmin** — admin restauracji. Wszystko co `Employee`, plus zarządzanie menu
+  (pizze, dodatki, ceny), promocjami, obszarem dostawy (promień), godzinami pracy oraz
+  zarządzanie kontami `Employee`.
+- **SuperAdmin** — rola techniczna/właściciela platformy, ponad `RestaurantAdmin` (np.
+  zarządzanie kontami adminów, pełny dostęp do wszystkiego). Utrzymywana na wypadek
+  rozrostu do wielu lokalizacji w przyszłości — nie projektować pod nią żadnej logiki
+  multi-tenant już teraz (patrz wyżej), to czysto rola uprawnień.
+
+**Konwencja autoryzacji:** role są rozłącznymi wartościami na koncie (JWT zawiera jedną
+rolę), ale uprawnieniami są hierarchiczne (`SuperAdmin` ⊇ `RestaurantAdmin` ⊇ `Employee`).
+Każdy endpoint wymagający roli `Employee` musi jawnie dopuszczać też `RestaurantAdmin` i
+`SuperAdmin` w `[Authorize(Roles = "Employee,RestaurantAdmin,SuperAdmin")]` (analogicznie
+endpointy `RestaurantAdmin` dopuszczają też `SuperAdmin`) — hierarchię egzekwuje warstwa
+autoryzacji w `Api`, nie sam token ani `Domain`.
+
+### Flow zamówienia
+1. **Tryb realizacji** — klient na starcie wybiera **dostawę** albo **odbiór osobisty**
+   w lokalu.
+2. **Adres (tylko dla dostawy)** — przy trybie "dostawa" klient podaje lub geolokalizuje
+   adres i system od razu sprawdza, czy mieści się w obsługiwanym obszarze dostawy (patrz
+   niżej) — jeśli nie, zamówienie z dostawą nie jest możliwe (klient może cofnąć się do
+   kroku 1 i wybrać odbiór osobisty). Przy odbiorze osobistym ten krok jest całkowicie
+   pomijany — adres nie jest zbierany.
+3. **Koszyk i zamówienie bez/z kontem** — klient może dodać pizze do koszyka i złożyć
+   zamówienie jako gość (bez rejestracji) albo zalogowany (z kontem). Punkty lojalnościowe
+   nalicza się tylko przy zamówieniach z kontem. Zamówienie gościa musi mieć bezpieczny,
+   nieodgadnalny identyfikator do śledzenia statusu (np. GUID w URL, nie sekwencyjne ID) —
+   gość nie ma JWT, więc dostęp do podglądu statusu nie może opierać się na autoryzacji roli.
+4. **Termin realizacji** — klient może zamówić "na teraz" albo zaplanować zamówienie na
+   wybraną godzinę (nawet jeśli restauracja jest aktualnie zamknięta), o ile mieści się to
+   w godzinach pracy restauracji dla wybranego dnia. `Order` przechowuje
+   `RequestedFulfillmentTime`.
+5. **Płatność** — klient wybiera płatność **online (PayU)** albo **przy odbiorze/dostawie**
+   (gotówka/karta kurierowi/w lokalu). Status płatności (`PaymentStatus`) jest niezależny od
+   statusu realizacji zamówienia (`OrderStatus`, patrz `docs/domain-model.md` sekcja 5.3) —
+   zamówienie z płatnością "przy odbiorze" trafia do kuchni od razu, zamówienie płatne
+   online czeka z przyjęciem do kuchni na potwierdzenie płatności.
+
+### Obszar dostawy
+Admin definiuje obszar dostawy jako **promień (w km) od adresu restauracji**. Walidacja
+adresu klienta = odległość w linii prostej (lub przez API mapowe, do ustalenia przez
+architekta) od punktu restauracji ≤ skonfigurowany promień. Jeden promień na start; wiele
+stref z różnymi opłatami za dostawę to możliwe rozszerzenie, nie projektować na zapas bez
+wyraźnej potrzeby.
+
+### Punkty lojalnościowe
+Klienci z kontem zbierają punkty za zamówienia i mogą nimi zapłacić (częściowo lub
+całościowo) za kolejne zamówienie. Dokładny przelicznik (zł → punkty) i reguła wymiany
+(rabat kwotowy vs. konkretne nagrody) **nie są jeszcze ustalone** — architekt ma zaprojektować
+elastyczny szkielet (np. `LoyaltyAccount` + historia transakcji punktowych jako osobna
+encja/value object w `Domain`), tak żeby konkretną regułę naliczania/wymiany dało się
+dostosować później bez przebudowy modelu.
+
+### Szacowany czas realizacji (ustawiany przez obsługę)
+Po złożeniu zamówienia obsługa restauracji (rola `Employee`, ewentualnie `RestaurantAdmin`) ustawia
+**szacowany czas, po którym pizza będzie gotowa/dostarczona** (`EstimatedReadyAt` lub
+podobne pole na `Order`). To odrębna wartość od `RequestedFulfillmentTime` (życzenia klienta
+przy składaniu zamówienia) — jest ustawiana/aktualizowana przez personel już po przyjęciu
+zamówienia do realizacji i powinna być widoczna dla klienta przez live-tracking (SignalR).
+
+## CI
+- **GitHub Actions**: build + testy (`dotnet build`, `dotnet test`) uruchamiane przy każdym
+  PR i push do głównej gałęzi. Docelowy hosting jeszcze nie ustalony — nie zakładaj
+  konkretnej platformy (Azure/AWS/VPS) w kodzie czy konfiguracji bez wyraźnej decyzji.
+
+## Struktura repozytorium (docelowa)
+```
+src/
+  PizzaShop.Domain/           # encje, value objecty, reguły biznesowe, brak zależności na zewnątrz
+  PizzaShop.Application/      # use case'y (CQRS: Commands/Queries), interfejsy, DTO
+  PizzaShop.Infrastructure/   # EF Core, repozytoria, integracje zewnętrzne (płatności, e-mail)
+  PizzaShop.Api/              # kontrolery, middleware, konfiguracja DI, SignalR huby
+tests/
+  PizzaShop.Domain.Tests/
+  PizzaShop.Application.Tests/
+  PizzaShop.Api.Tests/
+docs/
+  decisions.md                 # log decyzji architektonicznych (ADR-lite)
+  domain-model.md               # opis modelu domenowego
+```
+
+## Reguły pracy z agentami
+Ten projekt korzysta z trzech subagentów zdefiniowanych w `.claude/agents/`:
+
+- **architect** — projektuje, aktualizuje `docs/decisions.md` i `docs/domain-model.md`, NIE pisze kodu produkcyjnego. Wywołuj go na start nowej funkcjonalności lub gdy trzeba podjąć decyzję strukturalną.
+- **builder** — implementuje kod zgodnie z ustaleniami architekta i konwencjami poniżej. Pisze też testy do własnego kodu.
+- **reviewer** — czyta diff/kod, sprawdza zgodność z Clean Architecture, konwencjami, testami. NIE modyfikuje kodu — tylko raportuje uwagi.
+
+Typowy przepływ dla nowej funkcjonalności: `architect` (projekt) → `builder` (implementacja) → `reviewer` (przegląd) → poprawki przez `builder`.
+
+## Konwencje kodu
+- Nullable reference types: włączone (`<Nullable>enable</Nullable>`)
+- Async wszędzie tam, gdzie jest I/O (`async`/`await`, `CancellationToken` przekazywany dalej)
+- CQRS w warstwie Application: `Commands/`, `Queries/`, każdy handler w osobnym pliku
+- Walidacja wejścia: **FluentValidation w `Application`** dla walidacji DTO/requestów
+  (kształt danych, wymagane pola, formaty). Reguły biznesowe zależne od stanu (np. adres w
+  promieniu dostawy, godziny pracy, przejścia statusów) żyją jako guard clauses/metody w
+  `Domain`, nie w walidatorach — walidator sprawdza "czy dane są poprawnej postaci",
+  Domain pilnuje "czy operacja jest dozwolona"
+- Wyjątki domenowe dziedziczą po `DomainException`, mapowane na odpowiednie kody HTTP w middleware
+- Repozytoria przez interfejsy w `Application`, implementacje w `Infrastructure`
+- Każdy nowy use case (Command/Query) ma odpowiadający test jednostkowy
+
+## Konwencje nazewnictwa
+- Encje: liczba pojedyncza (`Pizza`, `Order`, `OrderItem`)
+- Commands: `CreateOrderCommand`, `AddPizzaToCartCommand` (czasownik + rzeczownik + `Command`)
+- Queries: `GetOrderByIdQuery`, `GetMenuQuery`
+- Testy: `MethodName_Scenario_ExpectedResult`
+
+## Komendy
+```bash
+dotnet build
+dotnet test
+dotnet ef migrations add <Nazwa> -p src/PizzaShop.Infrastructure -s src/PizzaShop.Api
+dotnet ef database update -p src/PizzaShop.Infrastructure -s src/PizzaShop.Api
+dotnet run --project src/PizzaShop.Api
+```
+
+## Status projektu
+Model domenowy zaprojektowany — `docs/domain-model.md` (encje, VO, reguły biznesowe) i
+`docs/decisions.md` (ADR-lite, 10 wpisów) są aktualnym źródłem prawdy o modelu; ten plik
+opisuje tylko ogólny zakres i konwencje, nie duplikuj z niego szczegółów. Kod jeszcze nie
+istnieje. Następny krok: `builder` implementuje strukturę solution (`src/`, `tests/`) i
+warstwę `Domain` (value objecty → wyjątki → enumy → encje katalogu → `Restaurant` →
+`Order`/`OrderItem` → `Customer`/`LoyaltyAccount` → `Promotion`) zgodnie z kolejnością
+ustaloną przez `architect`, każdy krok z testami jednostkowymi. Warstwy `Application`
+(CQRS) i `Infrastructure` (EF Core) to kolejna iteracja, po przeglądzie `Domain` przez
+`reviewer`.
