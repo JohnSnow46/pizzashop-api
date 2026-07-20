@@ -14,6 +14,11 @@ public class Ingredient
     public bool IsAvailable { get; private set; }
     public string? Category { get; private set; }
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private Ingredient()
+    {
+    }
+
     private Ingredient(Guid id, string name, Money extraPrice, bool isAvailable, string? category)
     {
         Id = id;

@@ -25,6 +25,11 @@ public class Promotion
     public int? UsageLimit { get; private set; }
     public int UsageCount { get; private set; }
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private Promotion()
+    {
+    }
+
     private Promotion(
         Guid id,
         string name,

@@ -12,6 +12,11 @@ public class MenuItemVariant
     public Money Price { get; private set; }
     public bool IsDefault { get; private set; }
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private MenuItemVariant()
+    {
+    }
+
     private MenuItemVariant(Guid id, string name, Money price, bool isDefault)
     {
         Id = id;

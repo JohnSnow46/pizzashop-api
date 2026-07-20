@@ -9,5 +9,6 @@
     <Project Path="tests/PizzaShop.Api.Tests/PizzaShop.Api.Tests.csproj" />
     <Project Path="tests/PizzaShop.Application.Tests/PizzaShop.Application.Tests.csproj" />
     <Project Path="tests/PizzaShop.Domain.Tests/PizzaShop.Domain.Tests.csproj" />
+    <Project Path="tests/PizzaShop.Infrastructure.Tests/PizzaShop.Infrastructure.Tests.csproj" />
   </Folder>
 </Solution>

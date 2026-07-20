@@ -20,6 +20,11 @@ public class LoyaltyAccount
 
     public IReadOnlyCollection<LoyaltyTransaction> Transactions => _transactions.AsReadOnly();
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private LoyaltyAccount()
+    {
+    }
+
     private LoyaltyAccount(Guid id, Guid customerId)
     {
         Id = id;

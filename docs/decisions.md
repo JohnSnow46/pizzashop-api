@@ -830,3 +830,242 @@ i mogłaby przemycić `BuyXGetY`, odłożony w ADR-0011). Zmiana typu = utworzen
   `null` = zdjęcie limitu).
 - ADR-0011 utrzymany (`BuyXGetY` nadal odłożony; brak zmiany `Type` nie otwiera go tylnymi
   drzwiami). ADR-0016 to wzorzec, którego ta decyzja jest kontynuacją.
+
+---
+
+## ADR-0020: Strategia mapowania EF Core — DbContext, konfiguracje per agregat, mapowanie Value Objectów, konstruktory perystencyjne w Domain
+
+**Data:** 2026-07-20
+**Status:** Zaakceptowana
+
+**Kontekst.**
+Warstwa Infrastructure (pusty projekt) musi utrwalać agregaty Domain przez EF Core + PostgreSQL
+(ADR-0001). Domain jest już zaimplementowany i przetestowany: encje mają **prywatne konstruktory
++ fabryki statyczne**, kolekcje jako `readonly` pola wystawiane jako `IReadOnlyCollection`, oraz
+Value Objecty (`Money`, `Address`, `GeoCoordinate`, `DeliveryAddress`, `ContactDetails`,
+`OpeningHours`, `OrderItemExtra`). Trzeba zdecydować: (a) jak EF materializuje encje bez ctorów
+bezparametrowych; (b) jak mapować każdy VO (owned type vs. value converter); (c) jak mapować
+kolekcje (owned vs. many-to-many); (d) kształt DbContextu.
+
+**Decyzja.**
+
+*Jeden `PizzaShopDbContext`* z `DbSet`ami tylko dla korzeni agregatów (`Restaurant`, `MenuItem`,
+`Ingredient`, `Order`, `Customer`, `LoyaltyAccount`, `Promotion`). Konfiguracje jako osobne pliki
+`IEntityTypeConfiguration<T>` w `Persistence/Configurations/`, wpinane
+`ApplyConfigurationsFromAssembly`. Klucze `Guid` generowane w Domain (`Guid.NewGuid()` w
+fabrykach) ⇒ `Id` korzeni `ValueGeneratedNever()`.
+
+*Materializacja — prywatny konstruktor bezparametrowy.* Builder dodaje `private Xxx() { }` do
+każdego typu Domain, który EF materializuje (korzenie, encje podrzędne: `MenuItemVariant`,
+`OrderItem`, `CustomerAddress`, `LoyaltyTransaction`; oraz VO mapowane jako owned: `Address`,
+`GeoCoordinate`, `ContactDetails`, `DeliveryAddress`, `OrderItemExtra`). To wyłącznie koncesja
+perystencyjna — nie dodaje żadnej zależności (Domain nadal nie referuje niczego), ctor jest
+`private` (używa go tylko EF przez refleksję), a inline-inicjalizowane pola kolekcji (`= new()`)
+działają z ctorem bezparametrowym. Kolekcje read-only i skip-navigation mapowane przez
+`PropertyAccessMode.Field`.
+  - **Alternatywa (odrzucona): osobne modele perystencyjne** (persistence POCO + mappery
+    domain↔persistence). Daje pełną izolację Domain od EF, ale podwaja liczbę klas i wymaga
+    mapperów w obie strony dla każdego agregatu — nieproporcjonalny koszt przy tej skali.
+    Prywatny ctor to standardowy, minimalnie inwazyjny kompromis DDD+EF.
+
+*Mapowanie Value Objectów (pełna tabela — infrastructure-layer.md 2.2):*
+- **`Money` → ValueConverter na `decimal`** (`numeric(12,2)`, PLN implikowane), rejestrowany
+  globalnie w `ConfigureConventions`. Single-currency (domain-model.md 2.1) czyni drugą kolumnę
+  waluty martwą; konwerter (`m.Amount` ↔ `new Money(amount)`) daje jedną czystą kolumnę na kwotę.
+  Jeśli kiedyś dojdzie multi-currency — migracja do owned type z kolumną waluty (przyszły ADR).
+- **`Address`, `GeoCoordinate`, `ContactDetails` → owned (`OwnsOne`)** — kilka kolumn skalarnych.
+- **`DeliveryAddress` → owned zagnieżdżony** (`OwnsOne` z wewnętrznym `OwnsOne(Address)` +
+  `OwnsOne(Coordinate)`); opcjonalny na `Order`, wymagany na `CustomerAddress`.
+- **`OpeningHours` → ValueConverter na `jsonb` (+ `ValueComparer`)** — słownik dzień→zakresy jest
+  zbyt złożony na kolumny/tabelę, a to VO, nie encja; serializacja do DTO perystencyjnego i
+  odtworzenie publicznym ctorem. `TimeRange` żyje wewnątrz tego JSON (brak osobnego mapowania).
+- **`OrderItemExtra` → owned collection (`OwnsMany`)** — tabela z FK do `OrderItem`.
+
+*Mapowanie kolekcji/encji podrzędnych:*
+- `MenuItem.Variants` → `OwnsMany` (`MenuItemVariants`).
+- `MenuItem.BaseIngredients` i `AllowedExtras` → **dwie osobne relacje many-to-many do wspólnego
+  słownika `Ingredient`** (osobny korzeń z `DbSet`), z jawnie nazwanymi join-table
+  (`MenuItemBaseIngredients`, `MenuItemAllowedExtras`) i field-accessem. To najtrudniejszy
+  fragment mapowania — dwie kolekcje do tej samej encji muszą rozróżniać się nazwą join-table.
+- `Order.Items` → `OwnsMany` z zagnieżdżonym `OwnsMany` (Extras).
+- `Customer.AddressBook` → `OwnsMany` (+ owned `DeliveryAddress`).
+- `LoyaltyAccount.Transactions` → `OwnsMany` (append-only).
+
+Snapshoty na `OrderItem` (`MenuItemId`/`VariantId` jako gołe `Guid`, nazwy/ceny) to zwykłe
+kolumny bez FK do katalogu — zamówienie jest niezależne od zmian menu (domain-model.md 5.2).
+
+**Konsekwencje.**
+- Builder dodaje prywatne ctory bezparametrowe do wymienionych typów Domain — jedyna zmiana w
+  już zreviewowanym Domain, uzasadniona i pozbawiona zależności; reviewer powinien to potwierdzić.
+- Schemat: jedna kolumna na każdą `Money`, `jsonb` na `OpeningHours`, tabele owned dla kolekcji,
+  dwa join-table dla katalogu. Szczegóły i nazwy kolumn: infrastructure-layer.md 2.
+- Czas: Npgsql mapuje `DateTimeOffset`→`timestamptz` przy offsecie zero (ADR-0010) — `IClock`
+  zwraca UTC (offset 0); nie włączać `EnableLegacyTimestampBehavior`.
+
+---
+
+## ADR-0021: Dane sidecar (`GuestTrackingToken`, `ProviderPaymentReference`) jako shadow properties na tabeli `Orders`
+
+**Data:** 2026-07-20
+**Status:** Zaakceptowana
+
+**Kontekst.**
+ADR-0018 ustalił, że `GuestTrackingToken` i `ProviderPaymentReference` żyją **poza Domain**, jako
+sidecar korelowany z `Order` („kolumna obok Order"). `IOrderRepository` ma metody operujące na
+tych wartościach (`AddAsync` z oboma, `Get/SetProviderPaymentReferenceAsync`,
+`GetByGuestTrackingTokenAsync`). Trzeba rozstrzygnąć fizyczne mapowanie: kolumny na tabeli `Orders`
+(shadow properties) czy osobna tabela 1:1.
+
+**Decyzja.**
+**Shadow properties na tabeli `Orders`**: `builder.Property<Guid?>("GuestTrackingToken")` (z
+unikalnym indeksem) i `builder.Property<string?>("ProviderPaymentReference")`, niewidoczne dla
+klasy `Order`. `OrderRepository` operuje na nich przez ChangeTracker (`Entry(order).Property(...)`)
+i `EF.Property<>` w predykatach:
+- `AddAsync`: `Add(order)` + ustawienie obu shadow properties (bez commitu).
+- `GetByGuestTrackingTokenAsync`: `FirstOrDefault(o => EF.Property<Guid?>(o, "GuestTrackingToken") == token)`.
+- `SetProviderPaymentReferenceAsync`: load + set shadow property (commit przez `IUnitOfWork`).
+- `GetProviderPaymentReferenceAsync`: projekcja shadow property.
+
+**Alternatywa (odrzucona): osobna tabela 1:1** (`OrderPaymentReference`/`OrderGuestToken`).
+ADR-0018 wprost mówi „kolumna obok Order"; osobna tabela dokłada join bez zysku. Shadow property
+daje tę samą izolację od Domain (klasa `Order` ich nie widzi) przy jednej tabeli.
+
+**Konsekwencje.**
+- Tabela `Orders` ma dwie dodatkowe kolumny nieobecne w modelu Domain; dostęp wyłącznie przez
+  `OrderRepository`. Unikalny indeks na `GuestTrackingToken` (bezpieczny, szybki lookup gościa).
+- Test integracyjny (ADR-0025) musi pokryć round-trip obu shadow properties.
+
+---
+
+## ADR-0022: Implementacja PayU w Infrastructure (OAuth, inicjalizacja, weryfikacja podpisu, mapowanie statusów, idempotentny refund)
+
+**Data:** 2026-07-20
+**Status:** Zaakceptowana
+
+**Kontekst.**
+ADR-0002/0013 ustaliły PayU za `IPaymentGateway` (kontrakt w Application). Trzeba zaprojektować
+konkretną implementację w Infrastructure: uwierzytelnianie do API PayU, inicjalizację zamówienia,
+weryfikację podpisu notyfikacji webhook (endpoint bez JWT — bezpieczeństwo = podpis) i idempotentny
+refund (ADR-0018).
+
+**Decyzja.**
+`PayUPaymentGateway : IPaymentGateway` w `Payments/PayU/`, typed `HttpClient`, konfiguracja przez
+`IOptions<PayUOptions>` (POS id, `client_id`/`client_secret` OAuth, drugi klucz podpisu, `BaseUrl`).
+**Sandbox = tylko inne wartości konfiguracji** (`BaseUrl = https://secure.snd.payu.com`, testowe POS),
+przełączenie na produkcję to zmiana konfiguracji, nie kodu (ADR-0002).
+- **OAuth** `client_credentials` z cache tokenu do wygaśnięcia (in-memory).
+- **`InitializePaymentAsync`**: `POST /api/v2_1/orders` (kwota w groszach, PLN, `continueUrl`,
+  `notifyUrl` = webhook Api); odpowiedź → `PaymentInitResult(RedirectUrl, ProviderPaymentReference
+  = PayU orderId)`. `HttpClient` bez auto-redirectów.
+- **`VerifyAndParseNotification`**: NAJPIERW weryfikacja nagłówka `OpenPayU-Signature` (MD5 z
+  `body + drugi klucz`), potem parsowanie statusu. Nieprawidłowy podpis ⇒ port sygnalizuje błąd →
+  handler rzuca `InvalidPaymentNotificationException` (Application → 400/401, application-layer.md 5).
+  Weryfikacja żyje w Infrastructure, nie w kontrolerze (ADR-0013).
+- **Mapowanie statusów** (`PayUStatusMapper`): `PENDING→Pending`, `WAITING_FOR_CONFIRMATION→Authorized`,
+  `COMPLETED→Paid`, `CANCELED/REJECTED→Failed`. Handler woła odpowiednią metodę `Order`
+  idempotentnie (guard clauses Domain, ADR-0013).
+- **`RefundAsync`**: `POST /api/v2_1/orders/{ref}/refunds`, **idempotentny** — powtórny refund już
+  zrefundowanego = sukces (ADR-0018).
+
+**Konsekwencje.**
+- Domain nie zna PayU; mapowanie i podpis w Infrastructure. Podmiana dostawcy = nowa implementacja
+  bez zmian w Domain/Application.
+- Testy: `PayUStatusMapper` i weryfikacja podpisu na wektorach testowych bez sieci; wywołania HTTP
+  przez mock `HttpMessageHandler` (nie strzelać do realnego PayU).
+- Endpoint webhooka w Api pozostaje anonimowy; bezpieczeństwo w pełni na podpisie.
+
+---
+
+## ADR-0023: Geokodowanie — Nominatim (OSM) jako implementacja `IGeocodingService`
+
+**Data:** 2026-07-20
+**Status:** Zaakceptowana
+
+**Kontekst.**
+ADR-0006 wymaga współrzędnych adresu do walidacji promienia dostawy; `IGeocodingService`
+(`GeocodeAsync(Address) → GeoCoordinate?`) czeka na implementację. Trzeba wybrać dostawcę.
+
+**Decyzja.**
+`NominatimGeocodingService : IGeocodingService` (`Geocoding/`), typed `HttpClient` do OpenStreetMap
+Nominatim. Wybór: **Nominatim** — darmowy, bez klucza, wystarczający dla jednej pizzerii o niskim
+wolumenie. Konfiguracja `GeocodingOptions`: `BaseUrl` (domyślnie `https://nominatim.openstreetmap.org`),
+**wymagany `UserAgent`** (polityka Nominatim), `TimeoutSeconds`. Brak wyniku ⇒ `null` (handler
+`CreateOrderCommand` krok 2 traktuje jako błąd adresu).
+
+**Alternatywy.**
+- Google/Mapbox Geocoding — dokładniejsze, płatne, wymaga klucza — odłożone do realnej potrzeby.
+- Prosty `ConfiguredGeocodingService` (współrzędne z appsettings) — przydatny dev/test bez sieci,
+  opcjonalnie rejestrowany warunkowo po środowisku.
+
+**Konsekwencje.**
+- Ograniczenia operacyjne Nominatim (max ~1 req/s, wymagany User-Agent) — dla produkcji rozważyć
+  własny hosting lub płatnego dostawcę (przyszły ADR); wymiana = nowa implementacja portu, bez
+  zmian w Domain/Application.
+- Testy przez mock `HttpMessageHandler`, bez realnych zapytań do OSM.
+
+---
+
+## ADR-0024: Granica kompozycji — które porty implementuje Infrastructure, a które Api (SignalR i `ICurrentUser` w Api)
+
+**Data:** 2026-07-20
+**Status:** Zaakceptowana
+
+**Kontekst.**
+Nie każdy port z Application jest naturalnie „infrastrukturą danych/integracji". `IOrderNotifier`
+to live-tracking przez SignalR (Hub to endpoint webowy), a `ICurrentUser` zależy od `HttpContext`/
+JWT. Trzeba jednoznacznie wskazać, gdzie żyje implementacja każdego portu, żeby builder nie umieścił
+SignalR w Infrastructure.
+
+**Decyzja.**
+- **Infrastructure** implementuje: 7 repozytoriów + `IUnitOfWork` (EF Core), `IPaymentGateway`
+  (PayU), `IGeocodingService` (Nominatim), `IClock` (`SystemClock`, UTC), `ILoyaltyPolicy`
+  (`LinearLoyaltyPolicy` placeholder, ADR-0014).
+- **Api** implementuje: `IOrderNotifier` (`SignalROrderNotifier` przez `IHubContext<OrderTrackingHub>`)
+  oraz `ICurrentUser` (`HttpContextCurrentUser`). SignalR **Hub** (`OrderTrackingHub`) też w Api.
+  Infrastructure **nie** referuje `Microsoft.AspNetCore.SignalR`.
+
+Uzasadnienie: Api zależy od Application i legalnie implementuje porty inherentnie webowej dostawy;
+wciąganie SignalR/HttpContext do Infrastructure mieszałoby warstwę dostępu do danych z warstwą
+prezentacji. To rozstrzyga pytanie „hub tu czy w Api": **w Api**.
+
+**Konsekwencje.**
+- `Infrastructure/DependencyInjection.cs` (`AddInfrastructure(IServiceCollection, IConfiguration)`)
+  rejestruje wyłącznie porty z listy Infrastructure; `IOrderNotifier`/`ICurrentUser` rejestruje Api.
+- Api w `Program.cs`: `AddApplication().AddInfrastructure(config)` + rejestracja `ICurrentUser`,
+  `IOrderNotifier`, mapowanie `OrderTrackingHub` (warstwa Api, osobna iteracja).
+
+---
+
+## ADR-0025: Migracje EF Core, design-time factory i strategia testów integracyjnych (Testcontainers PostgreSQL)
+
+**Data:** 2026-07-20
+**Status:** Zaakceptowana
+
+**Kontekst.**
+Migracje generuje się w projekcie Infrastructure ze startupem Api (CLAUDE.md). `dotnet ef` musi umieć
+zbudować DbContext bez pełnego bootstrapu Api. Osobno: jak testować warstwę perystencji, skoro mapowania
+(konwertery, jsonb, many-to-many, owned, shadow properties) nie są weryfikowane przez testy jednostkowe.
+
+**Decyzja.**
+- **Design-time**: `DesignTimeDbContextFactory : IDesignTimeDbContextFactory<PizzaShopDbContext>` w
+  `Persistence/`, czyta connection string ze zmiennej środowiskowej/appsettings, buduje opcje
+  `UseNpgsql`. Migracje: `dotnet ef migrations add InitialCreate -p src/PizzaShop.Infrastructure -s
+  src/PizzaShop.Api -o Persistence/Migrations`. Pakiet `Microsoft.EntityFrameworkCore.Design` w
+  Infrastructure (hostuje factory).
+- **Testy integracyjne**: nowy projekt `tests/PizzaShop.Infrastructure.Tests` z **Testcontainers
+  PostgreSQL** (`Testcontainers.PostgreSql`). Zakres: round-trip każdego agregatu (w tym trudne:
+  `Money` konwerter, `OpeningHours` jsonb, dwie many-to-many katalogu, sidecar shadow properties,
+  zagnieżdżone owned), smoke test budowy modelu + `Database.Migrate()` na świeżym kontenerze, testy
+  mapperów PayU/geocoding bez sieci (mock `HttpMessageHandler`).
+
+**Dlaczego Testcontainers, nie InMemory/SQLite.** `EF InMemory` ignoruje konwertery/jsonb/
+many-to-many/owned → fałszywe zielone; SQLite różni się typami (brak `jsonb`, `timestamptz`).
+Testcontainers testuje docelowy provider Npgsql. Wymaga Dockera — GitHub Actions to wspiera (CI z
+CLAUDE.md); testy integracyjne oznaczyć traitem/kategorią, by dało się je pominąć lokalnie bez Dockera.
+
+**Konsekwencje.**
+- Nowy projekt testowy `PizzaShop.Infrastructure.Tests` poza dotychczasową listą z CLAUDE.md
+  (Domain/Application/Api) — do dodania i wpięcia w CI.
+- CI (`dotnet test`) musi mieć dostępny runtime Dockera dla testów integracyjnych; unit-testy
+  Domain/Application dalej bez Dockera.
+- `IClock` (`SystemClock`) używany w testach przez podstawialną implementację (deterministyczny czas).

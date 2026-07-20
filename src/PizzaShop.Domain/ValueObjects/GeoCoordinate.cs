@@ -11,6 +11,11 @@ public sealed class GeoCoordinate : IEquatable<GeoCoordinate>
     public double Latitude { get; }
     public double Longitude { get; }
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private GeoCoordinate()
+    {
+    }
+
     public GeoCoordinate(double latitude, double longitude)
     {
         if (latitude is < -90 or > 90)

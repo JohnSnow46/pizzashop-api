@@ -29,6 +29,11 @@ public class MenuItem
 
     public MenuItemVariant? DefaultVariant => _variants.FirstOrDefault(v => v.IsDefault);
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private MenuItem()
+    {
+    }
+
     private MenuItem(Guid id, string name, MenuCategory category, Money basePrice)
     {
         Id = id;

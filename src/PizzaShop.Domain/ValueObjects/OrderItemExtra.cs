@@ -10,6 +10,11 @@ public sealed class OrderItemExtra : IEquatable<OrderItemExtra>
     public string Name { get; }
     public Money Price { get; }
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private OrderItemExtra()
+    {
+    }
+
     public OrderItemExtra(Guid ingredientId, string name, Money price)
     {
         if (ingredientId == Guid.Empty)

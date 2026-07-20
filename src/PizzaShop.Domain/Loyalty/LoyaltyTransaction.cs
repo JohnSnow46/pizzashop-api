@@ -16,6 +16,11 @@ public class LoyaltyTransaction
     public Guid? OrderId { get; }
     public DateTimeOffset OccurredAt { get; }
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private LoyaltyTransaction()
+    {
+    }
+
     private LoyaltyTransaction(
         Guid id,
         LoyaltyTransactionType type,

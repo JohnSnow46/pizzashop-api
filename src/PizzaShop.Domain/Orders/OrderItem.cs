@@ -24,6 +24,11 @@ public class OrderItem
 
     public Money LineTotal { get; }
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private OrderItem()
+    {
+    }
+
     private OrderItem(
         Guid id,
         Guid menuItemId,

@@ -36,6 +36,11 @@ public class Order
     public Money DeliveryFee { get; private set; } = null!;
     public Money Total { get; private set; } = null!;
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private Order()
+    {
+    }
+
     private Order(
         Guid id,
         string number,

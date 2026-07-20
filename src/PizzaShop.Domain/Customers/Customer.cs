@@ -22,6 +22,11 @@ public class Customer
 
     public IReadOnlyCollection<CustomerAddress> AddressBook => _addressBook.AsReadOnly();
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private Customer()
+    {
+    }
+
     private Customer(
         Guid id,
         Guid userAccountId,

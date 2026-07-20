@@ -10,6 +10,11 @@ public sealed class DeliveryAddress : IEquatable<DeliveryAddress>
     public Address Address { get; }
     public GeoCoordinate Coordinate { get; }
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private DeliveryAddress()
+    {
+    }
+
     public DeliveryAddress(Address address, GeoCoordinate coordinate)
     {
         ArgumentNullException.ThrowIfNull(address);

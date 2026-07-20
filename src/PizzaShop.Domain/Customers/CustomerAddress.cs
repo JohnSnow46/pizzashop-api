@@ -13,6 +13,11 @@ public class CustomerAddress
     public DeliveryAddress DeliveryAddress { get; private set; }
     public bool IsDefault { get; private set; }
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private CustomerAddress()
+    {
+    }
+
     private CustomerAddress(Guid id, string label, DeliveryAddress deliveryAddress, bool isDefault)
     {
         Id = id;

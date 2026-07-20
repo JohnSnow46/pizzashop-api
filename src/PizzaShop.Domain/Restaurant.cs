@@ -21,6 +21,11 @@ public class Restaurant
     public Money? FreeDeliveryThreshold { get; private set; }
     public Money DeliveryFee { get; private set; }
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private Restaurant()
+    {
+    }
+
     private Restaurant(
         Guid id,
         string name,

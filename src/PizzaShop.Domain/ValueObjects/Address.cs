@@ -12,6 +12,11 @@ public sealed class Address : IEquatable<Address>
     public string PostalCode { get; }
     public string? Notes { get; }
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private Address()
+    {
+    }
+
     public Address(
         string street,
         string buildingNumber,

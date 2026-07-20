@@ -15,6 +15,11 @@ public sealed class ContactDetails : IEquatable<ContactDetails>
     public string PhoneNumber { get; }
     public string? Email { get; }
 
+    // EF Core materialization only (ADR-0020) — not used by Domain logic.
+    private ContactDetails()
+    {
+    }
+
     public ContactDetails(string fullName, string phoneNumber, string? email = null)
     {
         if (string.IsNullOrWhiteSpace(fullName))
