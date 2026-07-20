@@ -23,7 +23,6 @@ public sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
         builder.Property(c => c.FullName).HasMaxLength(200).IsRequired();
         builder.Property(c => c.Email).HasMaxLength(200).IsRequired();
         builder.Property(c => c.PhoneNumber).HasMaxLength(30);
-        builder.Property(c => c.LoyaltyAccountId).IsRequired();
         builder.Property(c => c.CreatedAt).IsRequired();
 
         builder.OwnsMany(c => c.AddressBook, address =>

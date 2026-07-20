@@ -17,7 +17,6 @@ public class Customer
     public string FullName { get; private set; }
     public string Email { get; private set; }
     public string? PhoneNumber { get; private set; }
-    public Guid LoyaltyAccountId { get; }
     public DateTimeOffset CreatedAt { get; }
 
     public IReadOnlyCollection<CustomerAddress> AddressBook => _addressBook.AsReadOnly();
@@ -33,7 +32,6 @@ public class Customer
         string fullName,
         string email,
         string? phoneNumber,
-        Guid loyaltyAccountId,
         DateTimeOffset createdAt)
     {
         Id = id;
@@ -41,7 +39,6 @@ public class Customer
         FullName = fullName;
         Email = email;
         PhoneNumber = phoneNumber;
-        LoyaltyAccountId = loyaltyAccountId;
         CreatedAt = createdAt;
     }
 
@@ -49,7 +46,6 @@ public class Customer
         Guid userAccountId,
         string fullName,
         string email,
-        Guid loyaltyAccountId,
         DateTimeOffset createdAt,
         string? phoneNumber = null)
     {
@@ -59,10 +55,11 @@ public class Customer
             throw new ArgumentException("Full name is required.", nameof(fullName));
         if (string.IsNullOrWhiteSpace(email))
             throw new ArgumentException("Email is required.", nameof(email));
-        if (loyaltyAccountId == Guid.Empty)
-            throw new ArgumentException("Loyalty account id is required.", nameof(loyaltyAccountId));
 
-        return new Customer(Guid.NewGuid(), userAccountId, fullName, email, phoneNumber, loyaltyAccountId, createdAt);
+        // The Customer <-> LoyaltyAccount 1:1 link is one-directional (ADR-0029):
+        // LoyaltyAccount carries the FK (CustomerId), Customer carries none. This avoids the
+        // chicken-and-egg id coordination between the two aggregates.
+        return new Customer(Guid.NewGuid(), userAccountId, fullName, email, phoneNumber, createdAt);
     }
 
     public CustomerAddress AddAddress(string label, DeliveryAddress deliveryAddress, bool isDefault = false)

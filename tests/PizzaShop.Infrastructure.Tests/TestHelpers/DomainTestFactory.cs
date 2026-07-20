@@ -110,12 +110,11 @@ internal static class DomainTestFactory
             restaurant);
     }
 
-    public static Customer CreateCustomer(Guid loyaltyAccountId) =>
+    public static Customer CreateCustomer() =>
         Customer.Create(
             userAccountId: Guid.NewGuid(),
             fullName: "Anna Nowak",
             email: "anna@example.com",
-            loyaltyAccountId: loyaltyAccountId,
             createdAt: DateTimeOffset.UtcNow,
             phoneNumber: "500600700");
 

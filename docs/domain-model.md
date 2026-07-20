@@ -324,7 +324,6 @@ Profil zakupowy zarejestrowanego klienta (ADR-0005). Gość nie ma tej encji.
 | `Email` | string | |
 | `PhoneNumber` | string? | |
 | `AddressBook` | List<DeliveryAddress> | Zapisane adresy (encje podrzędne z `Label`) |
-| `LoyaltyAccountId` | Guid | 1:1 z LoyaltyAccount |
 | `CreatedAt` | DateTimeOffset | |
 
 **Reguły:**
@@ -332,6 +331,12 @@ Profil zakupowy zarejestrowanego klienta (ADR-0005). Gość nie ma tej encji.
 - Adres w książce może być domyślny (`IsDefault`) — max jeden.
 - Odwołanie do adresu spoza książki klienta ⇒ `AddressNotInAddressBookException`.
 - Usunięcie konta ≠ usunięcie historycznych zamówień (te trzymają snapshoty).
+- **Powiązanie 1:1 z `LoyaltyAccount` jest jednokierunkowe** — trzyma je wyłącznie strona
+  zależna (`LoyaltyAccount.CustomerId`), `Customer` nie przechowuje `LoyaltyAccountId`
+  (ADR-0029). Konto lojalnościowe klienta odnajduje się przez repozytorium
+  (`ILoyaltyAccountRepository.GetByCustomerIdAsync(customerId)`), nie przez nawigację z
+  `Customer`. Dzięki temu `Customer.Create` nie zależy od `LoyaltyAccount` (brak cyklu przy
+  tworzeniu — ADR-0029).
 
 ---
 
@@ -341,9 +346,15 @@ Profil zakupowy zarejestrowanego klienta (ADR-0005). Gość nie ma tej encji.
 | Atrybut | Typ | Uwagi |
 |---|---|---|
 | `Id` | Guid | |
-| `CustomerId` | Guid | 1:1 |
+| `CustomerId` | Guid | 1:1 — **jedyna** strona powiązania (ADR-0029); unikalny w bazie |
 | `PointsBalance` | int | Saldo = Σ transakcji (utrzymywane/wyliczalne) |
 | `Transactions` | List<LoyaltyTransaction> | Append-only |
+
+`LoyaltyAccount` jest stroną **zależną** relacji 1:1 (nie istnieje bez `Customer`), więc to
+ono trzyma referencję `CustomerId`; `Customer` nie trzyma referencji zwrotnej (ADR-0029).
+`CustomerId` ma unikalny indeks (twardy strażnik reguły „jedno konto na klienta"). Przy
+rejestracji `LoyaltyAccount.Create(customerId)` wołane jest **po** utworzeniu `Customer`
+(kolejność łamie cykl bez wspólnego, wstępnie generowanego Id).
 
 ### 7.2 `LoyaltyTransaction` (encja podrzędna, niemutowalna)
 | Atrybut | Typ | Uwagi |
@@ -506,6 +517,10 @@ limitu reużywają `ArgumentException`/`ArgumentOutOfRangeException` (jak `Promo
   (8.1), `Type` niemutowalny; obniżenie `UsageLimit` poniżej `UsageCount` dozwolone
   (domyka promocję limitem), zmiana `Value` dozwolona mimo `UsageCount > 0` (snapshot na
   Order) — ADR-0019.
+- **Powiązanie Customer ↔ LoyaltyAccount jednokierunkowe** — referencję trzyma tylko strona
+  zależna (`LoyaltyAccount.CustomerId`, unikalny); `Customer` nie ma `LoyaltyAccountId`.
+  Usuwa sztuczny cykl przy tworzeniu (fabryki generują własne Id, bez przekazywania Id z
+  zewnątrz) i martwą nawigację (konto lojalnościowe pobiera się przez repozytorium) — ADR-0029.
 
 ---
 
@@ -520,7 +535,7 @@ MenuItem (1) --< AllowedExtras (Ingredient)
 
 Customer (1) --- (0..1) --- UserAccount [ref]
 Customer (1) --< DeliveryAddress (książka adresowa)
-Customer (1) --- (1) --- LoyaltyAccount
+LoyaltyAccount (1) --- (1) --> Customer [ref: LoyaltyAccount.CustomerId; jednokierunkowe, ADR-0029]
 LoyaltyAccount (1) --< LoyaltyTransaction
 
 Order (0..1) --> Customer            (null = gość)

@@ -10,7 +10,7 @@ public class CustomerTests
     private static readonly DateTimeOffset CreatedAt = new(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
     private static Customer CreateCustomer() =>
-        Customer.Create(Guid.NewGuid(), "Jan Kowalski", "jan@example.com", Guid.NewGuid(), CreatedAt);
+        Customer.Create(Guid.NewGuid(), "Jan Kowalski", "jan@example.com", CreatedAt);
 
     private static DeliveryAddress SampleAddress() =>
         new(new Address("Main St", "1", "Warsaw", "00-001"), new GeoCoordinate(52.0, 21.0));
@@ -18,7 +18,7 @@ public class CustomerTests
     [Fact]
     public void Create_EmptyUserAccountId_ThrowsArgumentException()
     {
-        var act = () => Customer.Create(Guid.Empty, "Jan Kowalski", "jan@example.com", Guid.NewGuid(), CreatedAt);
+        var act = () => Customer.Create(Guid.Empty, "Jan Kowalski", "jan@example.com", CreatedAt);
 
         act.Should().Throw<ArgumentException>();
     }
@@ -26,7 +26,7 @@ public class CustomerTests
     [Fact]
     public void Create_MissingFullName_ThrowsArgumentException()
     {
-        var act = () => Customer.Create(Guid.NewGuid(), "", "jan@example.com", Guid.NewGuid(), CreatedAt);
+        var act = () => Customer.Create(Guid.NewGuid(), "", "jan@example.com", CreatedAt);
 
         act.Should().Throw<ArgumentException>();
     }
@@ -34,9 +34,17 @@ public class CustomerTests
     [Fact]
     public void Create_MissingEmail_ThrowsArgumentException()
     {
-        var act = () => Customer.Create(Guid.NewGuid(), "Jan Kowalski", "", Guid.NewGuid(), CreatedAt);
+        var act = () => Customer.Create(Guid.NewGuid(), "Jan Kowalski", "", CreatedAt);
 
         act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Create_NoExplicitId_GeneratesId()
+    {
+        var customer = CreateCustomer();
+
+        customer.Id.Should().NotBe(Guid.Empty);
     }
 
     [Fact]

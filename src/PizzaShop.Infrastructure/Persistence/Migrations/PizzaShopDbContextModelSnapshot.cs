@@ -17,7 +17,7 @@ namespace PizzaShop.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.20")
+                .HasAnnotation("ProductVersion", "8.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -52,6 +52,40 @@ namespace PizzaShop.Infrastructure.Persistence.Migrations
                     b.HasIndex("IngredientId");
 
                     b.ToTable("MenuItemBaseIngredients", (string)null);
+                });
+
+            modelBuilder.Entity("PizzaShop.Application.Identity.UserAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("UserAccounts", (string)null);
                 });
 
             modelBuilder.Entity("PizzaShop.Domain.Catalog.Ingredient", b =>
@@ -132,9 +166,6 @@ namespace PizzaShop.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
-
-                    b.Property<Guid>("LoyaltyAccountId")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("PhoneNumber")
                         .HasMaxLength(30)

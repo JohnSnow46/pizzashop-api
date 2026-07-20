@@ -6,7 +6,9 @@ using PizzaShop.Application.Abstractions.Loyalty;
 using PizzaShop.Application.Abstractions.Payments;
 using PizzaShop.Application.Abstractions.Persistence;
 using PizzaShop.Application.Common.Abstractions;
+using PizzaShop.Application.Identity.Abstractions;
 using PizzaShop.Infrastructure.Geocoding;
+using PizzaShop.Infrastructure.Identity;
 using PizzaShop.Infrastructure.Loyalty;
 using PizzaShop.Infrastructure.Payments.PayU;
 using PizzaShop.Infrastructure.Persistence;
@@ -38,6 +40,9 @@ public static class DependencyInjection
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<ILoyaltyAccountRepository, LoyaltyAccountRepository>();
         services.AddScoped<IPromotionRepository, PromotionRepository>();
+        services.AddScoped<IUserAccountRepository, UserAccountRepository>();
+
+        services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 
         services.Configure<PayUOptions>(configuration.GetSection("PayU"));
         services.AddHttpClient<IPaymentGateway, PayUPaymentGateway>()

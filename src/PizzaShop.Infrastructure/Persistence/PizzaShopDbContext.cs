@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using PizzaShop.Application.Identity;
 using PizzaShop.Domain.Catalog;
 using PizzaShop.Domain.Customers;
 using PizzaShop.Domain.Loyalty;
@@ -38,6 +39,12 @@ public sealed class PizzaShopDbContext : DbContext
     public DbSet<LoyaltyAccount> LoyaltyAccounts => Set<LoyaltyAccount>();
 
     public DbSet<Promotion> Promotions => Set<Promotion>();
+
+    /// <summary>
+    /// The only non-Domain entity in this context — identity deliberately lives outside
+    /// Domain (ADR-0005/0026).
+    /// </summary>
+    public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

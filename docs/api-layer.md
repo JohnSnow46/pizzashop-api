@@ -74,11 +74,15 @@ bezparametrowy dla EF (jak ADR-0020). Domain jej nie zna.
 
 Walidatory FluentValidation (kształt): email format, hasło min. długość/złożoność, rola z enuma.
 
-### 2.5 Powiązanie `UserAccount.Id` ↔ `Customer.UserAccountId` (ADR-0005/0026)
-`RegisterCustomerCommand` **jest jedynym miejscem tworzącym `Customer`**. Tworzy razem:
+### 2.5 Powiązanie `UserAccount.Id` ↔ `Customer.UserAccountId` (ADR-0005/0026/0029)
+`RegisterCustomerCommand` **jest jedynym miejscem tworzącym `Customer`**. Tworzy razem, w tej
+kolejności (ADR-0029 — relacja Customer↔LoyaltyAccount jest jednokierunkowa, więc `Customer`
+musi istnieć zanim powstanie `LoyaltyAccount`):
 1. `UserAccount.Create(email, hash, UserRole.Customer, now)`.
-2. `LoyaltyAccount` (szkielet, ADR-0009) dla nowego klienta.
-3. `Customer` z `UserAccountId = userAccount.Id` i `LoyaltyAccountId`.
+2. `Customer.Create(userAccount.Id, ...)` — generuje własne `Id` wewnętrznie.
+3. `LoyaltyAccount.Create(customer.Id)` (szkielet, ADR-0009) — jedyny nośnik powiązania 1:1 jest
+   `LoyaltyAccount.CustomerId`; `Customer` **nie ma** `LoyaltyAccountId` (usunięte w ADR-0029,
+   dostęp wyłącznie przez `ILoyaltyAccountRepository.GetByCustomerIdAsync`).
 Wszystko commitowane jednym `IUnitOfWork.SaveChangesAsync` (atomowo). Personel (`Employee`/
 `RestaurantAdmin`/`SuperAdmin`) **nie dostaje** `Customer` (ADR-0004) — ma tylko `UserAccount`.
 

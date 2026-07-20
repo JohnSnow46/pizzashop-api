@@ -24,7 +24,7 @@ public sealed class CustomerRepositoryTests
     [Fact]
     public async Task AddAndGet_RoundTripsAddressBookWithNestedDeliveryAddress()
     {
-        var customer = DomainTestFactory.CreateCustomer(Guid.NewGuid());
+        var customer = DomainTestFactory.CreateCustomer();
         var homeAddress = customer.AddAddress("Home", DomainTestFactory.SampleDeliveryAddress(), isDefault: true);
 
         await using (var writeContext = _fixture.CreateContext())
