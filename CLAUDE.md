@@ -154,6 +154,24 @@ dotnet ef database update -p src/PizzaShop.Infrastructure -s src/PizzaShop.Api
 dotnet run --project src/PizzaShop.Api
 ```
 
+## Środowisko do przeglądania kodu
+VS Code (zainstalowany 2026-07-20) + rozszerzenia: C# Dev Kit/C#, ESLint, Prettier,
+GitLens, Git Graph, Error Lens, Todo Tree, Better Comments, Code Spell Checker,
+indent-rainbow, Material Icon Theme, EditorConfig. Bez integracji GitHub/GitLab PR —
+przegląd lokalny (diff, blame, historia).
+
+**Flow przeglądu zmian od agentów:**
+1. Source Control (`Ctrl+Shift+G`) — diff inline zmienionych plików.
+2. Error Lens — od razu widać błędy kompilacji C# / warningi ESLint przy linii.
+3. `Shift+F12` (Find All References) na zmienionych publicznych metodach — sprawdzić, czy
+   zmiana w `Domain` nie psuje `Application`/`Api`.
+4. Todo Tree — sprawdzić niedomknięte `TODO`/`FIXME` (konwencja: `TODO(architect):` przy
+   miejscach wymagających decyzji architektonicznej).
+5. Git Graph — podejrzeć historię/branch przed zatwierdzeniem.
+
+Inne skróty: `Ctrl+T` szybki skok do klasy, `F12`/`Alt+F12` go to/peek definition,
+GitLens blame inline przy najechaniu na linię.
+
 ## Status projektu
 Model domenowy zaprojektowany — `docs/domain-model.md` (encje, VO, reguły biznesowe) i
 `docs/decisions.md` (ADR-lite, 10 wpisów) są aktualnym źródłem prawdy o modelu; ten plik
