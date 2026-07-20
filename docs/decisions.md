@@ -1069,3 +1069,201 @@ CLAUDE.md); testy integracyjne oznaczyć traitem/kategorią, by dało się je po
 - CI (`dotnet test`) musi mieć dostępny runtime Dockera dla testów integracyjnych; unit-testy
   Domain/Application dalej bez Dockera.
 - `IClock` (`SystemClock`) używany w testach przez podstawialną implementację (deterministyczny czas).
+
+---
+
+## ADR-0026: Tożsamość i uwierzytelnianie — własny `UserAccount` + BCrypt (nie ASP.NET Core Identity), JWT, powiązanie konta z `Customer`
+
+**Data:** 2026-07-20
+**Status:** Zaakceptowana
+
+**Kontekst.**
+Warstwa Api (dziś szkielet) potrzebuje mechanizmu tożsamości: rejestracji/logowania, hashowania
+haseł, wydawania i walidacji JWT (CLAUDE.md — JWT, role Customer/Employee/RestaurantAdmin/SuperAdmin).
+ADR-0004/0005 ustaliły, że tożsamość (`UserAccount`) żyje **poza Domain**, a `Customer` to profil
+domenowy powiązany z kontem przez `UserAccountId`. Otwarte: (1) ASP.NET Core Identity czy własna
+tabela + BCrypt; (2) gdzie fizycznie żyje `UserAccount` i moduł auth w Clean Architecture; (3) kto
+i kiedy tworzy `Customer` przy rejestracji oraz jak `ICurrentUser.CustomerId` trafia do handlerów
+bez zapytania do bazy per żądanie.
+
+**Decyzja.**
+
+*(1) Własny `UserAccount` + BCrypt, NIE ASP.NET Core Identity.* Konta modelujemy minimalną klasą
+`UserAccount` (Id, Email, PasswordHash, Role, IsActive, CreatedAt) z hasłem hashowanym BCrypt
+(`BCrypt.Net-Next`) za portem `IPasswordHasher`. Uzasadnienie: pełne Identity dokłada rozbudowany
+schemat (tabele ról, claimów, loginów zewnętrznych, tokenów), `UserManager`/`SignInManager` i model
+ról jako danych — a my mamy **stały enum 4 ról** (ADR-0004), single-tenant (ADR-0003), bez loginów
+zewnętrznych ani flow potwierdzania e-mail na start. Projekt świadomie rezygnuje z ciężkich
+zależności (własne CQRS zamiast MediatR — ADR-0012), więc spójnie wybieramy lekką tożsamość.
+  - **Alternatywa (odrzucona): ASP.NET Core Identity.** Zalety: dojrzały `PasswordHasher`, lockout,
+    2FA, gotowe stores. Wady przy tej skali: narzucony schemat i abstrakcje pod wymagania, których
+    nie mamy; mieszanie modelu ról-jako-danych z naszym enumem ról; większa powierzchnia w warstwie,
+    która ma pozostać cienka. Gdyby doszły logowania zewnętrzne/2FA/samoobsługowy reset — powrót do
+    Identity to przyszły ADR (wymiana modułu `Identity`, bez wpływu na Domain).
+
+*(2) Umiejscowienie.* `UserAccount` to **model warstwy Application** (moduł `Identity`,
+`src/PizzaShop.Application/Identity/UserAccount.cs`) — nie agregat Domain (ADR-0005), ale Application
+może posiadać własne modele. Prywatny ctor bezparametrowy dla EF (spójnie z ADR-0020). Porty w
+`Application/Identity/Abstractions/`: `IUserAccountRepository`, `IPasswordHasher`, `IJwtTokenGenerator`.
+Implementacje: `UserAccountRepository` i `BcryptPasswordHasher` w **Infrastructure** (persystencja +
+util, jak `IClock`; `DbSet<UserAccount>` dodany do `PizzaShopDbContext` z unikalnym indeksem `Email`,
+nowa migracja); `JwtTokenGenerator` w **Api** (potrzebuje konfiguracji podpisu; symetrycznie do
+`ICurrentUser` czytającego claimy — ADR-0024). Infrastructure pozostaje wolne od JWT. Rejestracja/
+logowanie jako **CQRS Application** (`RegisterCustomerCommand`, `LoginCommand`,
+`RegisterStaffAccountCommand`) — spójnie z konwencją i testowalnością handlerów (Moq).
+
+*(3) Powiązanie `UserAccount.Id` ↔ `Customer.UserAccountId` i `CustomerId` w tokenie.*
+`RegisterCustomerCommand` jest **jedynym miejscem tworzącym `Customer`** — tworzy atomowo (jeden
+`IUnitOfWork.SaveChangesAsync`, wspólny scoped `DbContext`): `UserAccount(Customer)` +
+`LoyaltyAccount` (ADR-0009) + `Customer` z `UserAccountId = userAccount.Id`. Personel
+(`Employee`/`RestaurantAdmin`/`SuperAdmin`) tworzony przez `RegisterStaffAccountCommand` (rola admin)
+**nie dostaje** profilu `Customer` (ADR-0004). Reguła kto-kogo tworzy (RestaurantAdmin → tylko
+Employee; SuperAdmin → dowolna rola) egzekwowana w handlerze przez `ICurrentUser.Role` →
+`ForbiddenOperationException` (ADR-0017). Duplikat e-mail: `ExistsByEmailAsync` + unikalny indeks
+bazodanowy → `ConflictException` (409, ADR-0018).
+
+JWT klienta niesie claimy `sub` (=`UserAccountId`), `role`, `email` oraz `customerId`, żeby
+`HttpContextCurrentUser` odtwarzał `ICurrentUser.CustomerId` z tokenu bez zapytania do bazy per
+żądanie. Konta personelu nie mają claimu `customerId`. Bootstrap: startowy `SuperAdmin` seedowany
+z konfiguracji (`Seed:*`), idempotentnie — bez niego nie dałoby się utworzyć pierwszego personelu.
+
+*Logowanie a bezpieczeństwo komunikatu.* Nieudany login (nieznany e-mail lub złe hasło) zwraca
+jednolity błąd „invalid credentials" (401), bez ujawniania, czy konto istnieje. Konto z
+`IsActive == false` nie może się zalogować.
+
+**Konsekwencje.**
+- Nowy moduł `Application/Identity` (model `UserAccount`, 3 porty, 3 komendy + walidatory + testy).
+- Infrastructure: `DbSet<UserAccount>` + konfiguracja + migracja `AddUserAccount`;
+  `UserAccountRepository`, `BcryptPasswordHasher`; pakiet `BCrypt.Net-Next`; rejestracja w
+  `AddInfrastructure`. `UserAccount` to jedyna nie-domenowa encja w `PizzaShopDbContext` — świadomie
+  (tożsamość poza Domain, ADR-0005).
+- Api: `JwtTokenGenerator` (`IJwtTokenGenerator`), sekcja `Jwt` w konfiguracji (klucz z user-secrets).
+- `ICurrentUser` zasilany z claimów JWT (`sub`/`role`/`customerId`) — patrz ADR-0027 (impl w Api).
+- Wymiana na ASP.NET Core Identity w przyszłości = przepisanie modułu `Identity` za tymi samymi
+  portami, bez wpływu na Domain/handlery zamówień. Szczegóły: api-layer.md sekcja 2.
+
+---
+
+## ADR-0027: Warstwa Api — middleware wyjątków (ProblemDetails), autoryzacja ról z jawną hierarchią, cienkie kontrolery, webhook PayU z surowym body
+
+**Data:** 2026-07-20
+**Status:** Zaakceptowana
+
+**Kontekst.**
+Po zaprojektowaniu tożsamości (ADR-0026) trzeba domknąć powierzchnię HTTP: (1) jak mapować wyjątki
+Application/Domain na kody HTTP w jednym miejscu i w jakim formacie odpowiedzi; (2) jak egzekwować
+hierarchię ról (SuperAdmin ⊇ RestaurantAdmin ⊇ Employee) zgodnie z CLAUDE.md („jawnie wypisana w
+`[Authorize(Roles=...)]`, nie przez token"); (3) jaki kształt mają kontrolery i które endpointy są
+anonimowe; (4) jak kontroler webhooka PayU odbiera surowe body wymagane do weryfikacji podpisu.
+
+**Decyzja.**
+
+*(1) Jeden globalny middleware wyjątków → `ProblemDetails` (RFC 7807).* `IExceptionHandler`
+(ASP.NET Core 8) mapuje po **typie konkretnym** (bez wspólnej klasy bazowej wyjątków Application —
+YAGNI, ADR-0017/0018), zgodnie z osią z application-layer.md sekcja 5:
+`ValidationException`→400 (+`errors`), `NotFoundException`→404, `ForbiddenOperationException`→403,
+`ConflictException`→409, `InvalidPaymentNotificationException`→400, `NotSupportedException`→501,
+`InvalidOperationException`→500, nieobsłużone→500 (bez `detail` z wyjątku, tylko `traceId`+log).
+`DomainException` i podtypy mapowane **409 vs 422** wg tabeli: **409** dla konfliktu stanu zasobu
+(`InvalidOrderStatusTransitionException`, `InvalidPaymentStatusTransitionException`,
+`PromotionAlreadyAppliedException`, `LoyaltyPointsAlreadyRedeemedException`), **422** dla naruszeń
+reguł biznesowych na danych (pozostałe wyjątki domenowe z domain-model.md 9, np.
+`BelowMinimumOrderValueException`, `MenuItemUnavailableException`, `AddressOutsideDeliveryAreaException`);
+domyślnie nieznany `DomainException`→422. `ArgumentException`/`ArgumentOutOfRangeException` z Domain
+(ADR-0019) → 400 defensywnie (walidator FluentValidation jest głównym strażnikiem kształtu).
+Kontrolery **nie** łapią wyjątków. Pełna tabela: api-layer.md sekcja 4.
+  - *Dlaczego 409/422 tak podzielone:* 409 komunikuje „stan zasobu jest w konflikcie z żądaną
+    zmianą" (przejścia/duplikaty), 422 „żądanie poprawne składniowo, ale niewykonalne wg reguł
+    biznesu". Rozłączne i czytelne dla klienta API; spójne z intencją „409 = konflikt stanu" z ADR-0017.
+
+*(2) Autoryzacja ról — jawna hierarchia w atrybutach.* Zgodnie z CLAUDE.md, każdy endpoint niesie
+`[Authorize(Roles=...)]` z **jawnie wypisaną** listą ról (nie przez token, nie przez Domain).
+Żeby uniknąć literówek, listy trzymamy w stałych `AuthRoles` (`Staff = "Employee,RestaurantAdmin,SuperAdmin"`,
+`Admin = "RestaurantAdmin,SuperAdmin"`, `Owner = "SuperAdmin"`, `Customer = "Customer"`) — stała
+rozwija się do jawnej listy w atrybucie (spełnia wymóg jawności) bez powielania stringów. Domyślna
+`FallbackPolicy` wymaga uwierzytelnienia (zapomniany atrybut nie zostawia endpointu otwartego);
+endpointy publiczne jawnie `[AllowAnonymous]`. Autoryzacja **zależna od stanu** (klient widzi/anuluje
+tylko własne zamówienie) pozostaje w handlerach → `NotFoundException`/`ForbiddenOperationException`
+(ADR-0017), NIE w policy Api.
+
+*(3) Cienkie kontrolery przez `IDispatcher`.* Kontroler mapuje request→Command/Query, woła
+`IDispatcher.Send`, mapuje wynik→`IActionResult`. Zero logiki biznesowej i dostępu do repozytoriów.
+Tożsamość do handlerów wyłącznie przez `ICurrentUser` (nie parametrami). Kontrolery per moduł i
+mapowanie endpoint→use case→autoryzacja: api-layer.md sekcja 6. Endpointy anonimowe: przeglądanie
+menu, `GetRestaurantConfigQuery` (część publiczna), `ValidatePromotionCodeQuery`,
+`CheckDeliveryAvailabilityQuery`, `CreateOrderCommand` (gość — `ICurrentUser` zasila `CustomerId`
+jeśli jest token), `GetOrderByTrackingTokenQuery` (token = autoryzacja, ADR-0005), webhook PayU,
+rejestracja/logowanie.
+
+*(4) `ICurrentUser` w Api + webhook PayU z surowym body.* `HttpContextCurrentUser`
+(`IHttpContextAccessor`, scoped) czyta `sub`/`customerId`/`role` z claimów (ADR-0024/0026); brak
+tokenu ⇒ wszystkie null (gość). Webhook `POST /api/payments/payu/webhook` jest `[AllowAnonymous]` i
+czyta **surowe body** (`StreamReader` na `Request.Body`, bez `[FromBody]`), bo weryfikacja podpisu
+`OpenPayU-Signature` (Infrastructure, ADR-0022) wymaga bajt-w-bajt oryginału. Body + nagłówki →
+`ConfirmPaymentFromNotificationCommand`. Zwrot: 200 dla obsłużonej/idempotentnej notyfikacji, 400 dla
+nieważnego podpisu (bez szczegółów). Bezpieczeństwo endpointu = podpis, nie JWT (ADR-0013).
+
+**Konsekwencje.**
+- Api: `Middleware/ExceptionHandler.cs` (pełna oś + słownik `DomainException`→409/422),
+  `Auth/HttpContextCurrentUser.cs`, `Auth/AuthRoles.cs`, kontrolery per moduł (iteracje 2–3),
+  `PaymentsController` z surowym body. `Program.cs`: `AddProblemDetails`+`AddExceptionHandler`,
+  `AddAuthentication().AddJwtBearer`, `AddAuthorization` z `FallbackPolicy`, `AddControllers`,
+  Swagger z `Bearer`. Szczegóły kompozycji: api-layer.md sekcja 9.
+- Format błędów spójny (`application/problem+json`); `detail` z bezpiecznych komunikatów wyjątków
+  Application (ADR-0017), 500 bez ujawniania szczegółów.
+- Kontrolery testowalne integracyjnie (`WebApplicationFactory`): autoryzacja (anonim/rola →
+  401/403), mapowanie wyjątków (404/409/422), webhook (200/400).
+- Ta decyzja realizuje zapisaną w application-layer.md sekcja 5 „intencję dla przyszłego middleware
+  Api" — oś wyjątków ma teraz konkretną implementację warstwy Api.
+
+---
+
+## ADR-0028: SignalR live-tracking — `OrderTrackingHub` w Api, grupy per `OrderId`, subskrypcja gościa przez token i zalogowanego przez ownership
+
+**Data:** 2026-07-20
+**Status:** Zaakceptowana
+
+**Kontekst.**
+ADR-0008/0024 ustaliły live-tracking `EstimatedReadyAt`/statusu przez SignalR z Hubem w Api oraz
+`IOrderNotifier` (`OrderStatusChangedAsync(orderId, status, estimatedReadyAt)`) implementowany w Api.
+Trzeba rozstrzygnąć: (1) klucz grup SignalR — per `OrderId` czy per `GuestTrackingToken`; (2) jak
+subskrybuje gość (bez JWT, ADR-0005) i jak zalogowany klient/obsługa, tak by nie eksponować cudzych
+zamówień; (3) jak `IOrderNotifier` (kluczowany tylko `OrderId`) trafia do właściwych odbiorców.
+
+**Decyzja.**
+`OrderTrackingHub : Hub` w `src/PizzaShop.Api/Realtime/`, mapowany na `/hubs/order-tracking`,
+`[AllowAnonymous]` (gość musi śledzić bez JWT). **Grupy kluczowane `OrderId`** (nazwa grupy =
+`orderId.ToString()`). `SignalROrderNotifier` (impl `IOrderNotifier`, przez
+`IHubContext<OrderTrackingHub>`) pushuje do `Clients.Group(orderId.ToString())` — port pozostaje
+kluczowany wyłącznie `OrderId`, bez wiedzy o tokenie.
+
+Autoryzacja **przy subskrypcji**, nie przy pushu:
+- `SubscribeToGuestOrder(string trackingToken)` — Hub woła `GetOrderByTrackingTokenQuery`
+  (`IDispatcher`); sukces ⇒ `Groups.AddToGroupAsync(connectionId, order.Id)`. Token nieodgadnalny =
+  autoryzacja (jak endpoint trackingu gościa, ADR-0005). Nieprawidłowy token ⇒ brak subskrypcji, bez
+  ujawniania istnienia zamówienia.
+- `SubscribeToOrder(Guid orderId)` — Hub woła `GetOrderByIdQuery` (handler scope'uje po
+  `ICurrentUser` — własne/obsługa, ADR-0017); sukces ⇒ dodanie do grupy `orderId`, inaczej brak
+  subskrypcji. Tożsamość z tego samego JWT — `AddJwtBearer` z obsługą `access_token` w query stringu
+  (`OnMessageReceived`), bo klient WebSocket nie ustawia nagłówka `Authorization`.
+
+Rozstrzygnięcie „grupy per OrderId czy per GuestTrackingToken": **per `OrderId`**. Token służy tylko
+do autoryzacji subskrypcji (rozwiązywany na `OrderId`), nie jako klucz grupy — dzięki temu notifier
+nie musi znać tokenu, a gość i zalogowany właściciel/obsługa lądują w jednej grupie tego samego
+zamówienia. Push zawiera `{ orderId, status, estimatedReadyAt }` (event `OrderStatusChanged`).
+  - **Alternatywa (odrzucona): grupy per `GuestTrackingToken`** (osobny kanał gościa). Wymagałaby
+    rozszerzenia `IOrderNotifier` o token (lub podwójnego pushu), a token to detal
+    persystencji/gościa (ADR-0021), którego port świadomie nie zna. Klucz `OrderId` jest wspólnym
+    mianownikiem obu typów odbiorców i minimalizuje kontrakt notifiera.
+
+**Konsekwencje.**
+- Api: `Realtime/OrderTrackingHub.cs`, `Realtime/SignalROrderNotifier.cs` (rejestracja
+  `AddScoped<IOrderNotifier, SignalROrderNotifier>()`), `MapHub<OrderTrackingHub>("/hubs/order-tracking")`,
+  `AddSignalR()`, konfiguracja JWT dla WebSocketów (query-string token). Infrastructure nie referuje
+  SignalR (ADR-0024).
+- Handlery przejść statusu i `SetEstimatedReadyAtCommand` (application-layer.md 4.3) wołają
+  `IOrderNotifier` bez zmian — dostają działającą implementację dopiero w Iteracji 4 Api.
+- Testy: subskrypcja gościa po tokenie (poprawny → dołączony do grupy; zły → nie), zalogowanego po
+  ownership (własne → tak; cudze → nie), dostarczenie `OrderStatusChanged` do grupy `OrderId`.
+- Iteracja 4 Api (SignalR + Loyalty) — szczegóły w api-layer.md sekcje 8 i 10.
+</content>
