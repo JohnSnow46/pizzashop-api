@@ -173,12 +173,32 @@ Inne skróty: `Ctrl+T` szybki skok do klasy, `F12`/`Alt+F12` go to/peek definiti
 GitLens blame inline przy najechaniu na linię.
 
 ## Status projektu
-Model domenowy zaprojektowany — `docs/domain-model.md` (encje, VO, reguły biznesowe) i
-`docs/decisions.md` (ADR-lite, 10 wpisów) są aktualnym źródłem prawdy o modelu; ten plik
-opisuje tylko ogólny zakres i konwencje, nie duplikuj z niego szczegółów. Kod jeszcze nie
-istnieje. Następny krok: `builder` implementuje strukturę solution (`src/`, `tests/`) i
-warstwę `Domain` (value objecty → wyjątki → enumy → encje katalogu → `Restaurant` →
-`Order`/`OrderItem` → `Customer`/`LoyaltyAccount` → `Promotion`) zgodnie z kolejnością
-ustaloną przez `architect`, każdy krok z testami jednostkowymi. Warstwy `Application`
-(CQRS) i `Infrastructure` (EF Core) to kolejna iteracja, po przeglądzie `Domain` przez
-`reviewer`.
+`docs/decisions.md` (ADR-lite, 29 wpisów), `docs/domain-model.md`, `docs/api-layer.md` i
+`docs/infrastructure-layer.md` są aktualnym źródłem prawdy o modelu i warstwach; ten plik
+opisuje tylko ogólny zakres i konwencje, nie duplikuj z niego szczegółów.
+
+Zaimplementowane i zbudowane (0 błędów kompilacji):
+- **Domain** — pełny model (VO, wyjątki, enumy, encje katalogu, `Restaurant`, `Order`/
+  `OrderItem`, `Customer`/`LoyaltyAccount`, `Promotion`), pełne pokrycie testami.
+- **Application** — CQRS use case'y, porty, DTO, walidatory FluentValidation.
+- **Infrastructure** — EF Core + PostgreSQL (konfiguracje mapowania, 3 migracje), 7
+  repozytoriów + `UnitOfWork`, `PayUPaymentGateway`, `NominatimGeocodingService`, testy
+  integracyjne na Testcontainers.
+- **Api — Iteracja 1** (tożsamość + JWT): `UserAccount` (Application/Identity), BCrypt,
+  `RegisterCustomerCommand`/`LoginCommand`/`RegisterStaffAccountCommand`, `JwtTokenGenerator`,
+  `HttpContextCurrentUser`, globalny middleware wyjątków → `ProblemDetails`, `AuthController`
+  (`/register`, `/login`, `/staff`, `/me`), `DbSeeder` (bootstrap `SuperAdmin`).
+
+Ważna decyzja po drodze: **ADR-0029** — powiązanie `Customer`↔`LoyaltyAccount` jest
+jednokierunkowe (`LoyaltyAccount.CustomerId` jedyny nośnik FK; `Customer.LoyaltyAccountId`
+usunięty, migracja `DropCustomerLoyaltyAccountId`). Wzorzec wiążący na przyszłość: relacje 1:1
+między agregatami — FK po stronie zależnej, bez opcjonalnych `id` w fabrykach do uzgadniania
+tożsamości między agregatami.
+
+Zaprojektowane, jeszcze niezaimplementowane — Api Iteracje 2–4 (`docs/api-layer.md` sekcja 10):
+- **Iteracja 2** (w toku — patrz TodoWrite/ostatni commit) — `MenuController`,
+  `IngredientsController`, `RestaurantController`, `PromotionsController` (`docs/api-layer.md`
+  sekcje 6.2–6.5): endpointy odczytu publiczne + admin, testy `WebApplicationFactory` na
+  autoryzacji i mapowaniu wyjątków.
+- **Iteracja 3** — `OrdersController`, `PaymentsController` (webhook PayU surowe body, bez JWT).
+- **Iteracja 4** — SignalR (`OrderTrackingHub`, `SignalROrderNotifier`), `LoyaltyController`.

@@ -59,6 +59,18 @@ public sealed class ApiTestFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<IUnitOfWork>();
             services.AddSingleton<IUnitOfWork, NoopUnitOfWork>();
+
+            services.RemoveAll<IMenuItemRepository>();
+            services.AddSingleton<IMenuItemRepository, InMemoryMenuItemRepository>();
+
+            services.RemoveAll<IIngredientRepository>();
+            services.AddSingleton<IIngredientRepository, InMemoryIngredientRepository>();
+
+            services.RemoveAll<IRestaurantRepository>();
+            services.AddSingleton<IRestaurantRepository, InMemoryRestaurantRepository>();
+
+            services.RemoveAll<IPromotionRepository>();
+            services.AddSingleton<IPromotionRepository, InMemoryPromotionRepository>();
         });
     }
 

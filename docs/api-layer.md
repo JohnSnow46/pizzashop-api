@@ -31,6 +31,51 @@ Graf `OrderStatus`: `docs/domain-model.md` 5.3.
 - **`ICurrentUser`** to jedyny kanał tożsamości do handlerów — kontrolery nie przekazują
   `CustomerId`/roli parametrami; handler czyta je z `ICurrentUser`.
 
+### 1.1 Identyfikator zasobu: route vs. body (route = jedyne źródło prawdy)
+
+Dla endpointów mutujących (PUT/PATCH) z `{id}` w ścieżce, gdzie Command niesie to samo pole
+identyfikatora (`Id`/`MenuItemId`/`PromotionId`/`OrderId`), **route jest jedynym źródłem prawdy**.
+Kontroler nadpisuje pole id w Commandzie wartością z trasy przy mapowaniu — Commandy to `record`,
+więc:
+
+```
+await _dispatcher.Send(command with { Id = id }, cancellationToken);
+```
+
+(analogicznie `command with { MenuItemId = id }` / `{ PromotionId = id }` / `{ OrderId = id }`).
+**Bez** gałęzi decyzyjnej i **bez** `BadRequest()` przy rozbieżności route↔body. To celowo część
+kroku (1) „mapuj request→Command", a nie dodatkowa semantyka błędu w kontrolerze (zasada „cienki
+kontroler" wyklucza logikę decyzyjną).
+
+Konsekwencje:
+- **Zapobiega** klasie błędu „zaktualizowano nie ten zasób": handler zawsze operuje na agregacie
+  wskazanym w URL. Wariant z `BadRequest()` taką rozbieżność jedynie *wykrywa* — nadpisanie ją
+  *eliminuje*.
+- **Nie tworzy** obejścia scentralizowanego mapowania błędów (sekcja 4, ADR-0027): kontroler nie
+  emituje własnego `IActionResult` błędu poza osią wyjątków → `ProblemDetails`. Surowy
+  `BadRequest()` i tak omijałby format `ProblemDetails` (brak `type`/`traceId`/spójnego kształtu).
+- Pole id w body jest redundantne (URL identyfikuje zasób — idiom REST); jego wartość jest
+  **ignorowana**, nie walidowana.
+
+**Reguła wiążąca dla wszystkich kontrolerów mutujących** — obecnych (`MenuController`,
+`IngredientsController`, `PromotionsController` w 6.2–6.5) i przyszłych (`OrdersController` PUT
+`/{id}/estimated-ready-at` w 6.6 oraz dalsze). Nie powielać guardu route↔body w kontrolerach.
+
+**Rozważone i odrzucone.**
+- *Guard + `BadRequest()` przy niezgodności (obecny kod Iteracji 2).* Instytucjonalizuje 4. krok
+  (gałąź + wynik błędu) w każdym kontrolerze mutującym i tworzy błąd poza osią `ProblemDetails`
+  (sekcja 4). Odrzucone: łamie „cienki kontroler" i rozszczelnia zasadę „błędy w jednym miejscu"
+  (ADR-0027).
+- *Osobne request-DTO bez pola id (identyfikator wyłącznie z trasy).* Usuwa redundancję u źródła,
+  ale dokłada warstwę DTO + mapowanie dla każdego PUT, niespójnie z wiązaniem Command bezpośrednio
+  z body na endpointach POST (6.2/6.3/6.5). Over-engineering przy tej skali (YAGNI) — odrzucone.
+
+*Trade-off wybranego wariantu:* rozbieżne id w body jest po cichu ignorowane (maskuje ewentualny
+błąd klienta). Akceptowalne — URL jest kontraktem tożsamości zasobu, a id w body jest redundantne
+i nie powinno sterować zachowaniem. Gdyby kiedyś zaszła potrzeba twardego odrzucania rozbieżności,
+właściwym miejscem jest **scentralizowany** `ActionFilter`/filtr produkujący `ProblemDetails`
+(spójnie z sekcją 4), nie gałąź w kontrolerze — to przyszły ADR, tylko na realną potrzebę.
+
 ---
 
 ## 2. Tożsamość i uwierzytelnianie (ADR-0026)
@@ -131,6 +176,14 @@ Domain. Wynik = `ProblemDetails` (`application/problem+json`): `status`, `title`
 `ValidationException` dodatkowo `errors` (słownik pole→komunikaty), format zgodny z
 `ValidationProblemDetails`.
 
+**Kontrolery nie emitują własnych wyników błędu** (np. surowego `BadRequest()`/`Conflict()`) —
+jedynym źródłem odpowiedzi błędnych jest ta oś (wyjątek Application/Domain → `ProblemDetails`).
+Rozbieżność route↔body id **nie jest** błędem 400 — patrz 1.1 (route nadpisuje pole id w Commandzie,
+bez guardu). Jedyne dopuszczalne „nie-wyjątkowe" wyniki błędu poza tą osią to natywne 401/403 z
+warstwy autoryzacji (`[Authorize]`, `FallbackPolicy` — sekcja 5) oraz błędy modelu bindingu
+`[ApiController]` (400 dla niedeserializowalnego body/nieparsowalnego `{id:guid}`), które i tak
+przyjmują kształt `ProblemDetails`.
+
 ### 4.1 Oś mapowania (Application — zgodna z application-layer.md sekcja 5)
 | Wyjątek | Warstwa | HTTP |
 |---|---|---|
@@ -199,6 +252,11 @@ Endpointy publiczne: `[AllowAnonymous]`. Domyślny `FallbackPolicy` = wymaga uwi
 Wszystkie pod `/api`. Kolumna „Autoryzacja" = wartość `[Authorize(Roles=...)]` lub `[AllowAnonymous]`.
 Kolumna „Use case" = Command/Query wołany przez `IDispatcher`.
 
+> **Endpointy z `{id}` w ścieżce + id w body Commandu** (PUT/PATCH) stosują regułę **1.1**: route
+> nadpisuje pole id w Commandzie (`command with { Id = id }`), **bez** guardu route↔body i bez
+> `BadRequest()`. Dotyczy 6.2/6.3/6.5 (Iteracja 2) oraz 6.6 (Iteracja 3, PUT
+> `/{id}/estimated-ready-at`).
+
 ### 6.1 `AuthController` (`/api/auth`) — Iteracja 1
 | Metoda | Ścieżka | Use case | Autoryzacja |
 |---|---|---|---|
@@ -216,11 +274,14 @@ Kolumna „Use case" = Command/Query wołany przez `IDispatcher`.
 | PUT | `/{id}` | `UpdateMenuItemCommand` | `Admin` |
 | PATCH | `/{id}/availability` | `SetMenuItemAvailabilityCommand` | `Staff` (Employee może wyłączyć pozycję) |
 
+> PUT `/{id}` i PATCH `/{id}/availability`: route nadpisuje `Id`/`MenuItemId` w Commandzie (1.1).
+
 ### 6.3 `IngredientsController` (`/api/ingredients`) — Iteracja 2
 | POST | `/` | `CreateIngredientCommand` | `Admin` |
 | PUT | `/{id}` | `UpdateIngredientCommand` | `Admin` |
 > Lista składników dla admina (GET) — jeśli potrzebna w UI, dodać `GetIngredientsQuery`
 > w Application (nie ma jej dziś w 4.1); nie tworzyć na zapas.
+> PUT `/{id}`: route nadpisuje `Id` w Commandzie (1.1).
 
 ### 6.4 `RestaurantController` (`/api/restaurant`) — Iteracja 2
 | GET | `/config` | `GetRestaurantConfigQuery` | AllowAnonymous (część publiczna) |
@@ -228,12 +289,15 @@ Kolumna „Use case" = Command/Query wołany przez `IDispatcher`.
 | PUT | `/delivery-area` | `UpdateDeliveryAreaCommand` | `Admin` |
 | PUT | `/ordering-thresholds` | `UpdateOrderingThresholdsCommand` | `Admin` |
 | POST | `/accepting-orders` | `ToggleAcceptingOrdersCommand` | `Staff` |
+> Restauracja jest singletonem (ADR-0003/0015) — brak `{id}` w ścieżce, więc reguła 1.1 nie
+> dotyczy tych PUT-ów (nie ma route-id do uzgadniania).
 
 ### 6.5 `PromotionsController` (`/api/promotions`) — Iteracja 2
 | POST | `/validate` | `ValidatePromotionCodeQuery` | AllowAnonymous (podgląd rabatu dla koszyka) |
 | GET | `/` | `GetPromotionsQuery` | `Admin` |
 | POST | `/` | `CreatePromotionCommand` | `Admin` |
 | PUT | `/{id}` | `UpdatePromotionCommand` | `Admin` |
+> PUT `/{id}`: route nadpisuje `PromotionId` w Commandzie (1.1).
 
 ### 6.6 `OrdersController` (`/api/orders`) — Iteracja 3
 | POST | `/check-delivery` | `CheckDeliveryAvailabilityQuery` | AllowAnonymous |
@@ -250,14 +314,18 @@ Kolumna „Use case" = Command/Query wołany przez `IDispatcher`.
 | PUT | `/{id}/estimated-ready-at` | `SetEstimatedReadyAtCommand` | `Staff` |
 | POST | `/{id}/cancel` | `CancelOrderCommand` | Authorize (klient przed `Accepted` / obsługa — reguła w handlerze, ADR-0017) |
 
-> `CreateOrderCommand` jest `[AllowAnonymous]`, ale gdy żądanie ma ważny JWT klienta, `ICurrentUser`
-> dostarczy `CustomerId` (naliczanie punktów, historia). Middleware JWT parsuje token także na
-> endpointach anonimowych (nie wymusza go, ale odczytuje, jeśli jest).
+> PUT `/{id}/estimated-ready-at`: route nadpisuje `OrderId` w `SetEstimatedReadyAtCommand` (1.1) —
+> ten sam wzorzec co PUT-y katalogu, bez guardu route↔body. Endpointy `POST /{id}/...` (przejścia
+> statusu) niosą `OrderId` w route i również mapują go do Commandu z trasy (`command with
+> { OrderId = id }` gdy Command ma to pole; jeśli Command przyjmuje tylko `OrderId`, konstruuje się
+> go bezpośrednio z route — bez id w body do uzgadniania).
 
 ### 6.7 `PaymentsController` (`/api/payments`) — Iteracja 3
 | POST | `/orders/{id}/initialize` | `InitializePaymentCommand` | Authorize (właściciel/obsługa — scoping w handlerze; gość odłożony, ADR-0018) |
 | GET | `/orders/{id}/status` | `GetPaymentStatusQuery` | Authorize (właściciel/obsługa) |
 | POST | `/payu/webhook` | `ConfirmPaymentFromNotificationCommand` | **AllowAnonymous** (raw body — sekcja 7) |
+> `POST /orders/{id}/initialize`: `OrderId` pochodzi z route; jeśli Command niesie `OrderId`,
+> nadpisać z trasy (1.1). Webhook nie ma `{id}` — poza regułą 1.1.
 
 ### 6.8 `LoyaltyController` (`/api/loyalty`) — Iteracja 4
 | GET | `/balance` | `GetLoyaltyBalanceQuery` | `Customer` (saldo własne — scoping po `ICurrentUser.CustomerId`) |
@@ -363,10 +431,12 @@ osobno.
   `DbSet<UserAccount>` + konfiguracja + migracja, seeder SuperAdmin. **Szczegółowe kroki: sekcja 11.**
 - **Iteracja 2 — kontrolery odczytu + admin (Catalog, Restaurant, Promotions).** `MenuController`,
   `IngredientsController`, `RestaurantController`, `PromotionsController` (6.2–6.5). Endpointy
-  publiczne (menu, config, validate promo) + admin. Testy Api (`WebApplicationFactory`) na
+  publiczne (menu, config, validate promo) + admin. PUT/PATCH z `{id}` stosują regułę 1.1 (route
+  nadpisuje id w Commandzie, bez guardu). Testy Api (`WebApplicationFactory`) na
   autoryzacji (anonim vs. rola) i mapowaniu wyjątków.
 - **Iteracja 3 — zamówienia + płatności + webhook.** `OrdersController` (6.6), `PaymentsController`
-  (6.7), surowe body webhooka (sekcja 7). Testy: składanie zamówienia gość/klient, tracking po
+  (6.7), surowe body webhooka (sekcja 7). PUT `/{id}/estimated-ready-at` i akcje `/{id}/...`
+  mapują `OrderId` z route (1.1). Testy: składanie zamówienia gość/klient, tracking po
   tokenie (anonim), przejścia statusu (rola `Staff`), scoping `GetOrderByIdQuery` (403/404),
   webhook (200 idempotentny / 400 zły podpis).
 - **Iteracja 4 — SignalR + Loyalty.** `OrderTrackingHub` + `SignalROrderNotifier` (sekcja 8),
@@ -411,5 +481,3 @@ Identity jednostkowo z mockowanymi portami (Moq).
 
 Po Iteracji 1: `reviewer` przegląda (Clean Architecture — Api nie przecieka do Domain, porty w
 właściwych warstwach; format błędów; brak logiki biznesowej w kontrolerach), potem Iteracja 2.
-</content>
-</invoke>
