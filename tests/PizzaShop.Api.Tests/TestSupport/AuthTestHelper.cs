@@ -29,14 +29,26 @@ public static class AuthTestHelper
     public static async Task<HttpClient> CreateCustomerClientAsync(ApiTestFactory factory)
     {
         var client = factory.CreateClient();
+        var token = await CreateCustomerTokenAsync(factory, client);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return client;
+    }
+
+    /// <summary>
+    /// Registers a fresh customer and returns a valid JWT without attaching it anywhere — for tests
+    /// that need to exercise a token via a channel other than the <c>Authorization</c> header (e.g.
+    /// the <c>access_token</c> query string SignalR carve-out in Program.cs).
+    /// </summary>
+    public static async Task<string> CreateCustomerTokenAsync(ApiTestFactory factory, HttpClient? registrationClient = null)
+    {
+        var client = registrationClient ?? factory.CreateClient();
         var response = await client.PostAsJsonAsync(
             "/api/auth/register",
             new RegisterCustomerCommand(UniqueEmail("customer"), Password, "Jan Kowalski", null));
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<AuthResultDto>(JsonOptions);
-
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", result!.Token);
-        return client;
+        return result!.Token;
     }
 
     /// <summary>

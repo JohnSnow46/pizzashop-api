@@ -28,14 +28,12 @@ builder.Services.AddApplication();
 // policy — ADR-0024, infrastructure-layer.md 8).
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// 3. Web-inherent ports implemented by Api itself (ADR-0024). OrderTrackingHub (SignalR) is
-// still Iteration 4 (api-layer.md 10), but IOrderNotifier itself is already a hard constructor
-// dependency of every order status-transition handler (application-layer.md 4.3), so Iteration 3
-// registers a temporary no-op (PizzaShop.Api.Realtime.NoopOrderNotifier) to keep DI resolvable;
-// Iteration 4 swaps this one line for SignalROrderNotifier (see NoopOrderNotifier's XML doc).
+// 3. Web-inherent ports implemented by Api itself (ADR-0024). IOrderNotifier is backed by
+// OrderTrackingHub (SignalR, api-layer.md 8, ADR-0028) via SignalROrderNotifier — the
+// Iteration 3 temporary NoopOrderNotifier (ADR-0031) has been removed now that the hub exists.
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
-builder.Services.AddScoped<IOrderNotifier, NoopOrderNotifier>();
+builder.Services.AddScoped<IOrderNotifier, SignalROrderNotifier>();
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 
@@ -103,6 +101,25 @@ builder.Services
             RoleClaimType = ClaimTypes.Role,
             NameClaimType = JwtRegisteredClaimNames.Sub,
         };
+
+        // SignalR WebSocket/SSE clients can't set an Authorization header, so
+        // OrderTrackingHub's logged-in path (SubscribeToOrder, api-layer.md 8.1/9, ADR-0028)
+        // authenticates via an "access_token" query string parameter instead. Scoped to the
+        // hub's own path only — every other endpoint still requires the Authorization header.
+        bearerOptions.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/order-tracking"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            },
+        };
     });
 
 // 6. Authorization — FallbackPolicy requires authentication so a forgotten [Authorize]
@@ -115,8 +132,11 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
-// 7. SignalR (OrderTrackingHub) and 8. CORS are Iteration 4/future work (api-layer.md 8-9) —
-// nothing in Iteration 1 needs them, so they are deliberately left out for now.
+// 7. SignalR (OrderTrackingHub, api-layer.md 8, ADR-0028).
+builder.Services.AddSignalR();
+
+// 8. CORS is future work (api-layer.md 9) — no frontend origin to configure yet, so it is
+// deliberately left out for now.
 
 // 9. Global exception -> ProblemDetails mapping (api-layer.md 4, ADR-0027).
 builder.Services.AddExceptionHandler<ExceptionHandler>();
@@ -137,6 +157,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<OrderTrackingHub>("/hubs/order-tracking");
 
 // Skipped entirely in the "Testing" environment (WebApplicationFactory-based Api tests,
 // tests/PizzaShop.Api.Tests) — those tests replace the identity repositories with in-memory
