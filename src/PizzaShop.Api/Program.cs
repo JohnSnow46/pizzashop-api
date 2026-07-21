@@ -11,7 +11,9 @@ using Microsoft.OpenApi.Models;
 using PizzaShop.Api;
 using PizzaShop.Api.Auth;
 using PizzaShop.Api.Middleware;
+using PizzaShop.Api.Realtime;
 using PizzaShop.Application;
+using PizzaShop.Application.Abstractions.Realtime;
 using PizzaShop.Application.Common.Abstractions;
 using PizzaShop.Application.Identity.Abstractions;
 using PizzaShop.Infrastructure;
@@ -26,11 +28,14 @@ builder.Services.AddApplication();
 // policy — ADR-0024, infrastructure-layer.md 8).
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// 3. Web-inherent ports implemented by Api itself (ADR-0024). IOrderNotifier/OrderTrackingHub
-// (SignalR) are Iteration 4 (api-layer.md 10) — not registered yet, nothing in Iteration 1
-// resolves them.
+// 3. Web-inherent ports implemented by Api itself (ADR-0024). OrderTrackingHub (SignalR) is
+// still Iteration 4 (api-layer.md 10), but IOrderNotifier itself is already a hard constructor
+// dependency of every order status-transition handler (application-layer.md 4.3), so Iteration 3
+// registers a temporary no-op (PizzaShop.Api.Realtime.NoopOrderNotifier) to keep DI resolvable;
+// Iteration 4 swaps this one line for SignalROrderNotifier (see NoopOrderNotifier's XML doc).
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
+builder.Services.AddScoped<IOrderNotifier, NoopOrderNotifier>();
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 

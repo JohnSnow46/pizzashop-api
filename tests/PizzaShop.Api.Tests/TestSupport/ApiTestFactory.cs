@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using PizzaShop.Api;
+using PizzaShop.Application.Abstractions.Geocoding;
+using PizzaShop.Application.Abstractions.Payments;
 using PizzaShop.Application.Abstractions.Persistence;
 using PizzaShop.Application.Common.Abstractions;
 using PizzaShop.Application.Identity.Abstractions;
@@ -71,6 +73,18 @@ public sealed class ApiTestFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<IPromotionRepository>();
             services.AddSingleton<IPromotionRepository, InMemoryPromotionRepository>();
+
+            services.RemoveAll<IOrderRepository>();
+            services.AddSingleton<IOrderRepository, InMemoryOrderRepository>();
+
+            // Real Infrastructure implementations call external HTTP services (Nominatim,
+            // PayU Sandbox) — replaced with deterministic fakes so Api tests never depend on
+            // network access (Iteration 3, api-layer.md 6.6/6.7).
+            services.RemoveAll<IGeocodingService>();
+            services.AddSingleton<IGeocodingService, FakeGeocodingService>();
+
+            services.RemoveAll<IPaymentGateway>();
+            services.AddSingleton<IPaymentGateway, FakePaymentGateway>();
         });
     }
 
