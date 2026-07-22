@@ -28,11 +28,24 @@ public static class AuthTestHelper
     /// <summary>Registers a fresh customer and returns an <see cref="HttpClient"/> authenticated as them.</summary>
     public static async Task<HttpClient> CreateCustomerClientAsync(ApiTestFactory factory)
     {
+        var (client, _) = await CreateCustomerAsync(factory);
+        return client;
+    }
+
+    /// <summary>
+    /// Registers a fresh customer and returns both an authenticated <see cref="HttpClient"/> (for
+    /// the ordinary Authorization-header flow) and the raw JWT — for tests that also need to hand
+    /// the same token to a channel other than the Authorization header, e.g. a SignalR
+    /// <c>HubConnection</c>'s <c>AccessTokenProvider</c> (the <c>access_token</c> query string
+    /// carve-out in Program.cs).
+    /// </summary>
+    public static async Task<(HttpClient Client, string Token)> CreateCustomerAsync(ApiTestFactory factory)
+    {
         var client = factory.CreateClient();
         var token = await CreateCustomerTokenAsync(factory, client);
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        return client;
+        return (client, token);
     }
 
     /// <summary>

@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -132,8 +133,9 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
-// 7. SignalR (OrderTrackingHub, api-layer.md 8, ADR-0028).
-builder.Services.AddSignalR();
+// 7. SignalR (OrderTrackingHub, api-layer.md 8, ADR-0028). HubHttpContextFilter fixes a
+// real IHttpContextAccessor/ICurrentUser gap inside hub methods — see its doc comment.
+builder.Services.AddSignalR(options => options.AddFilter<HubHttpContextFilter>());
 
 // 8. CORS is future work (api-layer.md 9) — no frontend origin to configure yet, so it is
 // deliberately left out for now.

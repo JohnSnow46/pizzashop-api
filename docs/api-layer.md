@@ -10,8 +10,9 @@ Powiązane decyzje: ADR-0004/0005 (role, tożsamość vs. `Customer`, gość), A
 niezależna od realizacji), ADR-0008 (`EstimatedReadyAt`), ADR-0013/0022 (webhook PayU bez JWT),
 ADR-0017/0018 (oś wyjątków Application → HTTP), ADR-0024 (granica kompozycji), **ADR-0026**
 (tożsamość/JWT), **ADR-0027** (middleware wyjątków + autoryzacja ról + kontrolery), **ADR-0028**
-(SignalR). Porty Application: `docs/application-layer.md` sekcja 3. Use case'y: sekcja 4.
-Graf `OrderStatus`: `docs/domain-model.md` 5.3.
+(SignalR), **ADR-0032** (`HubHttpContextFilter` — propagacja `ICurrentUser` w Hubie). Porty
+Application: `docs/application-layer.md` sekcja 3. Use case'y: sekcja 4. Graf `OrderStatus`:
+`docs/domain-model.md` 5.3.
 
 ---
 
@@ -164,6 +165,14 @@ Czyta claimy z `HttpContext.User`:
 - `Role` = claim roli → `UserRole` (null gdy anonim).
 Brak `HttpContext`/niezalogowany ⇒ wszystkie null (kontrakt `ICurrentUser` — gość, ADR-0005).
 Rejestracja: `AddHttpContextAccessor()` + `AddScoped<ICurrentUser, HttpContextCurrentUser>()`.
+
+> **Uwaga o `ICurrentUser` wewnątrz SignalR (ADR-0032).** `HttpContextCurrentUser` opiera się na
+> `IHttpContextAccessor` (holder `AsyncLocal`). Wewnątrz metod Huba wołanych po long-pollingu ASP.NET
+> Core czyści ten holder z chwilą zakończenia żądania transportu, które dostarczyło wywołanie — a
+> kontynuacja async metody Huba żyje dłużej. Bez korekty `ICurrentUser` traci wtedy cicho tożsamość
+> (null), mimo poprawnego JWT. Rozwiązuje to globalny `HubHttpContextFilter` (sekcja 8.3), który
+> re-kotwiczy `IHttpContextAccessor.HttpContext` na czas każdego wywołania metody Huba. Kod Api spoza
+> Hubów (kontrolery) nie jest tym dotknięty.
 
 ---
 
@@ -366,10 +375,15 @@ Metody subskrypcji (autoryzacja dostępu przy subskrypcji, nie push):
   `GetOrderByTrackingTokenQuery` (przez `IDispatcher`); jeśli zwróci zamówienie, dodaje połączenie
   do grupy `order.Id` (`Groups.AddToGroupAsync`). Token nieodgadnalny = autoryzacja (jak endpoint
   trackingu, ADR-0005). Brak/nieprawidłowy token → brak subskrypcji (Hub nie ujawnia istnienia).
+  Handler tej ścieżki (`GetOrderByTrackingTokenQueryHandler`) zależy **wyłącznie** od
+  `IOrderRepository` — nie czyta `ICurrentUser`/`IHttpContextAccessor`, więc jest niewrażliwy na
+  problem propagacji tożsamości opisany w 8.3 (autoryzacją jest sam token).
 - `SubscribeToOrder(Guid orderId)` — ścieżka zalogowanego. Hub woła `GetOrderByIdQuery` (handler
   scope'uje po `ICurrentUser` — własne/obsługa); sukces ⇒ dodanie do grupy `orderId`, inaczej brak
   subskrypcji. Tożsamość w SignalR pochodzi z tego samego JWT (`AddJwtBearer` obsługuje
-  `access_token` z query stringu dla WebSocketów — `OnMessageReceived`).
+  `access_token` z query stringu dla WebSocketów — `OnMessageReceived`). **Ta ścieżka wymaga
+  mechanizmu z 8.3** — bez niego `ICurrentUser` gubi tożsamość w kontynuacji metody Huba i klient
+  nigdy nie zostaje dodany do grupy (cicho, jak dla nieistniejącego zamówienia).
 
 Rozstrzygnięcie „grupy per OrderId czy per GuestTrackingToken": **per `OrderId`**. Token służy
 tylko do *autoryzacji subskrypcji* (rozwiązywany na `OrderId` przy `SubscribeToGuestOrder`), a nie
@@ -383,6 +397,37 @@ lądują w jednej grupie tego samego zamówienia.
 = `{ orderId, status, estimatedReadyAt }`. Wołany przez handlery przejść statusu i
 `SetEstimatedReadyAtCommand` (application-layer.md 4.3). Rejestracja:
 `AddScoped<IOrderNotifier, SignalROrderNotifier>()`.
+
+### 8.3 `HubHttpContextFilter` — propagacja `ICurrentUser` w metodach Huba (ADR-0032)
+`src/PizzaShop.Api/Realtime/HubHttpContextFilter.cs` — globalny `IHubFilter`, rejestrowany przez
+`AddSignalR(options => options.AddFilter<HubHttpContextFilter>())` (sekcja 9, pkt 7).
+
+**Problem.** `HttpContextCurrentUser` (sekcja 3) czyta tożsamość z `IHttpContextAccessor.HttpContext`
+(holder `AsyncLocal`). ASP.NET Core czyści ten holder z chwilą zakończenia konkretnego żądania HTTP,
+które dostarczyło wywołanie metody Huba (np. pojedynczy POST long-pollingu z komunikatem
+`SubscribeToOrder`) — mimo że asynchroniczna kontynuacja metody Huba żyje dłużej. Dowolny kod
+Application rozwiązujący `ICurrentUser` **po tym** momencie (tu: `GetOrderByIdQueryHandler`) widzi
+`HttpContext == null` i cicho traci tożsamość — mimo że `Context.User`/`Context.GetHttpContext()` na
+samym Hubie są nadal poprawnie uwierzytelnione. Efekt: `SubscribeToOrder` zalogowanego właściciela
+nigdy nie dołączał do grupy (jak dla nieistniejącego zamówienia — bez wyjątku i logu).
+
+**Rozwiązanie.** Filtr na czas każdego `InvokeMethodAsync` podmienia
+`_httpContextAccessor.HttpContext` na `invocationContext.Context.GetHttpContext()` (świeży,
+niezależny holder `AsyncLocal`, który propaguje w dół całego wywołania Huba i przeżywa zakończenie
+żądania transportu), a w `finally` przywraca poprzednią wartość. Chroni **każdą** metodę Huba
+(obecną i przyszłą), nie tylko `SubscribeToOrder`.
+
+**Ograniczenie dla przyszłych Hubów.** Filtr nadpisuje wyłącznie `InvokeMethodAsync` — zdarzenia
+`OnConnectedAsync`/`OnDisconnectedAsync` **nie są** re-kotwiczone. Obecny `OrderTrackingHub` nie
+czyta `ICurrentUser` w tych zdarzeniach, więc to dziś nieistotne. Jeśli przyszły Hub zacznie
+rozstrzygać tożsamość w cyklu życia połączenia, trzeba dopisać re-kotwiczenie w tych dwóch metodach
+filtra albo świadomie czytać `Context.User` na miejscu.
+
+**Test regresyjny.** `tests/PizzaShop.Api.Tests/Realtime/OrderTrackingHubIntegrationTests.cs` —
+realny `HubConnection` (SignalR.Client, long polling nad `TestServer`), realny JWT w query stringu
+`access_token`, realne przejście statusu przez personel; potwierdza push `OrderStatusChanged` dla
+właściciela i jego brak dla nie-właściciela. Testy z mockiem `HubCallerContext` z zasady nie
+wykryłyby tej regresji (cicha nie-subskrypcja jest nieodróżnialna od „nie ma zamówienia").
 
 ---
 
@@ -400,7 +445,9 @@ Kolejność w `Program.cs`:
    `AddSwaggerGen(...)` z definicją `Bearer` (żeby Swagger UI wysyłał JWT).
 5. Auth: `AddAuthentication(JwtBearerDefaults...).AddJwtBearer(o => { o.TokenValidationParameters = ...; o.Events = ...` (query-string token dla SignalR) `})`.
 6. `AddAuthorization(o => o.FallbackPolicy = wymaga uwierzytelnienia)` (sekcja 5).
-7. `AddSignalR()`.
+7. `AddSignalR(options => options.AddFilter<HubHttpContextFilter>())` — filtr re-kotwiczący
+   `IHttpContextAccessor.HttpContext` w metodach Huba (sekcja 8.3, ADR-0032); bez niego
+   `ICurrentUser` cicho gubi tożsamość wewnątrz `SubscribeToOrder`.
 8. `AddExceptionHandler<...>()` + `AddProblemDetails()` (middleware wyjątków, sekcja 4).
 9. `AddCors(...)` — nazwana polityka pod przyszły frontend (origin z konfiguracji `Cors:Origins`);
    domyślnie restrykcyjna. Włączyć w pipeline tylko jeśli skonfigurowano origin.
@@ -439,9 +486,11 @@ osobno.
   mapują `OrderId` z route (1.1). Testy: składanie zamówienia gość/klient, tracking po
   tokenie (anonim), przejścia statusu (rola `Staff`), scoping `GetOrderByIdQuery` (403/404),
   webhook (200 idempotentny / 400 zły podpis).
-- **Iteracja 4 — SignalR + Loyalty.** `OrderTrackingHub` + `SignalROrderNotifier` (sekcja 8),
-  `LoyaltyController` (6.8), token JWT w query dla WebSocketów. Testy: subskrypcja gościa po tokenie
-  vs. zalogowanego po ownership, dostarczenie `OrderStatusChanged` do grupy.
+- **Iteracja 4 — SignalR + Loyalty.** `OrderTrackingHub` + `SignalROrderNotifier` +
+  `HubHttpContextFilter` (sekcja 8), `LoyaltyController` (6.8), token JWT w query dla WebSocketów.
+  Testy: subskrypcja gościa po tokenie vs. zalogowanego po ownership, dostarczenie
+  `OrderStatusChanged` do grupy, oraz **integracyjny test end-to-end** propagacji `ICurrentUser`
+  przez realny `HubConnection` (8.3, ADR-0032).
 
 Każdy kontroler i handler Identity z testem (CLAUDE.md). Testy Api integracyjne przez
 `WebApplicationFactory` (uwierzytelnianie: testowy handler auth lub realny JWT); testy handlerów

@@ -177,28 +177,38 @@ GitLens blame inline przy najechaniu na linię.
 `docs/infrastructure-layer.md` są aktualnym źródłem prawdy o modelu i warstwach; ten plik
 opisuje tylko ogólny zakres i konwencje, nie duplikuj z niego szczegółów.
 
-Zaimplementowane i zbudowane (0 błędów kompilacji):
+Zaimplementowane i zbudowane (0 błędów kompilacji; `dotnet test` zielony poza
+`PizzaShop.Infrastructure.Tests`, które wymagają lokalnie uruchomionego Dockera dla
+Testcontainers):
 - **Domain** — pełny model (VO, wyjątki, enumy, encje katalogu, `Restaurant`, `Order`/
-  `OrderItem`, `Customer`/`LoyaltyAccount`, `Promotion`), pełne pokrycie testami.
-- **Application** — CQRS use case'y, porty, DTO, walidatory FluentValidation.
-- **Infrastructure** — EF Core + PostgreSQL (konfiguracje mapowania, 3 migracje), 7
+  `OrderItem`, `Customer`/`LoyaltyAccount`, `Promotion`), pełne pokrycie testami (205 testów).
+- **Application** — CQRS use case'y, porty, DTO, walidatory FluentValidation (260 testów).
+- **Infrastructure** — EF Core + PostgreSQL (konfiguracje mapowania, migracje), 7
   repozytoriów + `UnitOfWork`, `PayUPaymentGateway`, `NominatimGeocodingService`, testy
-  integracyjne na Testcontainers.
-- **Api — Iteracja 1** (tożsamość + JWT): `UserAccount` (Application/Identity), BCrypt,
-  `RegisterCustomerCommand`/`LoginCommand`/`RegisterStaffAccountCommand`, `JwtTokenGenerator`,
-  `HttpContextCurrentUser`, globalny middleware wyjątków → `ProblemDetails`, `AuthController`
-  (`/register`, `/login`, `/staff`, `/me`), `DbSeeder` (bootstrap `SuperAdmin`).
+  integracyjne na Testcontainers (wymagają Docker).
+- **Api — Iteracje 1–4 (kompletne, `docs/api-layer.md` sekcja 10)** — 104 testy
+  (`WebApplicationFactory`), w tym integracyjny test end-to-end `HubConnection` (ADR-0032):
+  - **Iteracja 1** (tożsamość + JWT): `UserAccount` (Application/Identity), BCrypt,
+    `RegisterCustomerCommand`/`LoginCommand`/`RegisterStaffAccountCommand`, `JwtTokenGenerator`,
+    `HttpContextCurrentUser`, globalny middleware wyjątków → `ProblemDetails`, `AuthController`
+    (`/register`, `/login`, `/staff`, `/me`), `DbSeeder` (bootstrap `SuperAdmin`).
+  - **Iteracja 2** — `MenuController`, `IngredientsController`, `RestaurantController`,
+    `PromotionsController` (odczyt publiczny + admin).
+  - **Iteracja 3** — `OrdersController`, `PaymentsController` (webhook PayU surowe body, bez JWT).
+  - **Iteracja 4** — SignalR (`OrderTrackingHub`, `SignalROrderNotifier` zarejestrowany zamiast
+    tymczasowego `NoopOrderNotifier` z ADR-0031, `HubHttpContextFilter` z ADR-0032 naprawiający
+    utratę `ICurrentUser` w metodach Huba), `LoyaltyController`.
 
-Ważna decyzja po drodze: **ADR-0029** — powiązanie `Customer`↔`LoyaltyAccount` jest
+Ważne decyzje po drodze: **ADR-0029** — powiązanie `Customer`↔`LoyaltyAccount` jest
 jednokierunkowe (`LoyaltyAccount.CustomerId` jedyny nośnik FK; `Customer.LoyaltyAccountId`
 usunięty, migracja `DropCustomerLoyaltyAccountId`). Wzorzec wiążący na przyszłość: relacje 1:1
 między agregatami — FK po stronie zależnej, bez opcjonalnych `id` w fabrykach do uzgadniania
-tożsamości między agregatami.
+tożsamości między agregatami. **ADR-0030** — route jako jedyne źródło prawdy dla id w
+kontrolerach mutujących (nadpisanie, bez guardu `BadRequest()`).
 
-Zaprojektowane, jeszcze niezaimplementowane — Api Iteracje 2–4 (`docs/api-layer.md` sekcja 10):
-- **Iteracja 2** (w toku — patrz TodoWrite/ostatni commit) — `MenuController`,
-  `IngredientsController`, `RestaurantController`, `PromotionsController` (`docs/api-layer.md`
-  sekcje 6.2–6.5): endpointy odczytu publiczne + admin, testy `WebApplicationFactory` na
-  autoryzacji i mapowaniu wyjątków.
-- **Iteracja 3** — `OrdersController`, `PaymentsController` (webhook PayU surowe body, bez JWT).
-- **Iteracja 4** — SignalR (`OrderTrackingHub`, `SignalROrderNotifier`), `LoyaltyController`.
+Świadomie odłożone (nie blokują niczego, ale niedookreślone — patrz ADR-0009/0011/0014):
+konkretny przelicznik punktów lojalnościowych (`ILoyaltyPolicy` ma tymczasową, prostą
+implementację placeholder), `Promotion.CalculateDiscount` dla `BuyXGetY` (rzuca
+`NotSupportedException`).
+
+CI: `.github/workflows/ci.yml` — `dotnet build`/`dotnet test` na push/PR do `main`.
