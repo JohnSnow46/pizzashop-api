@@ -8,6 +8,9 @@ obj/
 *.user
 *.suo
 
+# Local code-review setup (not shared with the team)
+.editorconfig
+
 # Test results
 [Tt]est[Rr]esult*/
 *.trx
