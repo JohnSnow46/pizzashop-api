@@ -17,15 +17,13 @@ internal static class DomainTestFactory
 
     public static DomainRestaurant CreateRestaurant()
     {
-        var schedule = new Dictionary<DayOfWeek, IReadOnlyList<TimeRange>>
-        {
-            [DayOfWeek.Monday] = new List<TimeRange> { new(new TimeOnly(10, 0), new TimeOnly(22, 0)) },
-            [DayOfWeek.Tuesday] = new List<TimeRange>
-            {
-                new(new TimeOnly(10, 0), new TimeOnly(14, 0)),
-                new(new TimeOnly(16, 0), new TimeOnly(22, 0)),
-            },
-        };
+        // Open every day, effectively around the clock: these are persistence round-trip tests,
+        // not opening-hours business rules (covered separately in Domain.Tests) — Order.Create's
+        // placed-at time is real DateTimeOffset.UtcNow, so a schedule with gaps (e.g. only
+        // Monday/Tuesday) makes these tests fail depending on which day they happen to run.
+        var allDayEveryDay = new List<TimeRange> { new(new TimeOnly(0, 0), new TimeOnly(23, 59)) };
+        var schedule = Enum.GetValues<DayOfWeek>()
+            .ToDictionary(day => day, IReadOnlyList<TimeRange> (_) => allDayEveryDay);
 
         return DomainRestaurant.Create(
             "Pizza Palace",

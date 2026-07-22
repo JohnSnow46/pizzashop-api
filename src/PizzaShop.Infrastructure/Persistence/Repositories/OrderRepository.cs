@@ -69,8 +69,11 @@ public sealed class OrderRepository : IOrderRepository
 
     public async Task<string> NextOrderNumberAsync(CancellationToken cancellationToken)
     {
+        // EF Core's SqlQueryRaw<T> for a scalar T requires the result set's single column to be
+        // named "Value" — Postgres otherwise names it "nextval" after the function, which EF's
+        // generated wrapping query then fails to find.
         var next = await _context.Database
-            .SqlQueryRaw<long>($"SELECT nextval('{PizzaShopDbContext.OrderNumberSequenceName}')")
+            .SqlQueryRaw<long>($"SELECT nextval('{PizzaShopDbContext.OrderNumberSequenceName}') AS \"Value\"")
             .SingleAsync(cancellationToken);
 
         return $"{_clock.UtcNow:yyyyMMdd}-{next:D4}";
