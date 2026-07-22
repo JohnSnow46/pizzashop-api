@@ -12,13 +12,10 @@ namespace PizzaShop.Infrastructure.Tests.Repositories;
 /// </summary>
 [Collection(PostgresCollection.Name)]
 [Trait("Category", "Integration")]
-public sealed class CustomerRepositoryTests
+public sealed class CustomerRepositoryTests : PostgresRepositoryTestBase
 {
-    private readonly PostgresFixture _fixture;
-
-    public CustomerRepositoryTests(PostgresFixture fixture)
+    public CustomerRepositoryTests(PostgresFixture fixture) : base(fixture)
     {
-        _fixture = fixture;
     }
 
     [Fact]
@@ -27,14 +24,14 @@ public sealed class CustomerRepositoryTests
         var customer = DomainTestFactory.CreateCustomer();
         var homeAddress = customer.AddAddress("Home", DomainTestFactory.SampleDeliveryAddress(), isDefault: true);
 
-        await using (var writeContext = _fixture.CreateContext())
+        await using (var writeContext = Fixture.CreateContext())
         {
             var repository = new CustomerRepository(writeContext);
             await repository.AddAsync(customer, CancellationToken.None);
             await writeContext.SaveChangesAsync();
         }
 
-        await using var readContext = _fixture.CreateContext();
+        await using var readContext = Fixture.CreateContext();
         var readRepository = new CustomerRepository(readContext);
 
         var loaded = await readRepository.GetByUserAccountIdAsync(customer.UserAccountId, CancellationToken.None);

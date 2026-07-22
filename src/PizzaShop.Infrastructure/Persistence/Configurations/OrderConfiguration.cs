@@ -53,6 +53,8 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
             item.Property(i => i.VariantName).HasMaxLength(100);
             item.Property(i => i.Quantity).IsRequired();
             item.Property(i => i.Notes).HasMaxLength(500);
+            item.Property(i => i.UnitPrice).IsRequired();
+            item.Property(i => i.LineTotal).IsRequired();
 
             item.OwnsMany(i => i.Extras, extra =>
             {

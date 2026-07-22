@@ -10,19 +10,16 @@ namespace PizzaShop.Infrastructure.Tests.Persistence;
 /// </summary>
 [Collection(PostgresCollection.Name)]
 [Trait("Category", "Integration")]
-public sealed class ModelBuildingTests
+public sealed class ModelBuildingTests : PostgresRepositoryTestBase
 {
-    private readonly PostgresFixture _fixture;
-
-    public ModelBuildingTests(PostgresFixture fixture)
+    public ModelBuildingTests(PostgresFixture fixture) : base(fixture)
     {
-        _fixture = fixture;
     }
 
     [Fact]
     public void Model_BuildsWithoutErrors()
     {
-        using var context = _fixture.CreateContext();
+        using var context = Fixture.CreateContext();
 
         var model = context.Model;
 
@@ -33,7 +30,7 @@ public sealed class ModelBuildingTests
     [Fact]
     public async Task Database_CanConnectAfterMigrate()
     {
-        await using var context = _fixture.CreateContext();
+        await using var context = Fixture.CreateContext();
 
         var canConnect = await context.Database.CanConnectAsync();
 

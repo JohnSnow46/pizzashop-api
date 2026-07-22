@@ -11,13 +11,10 @@ namespace PizzaShop.Infrastructure.Tests.Repositories;
 /// </summary>
 [Collection(PostgresCollection.Name)]
 [Trait("Category", "Integration")]
-public sealed class LoyaltyAccountRepositoryTests
+public sealed class LoyaltyAccountRepositoryTests : PostgresRepositoryTestBase
 {
-    private readonly PostgresFixture _fixture;
-
-    public LoyaltyAccountRepositoryTests(PostgresFixture fixture)
+    public LoyaltyAccountRepositoryTests(PostgresFixture fixture) : base(fixture)
     {
-        _fixture = fixture;
     }
 
     [Fact]
@@ -26,14 +23,14 @@ public sealed class LoyaltyAccountRepositoryTests
         var customerId = Guid.NewGuid();
         var account = DomainTestFactory.CreateLoyaltyAccountWithHistory(customerId);
 
-        await using (var writeContext = _fixture.CreateContext())
+        await using (var writeContext = Fixture.CreateContext())
         {
             var repository = new LoyaltyAccountRepository(writeContext);
             await repository.AddAsync(account, CancellationToken.None);
             await writeContext.SaveChangesAsync();
         }
 
-        await using var readContext = _fixture.CreateContext();
+        await using var readContext = Fixture.CreateContext();
         var readRepository = new LoyaltyAccountRepository(readContext);
 
         var loaded = await readRepository.GetByCustomerIdAsync(customerId, CancellationToken.None);

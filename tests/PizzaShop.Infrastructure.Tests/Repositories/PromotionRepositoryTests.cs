@@ -8,13 +8,10 @@ namespace PizzaShop.Infrastructure.Tests.Repositories;
 /// <summary>Round-trip coverage for <see cref="PromotionRepository"/> (ADR-0019).</summary>
 [Collection(PostgresCollection.Name)]
 [Trait("Category", "Integration")]
-public sealed class PromotionRepositoryTests
+public sealed class PromotionRepositoryTests : PostgresRepositoryTestBase
 {
-    private readonly PostgresFixture _fixture;
-
-    public PromotionRepositoryTests(PostgresFixture fixture)
+    public PromotionRepositoryTests(PostgresFixture fixture) : base(fixture)
     {
-        _fixture = fixture;
     }
 
     [Fact]
@@ -22,14 +19,14 @@ public sealed class PromotionRepositoryTests
     {
         var promotion = DomainTestFactory.CreatePromotion();
 
-        await using (var writeContext = _fixture.CreateContext())
+        await using (var writeContext = Fixture.CreateContext())
         {
             var repository = new PromotionRepository(writeContext);
             await repository.AddAsync(promotion, CancellationToken.None);
             await writeContext.SaveChangesAsync();
         }
 
-        await using var readContext = _fixture.CreateContext();
+        await using var readContext = Fixture.CreateContext();
         var readRepository = new PromotionRepository(readContext);
 
         var loaded = await readRepository.GetByCodeAsync("summer10", CancellationToken.None);

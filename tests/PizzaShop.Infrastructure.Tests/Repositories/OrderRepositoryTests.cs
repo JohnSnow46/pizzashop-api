@@ -14,13 +14,10 @@ namespace PizzaShop.Infrastructure.Tests.Repositories;
 /// </summary>
 [Collection(PostgresCollection.Name)]
 [Trait("Category", "Integration")]
-public sealed class OrderRepositoryTests
+public sealed class OrderRepositoryTests : PostgresRepositoryTestBase
 {
-    private readonly PostgresFixture _fixture;
-
-    public OrderRepositoryTests(PostgresFixture fixture)
+    public OrderRepositoryTests(PostgresFixture fixture) : base(fixture)
     {
-        _fixture = fixture;
     }
 
     [Fact]
@@ -32,7 +29,7 @@ public sealed class OrderRepositoryTests
         var guestTrackingToken = Guid.NewGuid();
         var providerPaymentReference = "PAYU-12345";
 
-        await using (var writeContext = _fixture.CreateContext())
+        await using (var writeContext = Fixture.CreateContext())
         {
             await writeContext.Restaurants.AddAsync(restaurant);
 
@@ -42,7 +39,7 @@ public sealed class OrderRepositoryTests
             await writeContext.SaveChangesAsync();
         }
 
-        await using var readContext = _fixture.CreateContext();
+        await using var readContext = Fixture.CreateContext();
         var readRepository = new OrderRepository(readContext, new SystemClock());
 
         var loaded = await readRepository.GetByGuestTrackingTokenAsync(guestTrackingToken, CancellationToken.None);
@@ -69,7 +66,7 @@ public sealed class OrderRepositoryTests
         var restaurant = DomainTestFactory.CreateRestaurant();
         var order = DomainTestFactory.CreatePickupOrder(restaurant);
 
-        await using (var writeContext = _fixture.CreateContext())
+        await using (var writeContext = Fixture.CreateContext())
         {
             await writeContext.Restaurants.AddAsync(restaurant);
 
@@ -79,7 +76,7 @@ public sealed class OrderRepositoryTests
             await writeContext.SaveChangesAsync();
         }
 
-        await using var readContext = _fixture.CreateContext();
+        await using var readContext = Fixture.CreateContext();
         var readRepository = new OrderRepository(readContext, new SystemClock());
 
         var loaded = await readRepository.GetByIdAsync(order.Id, CancellationToken.None);
@@ -99,7 +96,7 @@ public sealed class OrderRepositoryTests
         var restaurant = DomainTestFactory.CreateRestaurant();
         var order = DomainTestFactory.CreateDeliveryOrderWithExtras(restaurant, Guid.NewGuid());
 
-        await using (var writeContext = _fixture.CreateContext())
+        await using (var writeContext = Fixture.CreateContext())
         {
             await writeContext.Restaurants.AddAsync(restaurant);
             var repository = new OrderRepository(writeContext, new SystemClock());
@@ -107,14 +104,14 @@ public sealed class OrderRepositoryTests
             await writeContext.SaveChangesAsync();
         }
 
-        await using (var updateContext = _fixture.CreateContext())
+        await using (var updateContext = Fixture.CreateContext())
         {
             var repository = new OrderRepository(updateContext, new SystemClock());
             await repository.SetProviderPaymentReferenceAsync(order.Id, "PAYU-99999", CancellationToken.None);
             await updateContext.SaveChangesAsync();
         }
 
-        await using var readContext = _fixture.CreateContext();
+        await using var readContext = Fixture.CreateContext();
         var readRepository = new OrderRepository(readContext, new SystemClock());
         var reference = await readRepository.GetProviderPaymentReferenceAsync(order.Id, CancellationToken.None);
 
@@ -124,7 +121,7 @@ public sealed class OrderRepositoryTests
     [Fact]
     public async Task NextOrderNumberAsync_ProducesIncreasingSequenceValues()
     {
-        await using var context = _fixture.CreateContext();
+        await using var context = Fixture.CreateContext();
         var repository = new OrderRepository(context, new SystemClock());
 
         var first = await repository.NextOrderNumberAsync(CancellationToken.None);

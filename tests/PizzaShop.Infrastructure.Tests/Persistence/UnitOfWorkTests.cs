@@ -15,13 +15,10 @@ namespace PizzaShop.Infrastructure.Tests.Persistence;
 /// </summary>
 [Collection(PostgresCollection.Name)]
 [Trait("Category", "Integration")]
-public sealed class UnitOfWorkTests
+public sealed class UnitOfWorkTests : PostgresRepositoryTestBase
 {
-    private readonly PostgresFixture _fixture;
-
-    public UnitOfWorkTests(PostgresFixture fixture)
+    public UnitOfWorkTests(PostgresFixture fixture) : base(fixture)
     {
-        _fixture = fixture;
     }
 
     [Fact]
@@ -30,13 +27,13 @@ public sealed class UnitOfWorkTests
         var now = DateTimeOffset.UtcNow;
         var email = $"race-{Guid.NewGuid():N}@example.com";
 
-        await using (var seedContext = _fixture.CreateContext())
+        await using (var seedContext = Fixture.CreateContext())
         {
             seedContext.UserAccounts.Add(UserAccount.Create(email, "hash-1", UserRole.Customer, now));
             await seedContext.SaveChangesAsync();
         }
 
-        await using var context = _fixture.CreateContext();
+        await using var context = Fixture.CreateContext();
         context.UserAccounts.Add(UserAccount.Create(email, "hash-2", UserRole.Customer, now));
         var unitOfWork = new UnitOfWork(context);
 

@@ -13,13 +13,10 @@ namespace PizzaShop.Infrastructure.Tests.Repositories;
 /// </summary>
 [Collection(PostgresCollection.Name)]
 [Trait("Category", "Integration")]
-public sealed class MenuItemRepositoryTests
+public sealed class MenuItemRepositoryTests : PostgresRepositoryTestBase
 {
-    private readonly PostgresFixture _fixture;
-
-    public MenuItemRepositoryTests(PostgresFixture fixture)
+    public MenuItemRepositoryTests(PostgresFixture fixture) : base(fixture)
     {
-        _fixture = fixture;
     }
 
     [Fact]
@@ -29,7 +26,7 @@ public sealed class MenuItemRepositoryTests
         var extraIngredient = DomainTestFactory.CreateIngredient("Mushrooms", 3m);
         var menuItem = DomainTestFactory.CreatePizzaWithVariantsAndIngredients(baseIngredient, extraIngredient);
 
-        await using (var writeContext = _fixture.CreateContext())
+        await using (var writeContext = Fixture.CreateContext())
         {
             var ingredientRepository = new IngredientRepository(writeContext);
             await ingredientRepository.AddAsync(baseIngredient, CancellationToken.None);
@@ -41,7 +38,7 @@ public sealed class MenuItemRepositoryTests
             await writeContext.SaveChangesAsync();
         }
 
-        await using var readContext = _fixture.CreateContext();
+        await using var readContext = Fixture.CreateContext();
         var readRepository = new MenuItemRepository(readContext);
 
         var loaded = await readRepository.GetByIdAsync(menuItem.Id, CancellationToken.None);
@@ -62,14 +59,14 @@ public sealed class MenuItemRepositoryTests
         var unavailable = DomainTestFactory.CreatePizzaWithVariantsAndIngredients(baseIngredient, baseIngredient);
         unavailable.MarkUnavailable();
 
-        await using (var writeContext = _fixture.CreateContext())
+        await using (var writeContext = Fixture.CreateContext())
         {
             await writeContext.Ingredients.AddAsync(baseIngredient);
             await writeContext.MenuItems.AddRangeAsync(available, unavailable);
             await writeContext.SaveChangesAsync();
         }
 
-        await using var readContext = _fixture.CreateContext();
+        await using var readContext = Fixture.CreateContext();
         var repository = new MenuItemRepository(readContext);
 
         var menu = await repository.GetMenuAsync(CancellationToken.None);

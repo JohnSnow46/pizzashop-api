@@ -8,13 +8,10 @@ namespace PizzaShop.Infrastructure.Tests.Repositories;
 /// <summary>Round-trip coverage for <see cref="IngredientRepository"/> (the Money conversion in particular).</summary>
 [Collection(PostgresCollection.Name)]
 [Trait("Category", "Integration")]
-public sealed class IngredientRepositoryTests
+public sealed class IngredientRepositoryTests : PostgresRepositoryTestBase
 {
-    private readonly PostgresFixture _fixture;
-
-    public IngredientRepositoryTests(PostgresFixture fixture)
+    public IngredientRepositoryTests(PostgresFixture fixture) : base(fixture)
     {
-        _fixture = fixture;
     }
 
     [Fact]
@@ -22,14 +19,14 @@ public sealed class IngredientRepositoryTests
     {
         var ingredient = DomainTestFactory.CreateIngredient("Pepperoni", 4.5m);
 
-        await using (var writeContext = _fixture.CreateContext())
+        await using (var writeContext = Fixture.CreateContext())
         {
             var repository = new IngredientRepository(writeContext);
             await repository.AddAsync(ingredient, CancellationToken.None);
             await writeContext.SaveChangesAsync();
         }
 
-        await using var readContext = _fixture.CreateContext();
+        await using var readContext = Fixture.CreateContext();
         var readRepository = new IngredientRepository(readContext);
 
         var loaded = await readRepository.GetByIdAsync(ingredient.Id, CancellationToken.None);

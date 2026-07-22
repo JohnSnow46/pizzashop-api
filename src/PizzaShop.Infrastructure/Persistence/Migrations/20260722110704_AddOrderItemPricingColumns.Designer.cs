@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PizzaShop.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using PizzaShop.Infrastructure.Persistence;
 namespace PizzaShop.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(PizzaShopDbContext))]
-    partial class PizzaShopDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260722110704_AddOrderItemPricingColumns")]
+    partial class AddOrderItemPricingColumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
