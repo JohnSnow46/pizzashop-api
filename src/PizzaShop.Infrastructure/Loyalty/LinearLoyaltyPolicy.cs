@@ -5,9 +5,10 @@ using PizzaShop.Domain.ValueObjects;
 namespace PizzaShop.Infrastructure.Loyalty;
 
 /// <summary>
-/// Placeholder <see cref="ILoyaltyPolicy"/> implementation (ADR-0014): 1 point earned per
-/// 1 PLN of subtotal, 1 point worth 0.05 PLN when redeemed. The business has not finalized
-/// the real conversion rate yet — swapping this out for the eventual rule requires no changes
+/// Final <see cref="ILoyaltyPolicy"/> implementation (ADR-0033, closing ADR-0009/ADR-0014):
+/// 1 point earned per 1 PLN of subtotal, 1 point worth 0.05 PLN when redeemed, no upper cap on
+/// redemption coverage beyond the customer's balance. The port remains swappable — a future
+/// change to the conversion rule would still be a new implementation, with no changes required
 /// to Domain or the handlers that call this port.
 /// </summary>
 public sealed class LinearLoyaltyPolicy : ILoyaltyPolicy

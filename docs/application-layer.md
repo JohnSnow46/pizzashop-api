@@ -341,8 +341,9 @@ Iteracja 3 — płatności:
 
 Iteracja 4 — promocje i lojalność:
 12. `IPromotionRepository` + `ValidatePromotionCodeQuery`, `Create/Update/Get PromotionCommand`
-    (odrzucenie `BuyXGetY`), wpięcie do `CreateOrderCommand` (krok 6).
-13. `ILoyaltyPolicy` (port + placeholder impl w Infrastructure, ADR-0014),
+    (`BuyXGetY` w pełni obsłużony, ADR-0034 — patrz też domain-model.md 8.2), wpięcie do
+    `CreateOrderCommand` (krok 6).
+13. `ILoyaltyPolicy` (port + finalna impl w Infrastructure, ADR-0014, reguła sfinalizowana ADR-0033),
     `ILoyaltyAccountRepository`, `ICustomerRepository`, `GetLoyaltyBalanceQuery`, wpięcie
     wymiany (krok 7) i naliczania (przy `CompleteOrderCommand`).
 

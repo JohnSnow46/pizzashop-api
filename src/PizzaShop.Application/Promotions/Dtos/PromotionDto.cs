@@ -19,4 +19,5 @@ public sealed record PromotionDto(
     DateTimeOffset ValidTo,
     bool IsActive,
     int? UsageLimit,
-    int UsageCount);
+    int UsageCount,
+    BuyXGetYRuleDto? BuyXGetY);

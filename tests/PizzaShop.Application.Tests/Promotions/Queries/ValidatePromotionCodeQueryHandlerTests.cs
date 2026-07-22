@@ -3,6 +3,7 @@ using Moq;
 using PizzaShop.Application.Abstractions.Persistence;
 using PizzaShop.Application.Common.Abstractions;
 using PizzaShop.Application.Common.Dtos;
+using PizzaShop.Application.Promotions.Dtos;
 using PizzaShop.Application.Promotions.Queries;
 using PizzaShop.Domain.Enums;
 using PizzaShop.Domain.Promotions;
@@ -80,5 +81,55 @@ public class ValidatePromotionCodeQueryHandlerTests
             CancellationToken.None);
 
         result.IsQualified.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_BuyXGetYWithEnoughTriggerUnits_ReturnsQualifiedPreviewWithDiscount()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new Domain.Promotions.BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m);
+        var promotion = Domain.Promotions.Promotion.Create(
+            "2+1", PromotionType.BuyXGetY, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), null, "PIZZA21", null, null, rule);
+        _promotionRepository
+            .Setup(r => r.GetByCodeAsync("PIZZA21", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(promotion);
+
+        var handler = CreateHandler();
+
+        var result = await handler.Handle(
+            new ValidatePromotionCodeQuery(
+                "PIZZA21",
+                new MoneyDto(90m, "PLN"),
+                new MoneyDto(10m, "PLN"),
+                new[] { new PromotionDiscountLineDto(pizzaId, new MoneyDto(30m, "PLN"), 3) }),
+            CancellationToken.None);
+
+        result.IsQualified.Should().BeTrue();
+        result.DiscountAmount!.Amount.Should().Be(30m);
+    }
+
+    [Fact]
+    public async Task Handle_BuyXGetYWithTooFewTriggerUnits_ReturnsNotQualified()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new Domain.Promotions.BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m);
+        var promotion = Domain.Promotions.Promotion.Create(
+            "2+1", PromotionType.BuyXGetY, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), null, "PIZZA21", null, null, rule);
+        _promotionRepository
+            .Setup(r => r.GetByCodeAsync("PIZZA21", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(promotion);
+
+        var handler = CreateHandler();
+
+        var result = await handler.Handle(
+            new ValidatePromotionCodeQuery(
+                "PIZZA21",
+                new MoneyDto(60m, "PLN"),
+                new MoneyDto(10m, "PLN"),
+                new[] { new PromotionDiscountLineDto(pizzaId, new MoneyDto(30m, "PLN"), 2) }),
+            CancellationToken.None);
+
+        result.IsQualified.Should().BeFalse();
+        result.DiscountAmount.Should().BeNull();
     }
 }

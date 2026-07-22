@@ -30,4 +30,27 @@ public class GetPromotionsQueryHandlerTests
         result[0].Name.Should().Be(promotion.Name);
         result[0].IsActive.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task Handle_BuyXGetYPromotion_MapsBuyXGetYRuleToDto()
+    {
+        var triggerId = Guid.NewGuid();
+        var rewardId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(triggerId, 2, rewardId, 1, 100m);
+        var promotion = Promotion.Create(
+            "2+1", PromotionType.BuyXGetY, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(30), null, null, null, null, rule);
+        _promotionRepository
+            .Setup(r => r.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Promotion> { promotion });
+
+        var handler = CreateHandler();
+
+        var result = await handler.Handle(new GetPromotionsQuery(), CancellationToken.None);
+
+        result.Should().ContainSingle();
+        result[0].Value.Should().BeNull();
+        result[0].BuyXGetY.Should().NotBeNull();
+        result[0].BuyXGetY!.TriggerMenuItemId.Should().Be(triggerId);
+        result[0].BuyXGetY!.RewardMenuItemId.Should().Be(rewardId);
+    }
 }

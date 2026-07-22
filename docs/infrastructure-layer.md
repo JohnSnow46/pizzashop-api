@@ -60,7 +60,7 @@ PizzaShop.Infrastructure/
   Time/
     SystemClock.cs                     # IClock -> DateTimeOffset.UtcNow
   Loyalty/
-    LinearLoyaltyPolicy.cs             # ILoyaltyPolicy placeholder (ADR-0014)
+    LinearLoyaltyPolicy.cs             # ILoyaltyPolicy final rule (ADR-0014, finalized ADR-0033)
   DependencyInjection.cs               # AddInfrastructure(IServiceCollection, IConfiguration)
 ```
 
@@ -278,7 +278,7 @@ appsettings) przydatny w dev/test bez sieci — opcjonalnie do rejestracji warun
 | `IPaymentGateway` | `PayUPaymentGateway` | **Infrastructure** | Integracja zewnętrzna (ADR-0013). |
 | `IGeocodingService` | `NominatimGeocodingService` | **Infrastructure** | Integracja zewnętrzna. |
 | `IClock` | `SystemClock` | **Infrastructure** | Prosty utility, UTC. |
-| `ILoyaltyPolicy` | `LinearLoyaltyPolicy` (placeholder) | **Infrastructure** | ADR-0014, reguła odłożona. |
+| `ILoyaltyPolicy` | `LinearLoyaltyPolicy` | **Infrastructure** | ADR-0014, reguła sfinalizowana w ADR-0033. |
 | `IOrderNotifier` | `SignalROrderNotifier` (używa `IHubContext<OrderTrackingHub>`) | **Api** | SignalR to endpoint webowy; Hub żyje w Api. |
 | `ICurrentUser` | `HttpContextCurrentUser` | **Api** | Zależny od `HttpContext`/JWT. |
 
@@ -297,7 +297,7 @@ od Application i legalnie implementuje porty inherentnie webowe. Infrastructure 
 4. `AddHttpClient<IPaymentGateway, PayUPaymentGateway>()` + `services.Configure<PayUOptions>(configuration.GetSection("PayU"))`.
 5. `AddHttpClient<IGeocodingService, NominatimGeocodingService>()` + `Configure<GeocodingOptions>(...)`.
 6. `AddSingleton<IClock, SystemClock>()`.
-7. `AddScoped<ILoyaltyPolicy, LinearLoyaltyPolicy>()` (placeholder, ADR-0014).
+7. `AddScoped<ILoyaltyPolicy, LinearLoyaltyPolicy>()` (ADR-0014, reguła sfinalizowana w ADR-0033).
 
 Api w `Program.cs`: `builder.Services.AddApplication().AddInfrastructure(builder.Configuration)`;
 dodatkowo rejestruje `ICurrentUser`, `IOrderNotifier` i mapuje `OrderTrackingHub` (warstwa Api,

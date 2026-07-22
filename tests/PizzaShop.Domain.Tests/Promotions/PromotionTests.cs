@@ -19,6 +19,14 @@ public class PromotionTests
         int? usageLimit = null) =>
         Promotion.Create("10% off", PromotionType.Percentage, ValidFrom, ValidTo, value, code, minOrderValue, usageLimit);
 
+    private static OrderDiscountContext Context(
+        Money subtotal,
+        Money deliveryFee,
+        DateTimeOffset when,
+        string? suppliedCode = null,
+        IReadOnlyList<OrderDiscountLine>? lines = null) =>
+        new(subtotal, deliveryFee, when, suppliedCode, lines ?? Array.Empty<OrderDiscountLine>());
+
     [Fact]
     public void Create_ValidToBeforeValidFrom_ThrowsArgumentException()
     {
@@ -159,7 +167,7 @@ public class PromotionTests
     {
         var promotion = CreatePercentagePromotion(value: 10m);
 
-        var discount = promotion.CalculateDiscount(new Money(100m), new Money(10m), WithinWindow);
+        var discount = promotion.CalculateDiscount(Context(new Money(100m), new Money(10m), WithinWindow));
 
         discount.Amount.Should().Be(10m);
     }
@@ -169,7 +177,7 @@ public class PromotionTests
     {
         var promotion = Promotion.Create("Fixed", PromotionType.FixedAmount, ValidFrom, ValidTo, 50m);
 
-        var discount = promotion.CalculateDiscount(new Money(30m), new Money(10m), WithinWindow);
+        var discount = promotion.CalculateDiscount(Context(new Money(30m), new Money(10m), WithinWindow));
 
         discount.Amount.Should().Be(30m);
     }
@@ -179,19 +187,9 @@ public class PromotionTests
     {
         var promotion = Promotion.Create("Free delivery", PromotionType.FreeDelivery, ValidFrom, ValidTo);
 
-        var discount = promotion.CalculateDiscount(new Money(30m), new Money(12m), WithinWindow);
+        var discount = promotion.CalculateDiscount(Context(new Money(30m), new Money(12m), WithinWindow));
 
         discount.Amount.Should().Be(12m);
-    }
-
-    [Fact]
-    public void CalculateDiscount_BuyXGetY_ThrowsNotSupportedException()
-    {
-        var promotion = Promotion.Create("2+1", PromotionType.BuyXGetY, ValidFrom, ValidTo);
-
-        var act = () => promotion.CalculateDiscount(new Money(30m), new Money(10m), WithinWindow);
-
-        act.Should().Throw<NotSupportedException>();
     }
 
     [Fact]
@@ -200,9 +198,287 @@ public class PromotionTests
         var promotion = CreatePercentagePromotion();
         promotion.Deactivate();
 
-        var act = () => promotion.CalculateDiscount(new Money(30m), new Money(10m), WithinWindow);
+        var act = () => promotion.CalculateDiscount(Context(new Money(30m), new Money(10m), WithinWindow));
 
         act.Should().Throw<PromotionNotApplicableException>();
+    }
+
+    // --- BuyXGetY ---
+
+    private static Promotion CreateBuyXGetYPromotion(BuyXGetYRule rule, string? code = null, int? usageLimit = null) =>
+        Promotion.Create("BuyXGetY", PromotionType.BuyXGetY, ValidFrom, ValidTo, null, code, null, usageLimit, rule);
+
+    [Fact]
+    public void CalculateDiscount_BuyXGetY_SameProduct_ExactSet_DiscountsGetQuantityAtCheapestPrice()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m); // 2+1 free
+        var promotion = CreateBuyXGetYPromotion(rule);
+        var lines = new List<OrderDiscountLine> { new(pizzaId, new Money(30m), 3) };
+
+        var discount = promotion.CalculateDiscount(Context(new Money(90m), new Money(10m), WithinWindow, lines: lines));
+
+        discount.Amount.Should().Be(30m);
+    }
+
+    [Fact]
+    public void CalculateDiscount_BuyXGetY_SameProduct_WithRemainder_DiscountsOnlyFullSets()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m); // 2+1 free
+        var promotion = CreateBuyXGetYPromotion(rule);
+        var lines = new List<OrderDiscountLine> { new(pizzaId, new Money(30m), 4) }; // 1 full set + 1 remainder
+
+        var discount = promotion.CalculateDiscount(Context(new Money(120m), new Money(10m), WithinWindow, lines: lines));
+
+        discount.Amount.Should().Be(30m);
+    }
+
+    [Fact]
+    public void CalculateDiscount_BuyXGetY_SameProduct_MultipleSets_Stacks()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m); // 2+1 free
+        var promotion = CreateBuyXGetYPromotion(rule);
+        var lines = new List<OrderDiscountLine> { new(pizzaId, new Money(30m), 6) }; // 2 full sets
+
+        var discount = promotion.CalculateDiscount(Context(new Money(180m), new Money(10m), WithinWindow, lines: lines));
+
+        discount.Amount.Should().Be(60m);
+    }
+
+    [Fact]
+    public void CalculateDiscount_BuyXGetY_SameProduct_TooFewTriggerUnits_ThrowsPromotionNotApplicableException()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m); // needs 3 units for a set
+        var promotion = CreateBuyXGetYPromotion(rule);
+        var lines = new List<OrderDiscountLine> { new(pizzaId, new Money(30m), 2) };
+
+        var act = () => promotion.CalculateDiscount(Context(new Money(60m), new Money(10m), WithinWindow, lines: lines));
+
+        act.Should().Throw<PromotionNotApplicableException>();
+    }
+
+    [Fact]
+    public void CalculateDiscount_BuyXGetY_SameProduct_MixedPrices_DiscountsCheapestUnitsFirst()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m); // 2+1 free
+        var promotion = CreateBuyXGetYPromotion(rule);
+        var lines = new List<OrderDiscountLine>
+        {
+            new(pizzaId, new Money(40m), 1),
+            new(pizzaId, new Money(20m), 2),
+        }; // 3 units total: prices 40, 20, 20 -> cheapest is 20
+
+        var discount = promotion.CalculateDiscount(Context(new Money(80m), new Money(10m), WithinWindow, lines: lines));
+
+        discount.Amount.Should().Be(20m);
+    }
+
+    [Fact]
+    public void CalculateDiscount_BuyXGetY_SameProduct_PartialPercentage_DiscountsProportionally()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, pizzaId, 1, 50m); // 2+1 half price
+        var promotion = CreateBuyXGetYPromotion(rule);
+        var lines = new List<OrderDiscountLine> { new(pizzaId, new Money(30m), 3) };
+
+        var discount = promotion.CalculateDiscount(Context(new Money(90m), new Money(10m), WithinWindow, lines: lines));
+
+        discount.Amount.Should().Be(15m);
+    }
+
+    [Fact]
+    public void CalculateDiscount_BuyXGetY_CrossProduct_EnoughRewardUnits_DiscountsGetQuantity()
+    {
+        var pizzaId = Guid.NewGuid();
+        var drinkId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, drinkId, 1, 100m); // buy 2 pizzas, get 1 drink free
+        var promotion = CreateBuyXGetYPromotion(rule);
+        var lines = new List<OrderDiscountLine>
+        {
+            new(pizzaId, new Money(30m), 2),
+            new(drinkId, new Money(8m), 2),
+        };
+
+        var discount = promotion.CalculateDiscount(Context(new Money(76m), new Money(10m), WithinWindow, lines: lines));
+
+        discount.Amount.Should().Be(8m);
+    }
+
+    [Fact]
+    public void CalculateDiscount_BuyXGetY_CrossProduct_RewardUnitsLimitDiscount()
+    {
+        var pizzaId = Guid.NewGuid();
+        var drinkId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 1, drinkId, 2, 100m); // buy 1 pizza, get 2 drinks free per set
+        var promotion = CreateBuyXGetYPromotion(rule);
+        var lines = new List<OrderDiscountLine>
+        {
+            new(pizzaId, new Money(30m), 3), // 3 sets qualify -> up to 6 drinks
+            new(drinkId, new Money(8m), 1), // but only 1 drink present
+        };
+
+        var discount = promotion.CalculateDiscount(Context(new Money(98m), new Money(10m), WithinWindow, lines: lines));
+
+        discount.Amount.Should().Be(8m);
+    }
+
+    [Fact]
+    public void CalculateDiscount_BuyXGetY_CrossProduct_NoRewardInCart_ThrowsPromotionNotApplicableException()
+    {
+        var pizzaId = Guid.NewGuid();
+        var drinkId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, drinkId, 1, 100m);
+        var promotion = CreateBuyXGetYPromotion(rule);
+        var lines = new List<OrderDiscountLine> { new(pizzaId, new Money(30m), 2) };
+
+        var act = () => promotion.CalculateDiscount(Context(new Money(60m), new Money(10m), WithinWindow, lines: lines));
+
+        act.Should().Throw<PromotionNotApplicableException>();
+    }
+
+    [Fact]
+    public void CalculateDiscount_BuyXGetY_CrossProduct_TooFewTriggerUnits_ThrowsPromotionNotApplicableException()
+    {
+        var pizzaId = Guid.NewGuid();
+        var drinkId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, drinkId, 1, 100m);
+        var promotion = CreateBuyXGetYPromotion(rule);
+        var lines = new List<OrderDiscountLine>
+        {
+            new(pizzaId, new Money(30m), 1),
+            new(drinkId, new Money(8m), 5),
+        };
+
+        var act = () => promotion.CalculateDiscount(Context(new Money(70m), new Money(10m), WithinWindow, lines: lines));
+
+        act.Should().Throw<PromotionNotApplicableException>();
+    }
+
+    [Fact]
+    public void CalculateDiscount_BuyXGetY_InactivePromotion_ThrowsPromotionNotApplicableException()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m);
+        var promotion = CreateBuyXGetYPromotion(rule);
+        promotion.Deactivate();
+        var lines = new List<OrderDiscountLine> { new(pizzaId, new Money(30m), 3) };
+
+        var act = () => promotion.CalculateDiscount(Context(new Money(90m), new Money(10m), WithinWindow, lines: lines));
+
+        act.Should().Throw<PromotionNotApplicableException>();
+    }
+
+    [Fact]
+    public void CalculateDiscount_BuyXGetY_OutsideWindow_ThrowsPromotionNotApplicableException()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m);
+        var promotion = CreateBuyXGetYPromotion(rule);
+        var lines = new List<OrderDiscountLine> { new(pizzaId, new Money(30m), 3) };
+
+        var act = () => promotion.CalculateDiscount(Context(new Money(90m), new Money(10m), ValidTo.AddDays(1), lines: lines));
+
+        act.Should().Throw<PromotionNotApplicableException>();
+    }
+
+    [Fact]
+    public void CalculateDiscount_BuyXGetY_UsageLimitExhausted_ThrowsPromotionNotApplicableException()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m);
+        var promotion = CreateBuyXGetYPromotion(rule, usageLimit: 1);
+        promotion.RecordUsage();
+        var lines = new List<OrderDiscountLine> { new(pizzaId, new Money(30m), 3) };
+
+        var act = () => promotion.CalculateDiscount(Context(new Money(90m), new Money(10m), WithinWindow, lines: lines));
+
+        act.Should().Throw<PromotionNotApplicableException>();
+    }
+
+    [Fact]
+    public void CalculateDiscount_BuyXGetY_WrongCode_ThrowsPromotionNotApplicableException()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m);
+        var promotion = CreateBuyXGetYPromotion(rule, code: "PIZZADAY");
+        var lines = new List<OrderDiscountLine> { new(pizzaId, new Money(30m), 3) };
+
+        var act = () => promotion.CalculateDiscount(Context(new Money(90m), new Money(10m), WithinWindow, "WRONG", lines));
+
+        act.Should().Throw<PromotionNotApplicableException>();
+    }
+
+    [Fact]
+    public void CalculateDiscount_BuyXGetY_BelowMinOrderValue_ThrowsPromotionNotApplicableException()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m);
+        var promotion = Promotion.Create(
+            "BuyXGetY", PromotionType.BuyXGetY, ValidFrom, ValidTo, null, null, new Money(200m), null, rule);
+        var lines = new List<OrderDiscountLine> { new(pizzaId, new Money(30m), 3) };
+
+        var act = () => promotion.CalculateDiscount(Context(new Money(90m), new Money(10m), WithinWindow, lines: lines));
+
+        act.Should().Throw<PromotionNotApplicableException>();
+    }
+
+    [Fact]
+    public void Create_BuyXGetYWithoutRule_ThrowsArgumentException()
+    {
+        var act = () => Promotion.Create("BuyXGetY", PromotionType.BuyXGetY, ValidFrom, ValidTo);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Create_BuyXGetYWithValue_ThrowsArgumentException()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m);
+
+        var act = () => Promotion.Create("BuyXGetY", PromotionType.BuyXGetY, ValidFrom, ValidTo, 10m, null, null, null, rule);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Create_NonBuyXGetYTypeWithRule_ThrowsArgumentException()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m);
+
+        var act = () => Promotion.Create(
+            "10% off", PromotionType.Percentage, ValidFrom, ValidTo, 10m, null, null, null, rule);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void UpdateValue_BuyXGetYPromotionWithNonNullValue_ThrowsArgumentException()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m);
+        var promotion = CreateBuyXGetYPromotion(rule);
+
+        var act = () => promotion.UpdateValue(10m);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Create_BuyXGetYWithRule_SetsBuyXGetYRule()
+    {
+        var pizzaId = Guid.NewGuid();
+        var rule = new BuyXGetYRule(pizzaId, 2, pizzaId, 1, 100m);
+
+        var promotion = CreateBuyXGetYPromotion(rule);
+
+        promotion.BuyXGetYRule.Should().Be(rule);
+        promotion.Value.Should().BeNull();
     }
 
     [Fact]

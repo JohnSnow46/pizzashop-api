@@ -11,9 +11,6 @@ public sealed class CreatePromotionCommandValidator : AbstractValidator<CreatePr
         RuleFor(c => c.Name).NotEmpty();
 
         RuleFor(c => c.Type).IsInEnum();
-        RuleFor(c => c.Type)
-            .NotEqual(PromotionType.BuyXGetY)
-            .WithMessage("BuyXGetY promotions are not supported yet (ADR-0011).");
 
         RuleFor(c => c.ValidTo)
             .GreaterThan(c => c.ValidFrom)
@@ -46,6 +43,41 @@ public sealed class CreatePromotionCommandValidator : AbstractValidator<CreatePr
         {
             RuleFor(c => c.MinOrderValue!.Amount).GreaterThanOrEqualTo(0);
             RuleFor(c => c.MinOrderValue!.Currency).NotEmpty();
+        });
+
+        When(c => c.Type == PromotionType.BuyXGetY, () =>
+        {
+            RuleFor(c => c.Value)
+                .Null()
+                .WithMessage("BuyXGetY promotions must not set Value; configuration lives in BuyXGetY.");
+
+            RuleFor(c => c.BuyXGetY)
+                .NotNull()
+                .WithMessage("BuyXGetY promotions require BuyXGetY configuration.");
+
+            When(c => c.BuyXGetY is not null, () =>
+            {
+                RuleFor(c => c.BuyXGetY!.TriggerMenuItemId)
+                    .NotEqual(Guid.Empty)
+                    .WithMessage("Trigger menu item id is required.");
+                RuleFor(c => c.BuyXGetY!.BuyQuantity)
+                    .GreaterThanOrEqualTo(1)
+                    .WithMessage("Buy quantity must be at least 1.");
+                RuleFor(c => c.BuyXGetY!.RewardMenuItemId)
+                    .NotEqual(Guid.Empty)
+                    .WithMessage("Reward menu item id is required.");
+                RuleFor(c => c.BuyXGetY!.GetQuantity)
+                    .GreaterThanOrEqualTo(1)
+                    .WithMessage("Get quantity must be at least 1.");
+                RuleFor(c => c.BuyXGetY!.RewardDiscountPercentage)
+                    .Must(v => v is > 0 and <= 100)
+                    .WithMessage("Reward discount percentage must be greater than 0 and at most 100.");
+            });
+        }).Otherwise(() =>
+        {
+            RuleFor(c => c.BuyXGetY)
+                .Null()
+                .WithMessage("BuyXGetY configuration is only allowed for BuyXGetY promotions.");
         });
     }
 }

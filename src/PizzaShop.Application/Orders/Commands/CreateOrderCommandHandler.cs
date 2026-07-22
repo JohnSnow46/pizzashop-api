@@ -140,7 +140,12 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
         var promotion = await _promotionRepository.GetByCodeAsync(promotionCode, cancellationToken)
             ?? throw new NotFoundException(nameof(Promotion), promotionCode);
 
-        var discount = promotion.CalculateDiscount(order.Subtotal, order.DeliveryFee, _clock.UtcNow, promotionCode);
+        var lines = order.Items
+            .Select(i => new OrderDiscountLine(i.MenuItemId, i.UnitPrice, i.Quantity))
+            .ToList();
+        var context = new OrderDiscountContext(order.Subtotal, order.DeliveryFee, _clock.UtcNow, promotionCode, lines);
+
+        var discount = promotion.CalculateDiscount(context);
         order.ApplyPromotion(promotion.Id, discount);
         promotion.RecordUsage();
 

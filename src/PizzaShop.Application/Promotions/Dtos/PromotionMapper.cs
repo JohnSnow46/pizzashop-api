@@ -1,6 +1,7 @@
 using PizzaShop.Application.Common.Dtos;
 using PizzaShop.Domain.Promotions;
 using PizzaShop.Domain.ValueObjects;
+using DomainBuyXGetYRule = PizzaShop.Domain.Promotions.BuyXGetYRule;
 
 namespace PizzaShop.Application.Promotions.Dtos;
 
@@ -18,8 +19,14 @@ internal static class PromotionMapper
             promotion.ValidTo,
             promotion.IsActive,
             promotion.UsageLimit,
-            promotion.UsageCount);
+            promotion.UsageCount,
+            ToDto(promotion.BuyXGetYRule));
 
     private static MoneyDto? ToDto(Money? money) =>
         money is null ? null : new MoneyDto(money.Amount, money.Currency);
+
+    private static BuyXGetYRuleDto? ToDto(DomainBuyXGetYRule? rule) =>
+        rule is null
+            ? null
+            : new BuyXGetYRuleDto(rule.TriggerMenuItemId, rule.BuyQuantity, rule.RewardMenuItemId, rule.GetQuantity, rule.RewardDiscountPercentage);
 }

@@ -5,7 +5,9 @@ using PizzaShop.Domain.Promotions;
 namespace PizzaShop.Infrastructure.Persistence.Configurations;
 
 /// <summary>
-/// Mapping for the <see cref="Promotion"/> aggregate (ADR-0019, ADR-0020).
+/// Mapping for the <see cref="Promotion"/> aggregate (ADR-0019, ADR-0020). Owned
+/// <see cref="Domain.Promotions.BuyXGetYRule"/> (nullable — present iff <c>Type == BuyXGetY</c>,
+/// domain-model.md 8.2, ADR-0034).
 /// </summary>
 public sealed class PromotionConfiguration : IEntityTypeConfiguration<Promotion>
 {
@@ -27,5 +29,14 @@ public sealed class PromotionConfiguration : IEntityTypeConfiguration<Promotion>
         builder.Property(p => p.ValidTo).IsRequired();
         builder.Property(p => p.IsActive).IsRequired();
         builder.Property(p => p.UsageCount).IsRequired();
+
+        builder.OwnsOne(p => p.BuyXGetYRule, rule =>
+        {
+            rule.Property(r => r.TriggerMenuItemId).HasColumnName("BuyXGetY_TriggerMenuItemId");
+            rule.Property(r => r.BuyQuantity).HasColumnName("BuyXGetY_BuyQuantity");
+            rule.Property(r => r.RewardMenuItemId).HasColumnName("BuyXGetY_RewardMenuItemId");
+            rule.Property(r => r.GetQuantity).HasColumnName("BuyXGetY_GetQuantity");
+            rule.Property(r => r.RewardDiscountPercentage).HasColumnName("BuyXGetY_RewardDiscountPercentage").HasPrecision(5, 2);
+        });
     }
 }

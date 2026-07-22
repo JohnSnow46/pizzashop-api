@@ -18,6 +18,7 @@ public class Promotion
     public string? Code { get; private set; }
     public PromotionType Type { get; }
     public decimal? Value { get; private set; }
+    public BuyXGetYRule? BuyXGetYRule { get; private set; }
     public Money? MinOrderValue { get; private set; }
     public DateTimeOffset ValidFrom { get; private set; }
     public DateTimeOffset ValidTo { get; private set; }
@@ -39,7 +40,8 @@ public class Promotion
         DateTimeOffset validTo,
         string? code,
         Money? minOrderValue,
-        int? usageLimit)
+        int? usageLimit,
+        BuyXGetYRule? buyXGetYRule)
     {
         Id = id;
         Name = name;
@@ -52,6 +54,7 @@ public class Promotion
         UsageLimit = usageLimit;
         IsActive = true;
         UsageCount = 0;
+        BuyXGetYRule = buyXGetYRule;
     }
 
     public static Promotion Create(
@@ -62,7 +65,8 @@ public class Promotion
         decimal? value = null,
         string? code = null,
         Money? minOrderValue = null,
-        int? usageLimit = null)
+        int? usageLimit = null,
+        BuyXGetYRule? buyXGetYRule = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name is required.", nameof(name));
@@ -72,8 +76,9 @@ public class Promotion
             throw new ArgumentOutOfRangeException(nameof(usageLimit), "Usage limit must be greater than zero when set.");
 
         ValidateValue(type, value);
+        ValidateBuyXGetYRule(type, buyXGetYRule);
 
-        return new Promotion(Guid.NewGuid(), name, type, value, validFrom, validTo, NormalizeCode(code), minOrderValue, usageLimit);
+        return new Promotion(Guid.NewGuid(), name, type, value, validFrom, validTo, NormalizeCode(code), minOrderValue, usageLimit, buyXGetYRule);
     }
 
     private static void ValidateValue(PromotionType type, decimal? value)
@@ -84,6 +89,30 @@ public class Promotion
                 throw new ArgumentOutOfRangeException(nameof(value), "Percentage value must be greater than 0 and at most 100.");
             case PromotionType.FixedAmount when value is not > 0:
                 throw new ArgumentOutOfRangeException(nameof(value), "Fixed amount value must be greater than zero.");
+            case PromotionType.BuyXGetY when value is not null:
+                // Keeps the "Value is null for BuyXGetY" invariant true not just at Create
+                // time but also across UpdateValue (domain-model.md 8.2, ADR-0034) —
+                // configuration lives exclusively in BuyXGetYRule.
+                throw new ArgumentException("BuyXGetY promotions must not set Value; configuration lives in BuyXGetYRule.", nameof(value));
+        }
+    }
+
+    /// <summary>
+    /// Guards the coupling between <see cref="Type"/> and <see cref="BuyXGetYRule"/>
+    /// (domain-model.md 8.2, ADR-0034): a <c>BuyXGetY</c> promotion requires a rule; every
+    /// other type must not carry one. <see cref="Value"/> being null for <c>BuyXGetY</c> is
+    /// already enforced by <see cref="ValidateValue"/>, called before this.
+    /// </summary>
+    private static void ValidateBuyXGetYRule(PromotionType type, BuyXGetYRule? buyXGetYRule)
+    {
+        if (type == PromotionType.BuyXGetY)
+        {
+            if (buyXGetYRule is null)
+                throw new ArgumentException("BuyXGetY promotions require a BuyXGetYRule.", nameof(buyXGetYRule));
+        }
+        else if (buyXGetYRule is not null)
+        {
+            throw new ArgumentException($"BuyXGetYRule is only allowed for {nameof(PromotionType.BuyXGetY)} promotions.", nameof(buyXGetYRule));
         }
     }
 
@@ -161,29 +190,71 @@ public class Promotion
     }
 
     /// <summary>
-    /// Calculates the discount amount for an order's subtotal/delivery fee. Callers are
-    /// expected to have checked <see cref="IsQualifiedFor"/> first; this throws
-    /// <see cref="PromotionNotApplicableException"/> if it has not (or no longer)
-    /// qualified. <c>BuyXGetY</c> needs the order's line items to resolve which item is
-    /// free, which this aggregate does not have — its calculation is deferred to a future
-    /// ADR (domain-model.md 8).
+    /// Calculates the discount amount for an order, given its full discount context (subtotal,
+    /// delivery fee, timing/code, and line items — domain-model.md 8.2, ADR-0034). Callers are
+    /// expected to have checked <see cref="IsQualifiedFor"/> first; this re-checks it and throws
+    /// <see cref="PromotionNotApplicableException"/> if it has not (or no longer) qualified.
+    /// <c>BuyXGetY</c> additionally requires at least one full trigger set and at least one
+    /// reward unit present in <paramref name="ctx"/>'s <see cref="OrderDiscountContext.Lines"/>
+    /// — otherwise the same exception is thrown (8.2).
     /// </summary>
-    public Money CalculateDiscount(Money subtotal, Money deliveryFee, DateTimeOffset when, string? suppliedCode = null)
+    public Money CalculateDiscount(OrderDiscountContext ctx)
     {
-        ArgumentNullException.ThrowIfNull(deliveryFee);
+        ArgumentNullException.ThrowIfNull(ctx);
 
-        if (!IsQualifiedFor(subtotal, when, suppliedCode))
+        if (!IsQualifiedFor(ctx.Subtotal, ctx.When, ctx.SuppliedCode))
             throw new PromotionNotApplicableException($"Promotion '{Name}' is not applicable to this order.");
 
         return Type switch
         {
-            PromotionType.Percentage => new Money(Math.Round(subtotal.Amount * Value!.Value / 100m, 2), subtotal.Currency),
-            PromotionType.FixedAmount => new Money(Math.Min(Value!.Value, subtotal.Amount), subtotal.Currency),
-            PromotionType.FreeDelivery => deliveryFee,
-            PromotionType.BuyXGetY => throw new NotSupportedException(
-                $"Promotion '{Name}': BuyXGetY discount calculation depends on order line items and is not yet defined (domain-model.md 8, deferred to a future ADR)."),
+            PromotionType.Percentage => new Money(Math.Round(ctx.Subtotal.Amount * Value!.Value / 100m, 2), ctx.Subtotal.Currency),
+            PromotionType.FixedAmount => new Money(Math.Min(Value!.Value, ctx.Subtotal.Amount), ctx.Subtotal.Currency),
+            PromotionType.FreeDelivery => ctx.DeliveryFee,
+            PromotionType.BuyXGetY => CalculateBuyXGetYDiscount(ctx),
             _ => throw new NotSupportedException($"Unknown promotion type '{Type}'."),
         };
+    }
+
+    /// <summary>
+    /// BuyXGetY discount calculation (domain-model.md 8.2, ADR-0034). Counts trigger units
+    /// across <paramref name="ctx"/>'s lines, derives how many full "sets" qualify (floor
+    /// division — same-product sets are sized <c>X+Y</c>, cross-product sets are sized <c>X</c>
+    /// and capped by the reward units actually present), then discounts the cheapest reward
+    /// units by <see cref="Domain.Promotions.BuyXGetYRule.RewardDiscountPercentage"/>.
+    /// </summary>
+    private Money CalculateBuyXGetYDiscount(OrderDiscountContext ctx)
+    {
+        var rule = BuyXGetYRule!;
+
+        var triggerUnits = ctx.Lines.Where(l => l.MenuItemId == rule.TriggerMenuItemId).Sum(l => l.Quantity);
+        var rewardLines = ctx.Lines.Where(l => l.MenuItemId == rule.RewardMenuItemId).ToList();
+
+        int discountedUnits;
+        if (rule.RewardMenuItemId == rule.TriggerMenuItemId)
+        {
+            var setSize = rule.BuyQuantity + rule.GetQuantity;
+            var sets = triggerUnits / setSize;
+            discountedUnits = sets * rule.GetQuantity;
+        }
+        else
+        {
+            var sets = triggerUnits / rule.BuyQuantity;
+            var rewardUnits = rewardLines.Sum(l => l.Quantity);
+            discountedUnits = Math.Min(sets * rule.GetQuantity, rewardUnits);
+        }
+
+        if (discountedUnits <= 0)
+            throw new PromotionNotApplicableException($"Promotion '{Name}' is not applicable to this order.");
+
+        var discountedUnitPrices = rewardLines
+            .OrderBy(l => l.UnitPrice.Amount)
+            .SelectMany(l => Enumerable.Repeat(l.UnitPrice, l.Quantity))
+            .Take(discountedUnits);
+
+        var currency = ctx.Subtotal.Currency;
+        return discountedUnitPrices.Aggregate(
+            Money.Zero(currency),
+            (total, unitPrice) => total.Add(new Money(Math.Round(unitPrice.Amount * rule.RewardDiscountPercentage / 100m, 2), currency)));
     }
 
     /// <summary>Marks a single redemption against <see cref="UsageLimit"/>, if one is set.</summary>

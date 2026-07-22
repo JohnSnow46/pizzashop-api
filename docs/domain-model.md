@@ -340,7 +340,7 @@ Profil zakupowy zarejestrowanego klienta (ADR-0005). Gość nie ma tej encji.
 
 ---
 
-## 7. LoyaltyAccount + LoyaltyTransaction (agregat — szkielet, ADR-0009)
+## 7. LoyaltyAccount + LoyaltyTransaction (agregat — szkielet, ADR-0009; przelicznik ADR-0033)
 
 ### 7.1 `LoyaltyAccount`
 | Atrybut | Typ | Uwagi |
@@ -369,15 +369,22 @@ rejestracji `LoyaltyAccount.Create(customerId)` wołane jest **po** utworzeniu `
 **Reguły:**
 - Historia jest append-only; nie modyfikujemy istniejących transakcji.
 - `PointsBalance` nigdy < 0 — nie można wydać więcej punktów niż saldo.
-- **Przelicznik (ile punktów za co, próg wymiany, wygasanie) NIE jest w Domain encji** —
-  trafi za `ILoyaltyPolicy` w Application (ADR-0009). Encje tylko rejestrują skutki.
+- **Przelicznik NIE jest w Domain encji** — żyje za `ILoyaltyPolicy` w Application (ADR-0009).
+  Encje tylko rejestrują skutki. Reguła przelicznika jest już **finalna** (ADR-0033), nie
+  placeholder: naliczanie **1 pkt za każdy pełny 1 PLN** wartości `Subtotal` (floor), wymiana
+  **1 pkt = 0,05 PLN** rabatu, **bez górnego limitu procentowego** pokrycia zamówienia punktami
+  (jedyny naturalny limit = saldo klienta). Abstrakcja `ILoyaltyPolicy` pozostaje mimo ustalenia
+  reguły — to nadal wymienialna implementacja portu, gdyby biznes kiedyś zmienił zasady, bez
+  migracji modelu punktów. Wygasanie (`Expired`) przewidziane w typie transakcji, mechanizm
+  (job/termin) nadal odłożony.
 
 ---
 
-## 8. Promotion (agregat) — zarys
+## 8. Promotion (agregat)
 
 Promocje wymienione w zakresie (katalog: pizze, dodatki, promocje). Projektujemy zarys
-elastyczny; szczegółowe reguły rabatowe doprecyzuje osobny ADR przy implementacji promocji.
+elastyczny; typy rabatowe: `Percentage`, `FixedAmount`, `FreeDelivery`, `BuyXGetY`
+(ten ostatni zaimplementowany w ADR-0034 — patrz 8.2).
 
 | Atrybut | Typ | Uwagi |
 |---|---|---|
@@ -385,7 +392,8 @@ elastyczny; szczegółowe reguły rabatowe doprecyzuje osobny ADR przy implement
 | `Name` | string | |
 | `Code` | string? | Kod kuponu (opcjonalny; null = automatyczna). Normalizowany do UPPER-INVARIANT |
 | `Type` | enum `Percentage` \| `FixedAmount` \| `FreeDelivery` \| `BuyXGetY` | Niemutowalny po utworzeniu (patrz 8.1) |
-| `Value` | decimal? | % lub kwota, zależnie od typu |
+| `Value` | decimal? | % lub kwota, zależnie od typu; **null** dla `FreeDelivery` i `BuyXGetY` |
+| `BuyXGetYRule` | BuyXGetYRule? | Konfiguracja BuyXGetY (owned VO), obecna **iff** `Type == BuyXGetY` (8.2, ADR-0034) |
 | `MinOrderValue` | Money? | Próg kwalifikacji |
 | `ValidFrom` / `ValidTo` | DateTimeOffset | Okno ważności |
 | `IsActive` | bool | |
@@ -395,16 +403,20 @@ elastyczny; szczegółowe reguły rabatowe doprecyzuje osobny ADR przy implement
 **Reguły (zarys):**
 - Promocja kwalifikuje się (`IsQualifiedFor`), gdy: `IsActive`, w oknie `ValidFrom..ValidTo`,
   `Subtotal >= MinOrderValue`, `UsageLimit` nie wyczerpany (`UsageCount < UsageLimit`),
-  ewentualny kod zgodny.
+  ewentualny kod zgodny. Dla `BuyXGetY` `IsQualifiedFor` sprawdza wyłącznie te **generyczne
+  bramki** (nie zna pozycji); kwalifikację liniową (dość sztuk wyzwalacza) rozstrzyga
+  `CalculateDiscount` na kontekście — patrz 8.2.
 - **`UsageCount` + `RecordUsage()`** — licznik wykorzystań utrzymywany w agregacie, bo bez
   niego `UsageLimit` byłby polem martwym: kwalifikacja musi móc odrzucić promocję po
   osiągnięciu limitu. `RecordUsage()` inkrementuje licznik przy zastosowaniu promocji do
   zamówienia i rzuca `PromotionNotApplicableException`, jeśli limit już wyczerpany.
   Warstwa Application wywołuje `RecordUsage()` w tej samej transakcji, w której utrwala
   `Order.AppliedPromotionId` (spójność licznika z faktycznymi użyciami).
-- Wyliczenie rabatu (`CalculateDiscount`): `Percentage` (% od subtotalu, zaokrąglony do
-  2 miejsc), `FixedAmount` (kwota, nie więcej niż subtotal), `FreeDelivery` (= `DeliveryFee`).
-  `BuyXGetY` rzuca `NotSupportedException` — patrz ADR-0011.
+- Wyliczenie rabatu (`CalculateDiscount(OrderDiscountContext ctx)`, ADR-0034): `Percentage`
+  (% od subtotalu, zaokrąglony do 2 miejsc), `FixedAmount` (kwota, nie więcej niż subtotal),
+  `FreeDelivery` (= `DeliveryFee`), `BuyXGetY` (rabat na sztuki nagrody wg reguły — 8.2).
+  Sygnatura przyjmuje **kontekst zamówienia** (pozycje) zamiast samego subtotalu, bo `BuyXGetY`
+  potrzebuje pozycji; `IsQualifiedFor` (bramki generyczne) pozostaje na subtotalu.
 - Na jedno zamówienie na start: **jedna** promocja (`Order.AppliedPromotionId`).
   Stackowanie promocji = przyszła decyzja.
 
@@ -447,8 +459,10 @@ grupujemy tylko pola sprzężone niezmiennikiem (okno) w jedną metodę.
   jest to legalna operacyjnie droga „domknij tę promocję limitem" obok `Deactivate()`.
 
 **Typ (`Type`) pozostaje niemutowalny** — brak metody zmiany. Zakres 4.5 nie wymienia typu, a
-zmiana typu to w praktyce inna promocja (zmieniłaby regułę walidacji `Value` i mogłaby
-przemycić `BuyXGetY`, odłożony w ADR-0011). Zmiana typu = utworzenie nowej promocji.
+zmiana typu to w praktyce inna promocja (zmieniłaby regułę walidacji `Value`/reguły BuyXGetY).
+Zmiana typu = utworzenie nowej promocji. **Reguła BuyXGetY (`BuyXGetYRule`) również jest
+niemutowalna** po utworzeniu (8.2) — z tego samego powodu co `Type`: definiuje istotę promocji;
+`UpdatePromotionCommand` jej nie dotyka, zmiana = nowa promocja.
 
 **Poza zakresem tej iteracji:** `Name`, `Code`, `MinOrderValue` nie mają jeszcze mutatorów —
 application-layer.md 4.5 ich nie wymaga. Dodać w razie realnej potrzeby (analogicznie: `Name`
@@ -457,6 +471,53 @@ z guardem niepustości, `Code` przez `NormalizeCode`, `MinOrderValue` bez guardu
 **Bez nowych wyjątków domenowych:** wszystkie guardy powyżej reużywają typów argumentowych z
 `Create` (`ArgumentException`/`ArgumentOutOfRangeException`), a świadoma decyzja „limit poniżej
 `UsageCount` dozwolony" celowo nie wprowadza wyjątku blokującego.
+
+### 8.2 BuyXGetY — konfiguracja i wyliczenie (ADR-0034)
+
+`BuyXGetYRule` (owned VO na `Promotion`, obecny **iff** `Type == BuyXGetY`):
+
+| Pole | Typ | Reguła |
+|---|---|---|
+| `TriggerMenuItemId` | Guid | Produkt-wyzwalacz; `!= Guid.Empty` |
+| `BuyQuantity` (X) | int | `>= 1` — ile sztuk wyzwalacza uruchamia jeden zestaw |
+| `RewardMenuItemId` | Guid | Produkt-nagroda; `!= Guid.Empty`; może równać się wyzwalaczowi |
+| `GetQuantity` (Y) | int | `>= 1` — ile sztuk nagrody rabatowanych na zestaw |
+| `RewardDiscountPercentage` | decimal | `0 < pct <= 100` (100 = gratis, <100 = taniej) |
+
+Cała konfiguracja BuyXGetY żyje w tym VO; `Promotion.Value` pozostaje `null` dla tego typu.
+`Promotion.Create` przyjmuje opcjonalny `BuyXGetYRule`; walidacja fabryki: `Type == BuyXGetY`
+⇒ reguła wymagana i `Value == null`; inne typy ⇒ reguła `null`. Guardy pól w konstruktorze VO
+(`ArgumentException`/`ArgumentOutOfRangeException`).
+
+**`OrderDiscountContext`** (VO Domain przekazywany do `CalculateDiscount`, **bez** referencji do
+encji `Order`/`OrderItem` — Promotion pozostaje odsprzężone od agregatu Order, ADR-0011):
+- `Subtotal` (Money), `DeliveryFee` (Money), `When` (DateTimeOffset), `SuppliedCode` (string?),
+- `Lines`: lista `OrderDiscountLine(Guid MenuItemId, Money UnitPrice, int Quantity)`.
+
+Kontekst buduje warstwa Application (handler) z `order.Items` — Domain nie tworzy zależności
+Promotion → Order.
+
+**Semantyka `CalculateDiscount` dla `BuyXGetY`:**
+- `triggerUnits` = Σ `Quantity` linii z `MenuItemId == TriggerMenuItemId`.
+- **Nagroda == wyzwalacz** (`RewardMenuItemId == TriggerMenuItemId`): rozmiar zestawu = `X + Y`;
+  `zestawy = floor(triggerUnits / (X + Y))`; sztuk rabatowanych = `zestawy * Y`. (Semantyka „N za
+  M": w koszyku masz X+Y, płacisz za X.)
+- **Nagroda ≠ wyzwalacz:** `zestawy = floor(triggerUnits / X)`; `rewardUnits` = Σ `Quantity` linii
+  produktu-nagrody; sztuk rabatowanych = `min(zestawy * Y, rewardUnits)`.
+- Rabatowane są **najtańsze** sztuki produktu-nagrody (po `UnitPrice`) — deterministycznie i
+  jednoznacznie przy różnych wariantach. Rabat = Σ po sztukach rabatowanych `round(UnitPrice *
+  pct/100, 2)`, waluta z subtotalu.
+- Wartościujemy po `UnitPrice` (cena bazowa wariantu, **bez dodatków**) — gwarantuje rabat ≤
+  subtotal.
+- **Kwalifikacja liniowa:** za mało wyzwalaczy (brak choćby jednego pełnego zestawu) lub
+  (cross-product) brak nagrody w koszyku ⇒ `PromotionNotApplicableException`. Bramki generyczne
+  (`IsActive`, okno, `MinOrderValue`, `UsageLimit`, kod) obowiązują jak dla innych typów.
+
+**Wielokrotna kwalifikacja (stacking zestawów)** jest wspierana (floor z dzielenia — wiele
+zestawów w jednym zamówieniu). **Świadomie poza zakresem startowym:** wyzwalacz/nagroda jako
+„dowolna pizza / zakres kategorii" (dziś tylko konkretny `MenuItemId`), automatyczne dodanie
+gratisowej pozycji do zamówienia (rabatujemy tylko sztuki nagrody faktycznie zamówione), edycja
+reguły po utworzeniu (zmiana = nowa promocja — jak `Type`).
 
 ---
 
@@ -484,15 +545,17 @@ Wszystkie dziedziczą po `DomainException` (bazowy), mapowanym na kody HTTP w mi
 | `InvalidVariantConfigurationException` | Zła konfiguracja wariantów (np. wariant nie należy do pozycji, brak/wielu domyślnych, usunięcie domyślnego bez wskazania nowego). |
 | `CannotRemoveLastVariantException` | Próba usunięcia jedynego wariantu MenuItem — lista nie może zostać pusta po skonfigurowaniu wariantów (ADR-0016). |
 | `ExtraNotAllowedException` | Dodatek spoza `AllowedExtras` danego MenuItem. |
-| `PromotionNotApplicableException` | Promocja niekwalifikująca się / limit użyć wyczerpany. |
+| `PromotionNotApplicableException` | Promocja niekwalifikująca się / limit użyć wyczerpany / (BuyXGetY) za mało sztuk wyzwalacza lub brak nagrody w koszyku (8.2). |
 | `PromotionAlreadyAppliedException` | Druga promocja na tym samym zamówieniu. |
 | `InsufficientLoyaltyPointsException` | Próba wydania/odjęcia więcej punktów niż saldo. |
 | `LoyaltyRedemptionNotAllowedException` | Wymiana punktów przy zamówieniu gościa (`CustomerId == null`). |
 | `LoyaltyPointsAlreadyRedeemedException` | Powtórna wymiana punktów na tym samym zamówieniu. |
 | `AddressNotInAddressBookException` | Odwołanie do adresu spoza książki adresowej klienta. |
 
-Edycja `Promotion` (8.1) **nie** wprowadza nowych wyjątków domenowych — guardy okna/wartości/
-limitu reużywają `ArgumentException`/`ArgumentOutOfRangeException` (jak `Promotion.Create`).
+Edycja `Promotion` (8.1) oraz implementacja `BuyXGetY` (8.2) **nie** wprowadzają nowych wyjątków
+domenowych — guardy okna/wartości/limitu i reguły BuyXGetY reużywają `ArgumentException`/
+`ArgumentOutOfRangeException` (jak `Promotion.Create`), a niekwalifikująca się BuyXGetY reużywa
+`PromotionNotApplicableException`.
 
 ---
 
@@ -508,15 +571,21 @@ limitu reużywają `ArgumentException`/`ArgumentOutOfRangeException` (jak `Promo
   Koszyk może być stanem po stronie klienta/Application; zamówienie powstaje z „draftu".
   Jeśli pojawi się wymóg trwałego koszyka (np. porzucone koszyki), będzie osobny ADR.
 - **UserAccount** poza Domain — Domain zna tylko `UserAccountId`.
-- **BuyXGetY** — `Promotion.CalculateDiscount` dla tego typu rzuca `NotSupportedException`;
-  pełna implementacja odłożona (ADR-0011).
+- **BuyXGetY zaimplementowany** (ADR-0034) — `Promotion.CalculateDiscount(OrderDiscountContext)`
+  wylicza rabat na sztuki nagrody na podstawie pozycji zamówienia; konfiguracja w owned VO
+  `BuyXGetYRule` (8.2). Zakres startowy: konkretny produkt wyzwalacz/nagroda, rabat procentowy na
+  nagrodę (100% = gratis), wielokrotna kwalifikacja (stacking zestawów). Poza zakresem: wyzwalacz
+  „dowolna pizza/kategoria", auto-dokładanie gratisu do koszyka, edycja reguły. Domyka ADR-0011.
+- **Przelicznik lojalności sfinalizowany** (ADR-0033) — 1 pkt / 1 PLN naliczania (floor),
+  1 pkt = 0,05 PLN wymiany, bez górnego limitu pokrycia (limit = saldo). `ILoyaltyPolicy`/
+  `LinearLoyaltyPolicy` bez zmian strukturalnych (nadal wymienialny port). Domyka ADR-0009/0014.
 - **Edycja wariantów przez korzeń** — mutatory `MenuItemVariant` są `internal`, cała edycja
   (dodanie/usunięcie/domyślność/rename/cena) przechodzi przez `MenuItem`; usunięcie
   domyślnego wariantu wymaga jawnego `SetDefaultVariant`, nie auto-promocji (ADR-0016).
 - **Edycja Promotion przez celowe metody** — `UpdateWindow`/`UpdateValue`/`UpdateUsageLimit`
-  (8.1), `Type` niemutowalny; obniżenie `UsageLimit` poniżej `UsageCount` dozwolone
-  (domyka promocję limitem), zmiana `Value` dozwolona mimo `UsageCount > 0` (snapshot na
-  Order) — ADR-0019.
+  (8.1), `Type` i `BuyXGetYRule` niemutowalne; obniżenie `UsageLimit` poniżej `UsageCount`
+  dozwolone (domyka promocję limitem), zmiana `Value` dozwolona mimo `UsageCount > 0` (snapshot
+  na Order) — ADR-0019.
 - **Powiązanie Customer ↔ LoyaltyAccount jednokierunkowe** — referencję trzyma tylko strona
   zależna (`LoyaltyAccount.CustomerId`, unikalny); `Customer` nie ma `LoyaltyAccountId`.
   Usuwa sztuczny cykl przy tworzeniu (fabryki generują własne Id, bez przekazywania Id z
@@ -537,6 +606,8 @@ Customer (1) --- (0..1) --- UserAccount [ref]
 Customer (1) --< DeliveryAddress (książka adresowa)
 LoyaltyAccount (1) --- (1) --> Customer [ref: LoyaltyAccount.CustomerId; jednokierunkowe, ADR-0029]
 LoyaltyAccount (1) --< LoyaltyTransaction
+
+Promotion (1) --- (0..1) BuyXGetYRule (VO owned, tylko Type==BuyXGetY, ADR-0034)
 
 Order (0..1) --> Customer            (null = gość)
 Order (1) --< OrderItem

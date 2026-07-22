@@ -23,6 +23,15 @@ public sealed class CreatePromotionCommandHandler : ICommandHandler<CreatePromot
             ? null
             : new Money(command.MinOrderValue.Amount, command.MinOrderValue.Currency);
 
+        var buyXGetYRule = command.BuyXGetY is null
+            ? null
+            : new BuyXGetYRule(
+                command.BuyXGetY.TriggerMenuItemId,
+                command.BuyXGetY.BuyQuantity,
+                command.BuyXGetY.RewardMenuItemId,
+                command.BuyXGetY.GetQuantity,
+                command.BuyXGetY.RewardDiscountPercentage);
+
         var promotion = Promotion.Create(
             command.Name,
             command.Type,
@@ -31,7 +40,8 @@ public sealed class CreatePromotionCommandHandler : ICommandHandler<CreatePromot
             command.Value,
             command.Code,
             minOrderValue,
-            command.UsageLimit);
+            command.UsageLimit,
+            buyXGetYRule);
 
         await _promotionRepository.AddAsync(promotion, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

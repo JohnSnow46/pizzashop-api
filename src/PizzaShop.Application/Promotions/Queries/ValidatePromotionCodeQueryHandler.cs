@@ -3,6 +3,8 @@ using PizzaShop.Application.Common.Abstractions;
 using PizzaShop.Application.Common.Dtos;
 using PizzaShop.Application.Common.Messaging;
 using PizzaShop.Application.Promotions.Dtos;
+using PizzaShop.Domain.Exceptions;
+using PizzaShop.Domain.Promotions;
 using PizzaShop.Domain.ValueObjects;
 
 namespace PizzaShop.Application.Promotions.Queries;
@@ -28,8 +30,22 @@ public sealed class ValidatePromotionCodeQueryHandler : IQueryHandler<ValidatePr
             return new PromotionDiscountPreviewDto(false, null);
 
         var deliveryFee = new Money(query.DeliveryFee.Amount, query.DeliveryFee.Currency);
-        var discount = promotion.CalculateDiscount(subtotal, deliveryFee, now, query.Code);
+        var lines = (query.Lines ?? Array.Empty<PromotionDiscountLineDto>())
+            .Select(l => new OrderDiscountLine(l.MenuItemId, new Money(l.UnitPrice.Amount, l.UnitPrice.Currency), l.Quantity))
+            .ToList();
+        var context = new OrderDiscountContext(subtotal, deliveryFee, now, query.Code, lines);
 
-        return new PromotionDiscountPreviewDto(true, new MoneyDto(discount.Amount, discount.Currency));
+        // BuyXGetY may still turn out not applicable (too few trigger/reward units) even though
+        // the generic gates above passed — that is a preview outcome ("not qualified"), not an
+        // error to propagate (domain-model.md 8.2, ADR-0034).
+        try
+        {
+            var discount = promotion.CalculateDiscount(context);
+            return new PromotionDiscountPreviewDto(true, new MoneyDto(discount.Amount, discount.Currency));
+        }
+        catch (PromotionNotApplicableException)
+        {
+            return new PromotionDiscountPreviewDto(false, null);
+        }
     }
 }

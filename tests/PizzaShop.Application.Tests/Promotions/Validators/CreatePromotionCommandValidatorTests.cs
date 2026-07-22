@@ -1,6 +1,7 @@
 using FluentAssertions;
 using PizzaShop.Application.Common.Dtos;
 using PizzaShop.Application.Promotions.Commands;
+using PizzaShop.Application.Promotions.Dtos;
 using PizzaShop.Application.Promotions.Validators;
 using PizzaShop.Domain.Enums;
 
@@ -40,14 +41,78 @@ public class CreatePromotionCommandValidatorTests
     }
 
     [Fact]
-    public void Validate_BuyXGetYType_HasErrorForType()
+    public void Validate_BuyXGetYWithValidRule_HasNoErrors()
     {
-        var command = ValidCommand() with { Type = PromotionType.BuyXGetY, Value = null };
+        var command = ValidCommand() with
+        {
+            Type = PromotionType.BuyXGetY,
+            Value = null,
+            BuyXGetY = new BuyXGetYRuleDto(Guid.NewGuid(), 2, Guid.NewGuid(), 1, 100m),
+        };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validate_BuyXGetYWithoutRule_HasErrorForBuyXGetY()
+    {
+        var command = ValidCommand() with { Type = PromotionType.BuyXGetY, Value = null, BuyXGetY = null };
 
         var result = _validator.Validate(command);
 
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreatePromotionCommand.Type));
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreatePromotionCommand.BuyXGetY));
+    }
+
+    [Fact]
+    public void Validate_BuyXGetYWithValue_HasErrorForValue()
+    {
+        var command = ValidCommand() with
+        {
+            Type = PromotionType.BuyXGetY,
+            Value = 10m,
+            BuyXGetY = new BuyXGetYRuleDto(Guid.NewGuid(), 2, Guid.NewGuid(), 1, 100m),
+        };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreatePromotionCommand.Value));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Validate_BuyXGetYWithInvalidBuyQuantity_HasErrorForBuyQuantity(int buyQuantity)
+    {
+        var command = ValidCommand() with
+        {
+            Type = PromotionType.BuyXGetY,
+            Value = null,
+            BuyXGetY = new BuyXGetYRuleDto(Guid.NewGuid(), buyQuantity, Guid.NewGuid(), 1, 100m),
+        };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "BuyXGetY.BuyQuantity");
+    }
+
+    [Fact]
+    public void Validate_NonBuyXGetYTypeWithBuyXGetYConfigured_HasErrorForBuyXGetY()
+    {
+        var command = ValidCommand() with
+        {
+            Type = PromotionType.Percentage,
+            BuyXGetY = new BuyXGetYRuleDto(Guid.NewGuid(), 2, Guid.NewGuid(), 1, 100m),
+        };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreatePromotionCommand.BuyXGetY));
     }
 
     [Fact]

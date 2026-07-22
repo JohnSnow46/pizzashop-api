@@ -4,10 +4,11 @@ using PizzaShop.Domain.ValueObjects;
 namespace PizzaShop.Application.Abstractions.Loyalty;
 
 /// <summary>
-/// Policy port for the loyalty points conversion rate (ADR-0009/ADR-0014). Deliberately
-/// holds no concrete rule — <c>LoyaltyAccount</c> and <c>Order</c> (Domain) only record the
-/// resulting point movements; the actual "how many points per zloty" rule is implemented in
-/// Infrastructure and can change without touching Domain or the handlers that call this port.
+/// Policy port for the loyalty points conversion rate (ADR-0009/ADR-0014; rule finalized by
+/// ADR-0033). <c>LoyaltyAccount</c> and <c>Order</c> (Domain) only record the resulting point
+/// movements — the actual "how many points per zloty" rule lives in this port's Infrastructure
+/// implementation, which remains swappable should the business ever revise the rule, without
+/// touching Domain or the handlers that call this port.
 /// </summary>
 public interface ILoyaltyPolicy
 {

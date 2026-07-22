@@ -437,6 +437,77 @@ public class CreateOrderCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_BuyXGetYPromotionCode_AppliesDiscountFromOrderLines()
+    {
+        var pizza = OrderTestFactory.CreatePizza(30m);
+        _menuItemRepository
+            .Setup(r => r.GetManyByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MenuItem> { pizza });
+
+        var rule = new BuyXGetYRule(pizza.Id, 2, pizza.Id, 1, 100m); // 2+1 free
+        var promotion = Promotion.Create(
+            "2+1", PromotionType.BuyXGetY, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), null, "PIZZA21", null, null, rule);
+        _promotionRepository
+            .Setup(r => r.GetByCodeAsync("PIZZA21", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(promotion);
+
+        Order? added = null;
+        _orderRepository
+            .Setup(r => r.AddAsync(It.IsAny<Order>(), It.IsAny<Guid?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Callback<Order, Guid?, string?, CancellationToken>((order, _, _, _) => added = order)
+            .Returns(Task.CompletedTask);
+
+        var command = new CreateOrderCommand(
+            SampleContact(),
+            FulfillmentType.Pickup,
+            null,
+            new[] { new CreateOrderItemDto(pizza.Id, null, 3, Array.Empty<Guid>()) },
+            null,
+            PaymentMethod.OnPickup,
+            PromotionCode: "PIZZA21");
+
+        var handler = CreateHandler();
+
+        await handler.Handle(command, CancellationToken.None);
+
+        added.Should().NotBeNull();
+        added!.AppliedPromotionId.Should().Be(promotion.Id);
+        added.DiscountAmount.Amount.Should().Be(30m);
+        promotion.UsageCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_BuyXGetYPromotionCodeWithTooFewTriggerUnits_ThrowsPromotionNotApplicableException()
+    {
+        var pizza = OrderTestFactory.CreatePizza(30m);
+        _menuItemRepository
+            .Setup(r => r.GetManyByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<MenuItem> { pizza });
+
+        var rule = new BuyXGetYRule(pizza.Id, 2, pizza.Id, 1, 100m); // needs 3 units
+        var promotion = Promotion.Create(
+            "2+1", PromotionType.BuyXGetY, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1), null, "PIZZA21", null, null, rule);
+        _promotionRepository
+            .Setup(r => r.GetByCodeAsync("PIZZA21", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(promotion);
+
+        var command = new CreateOrderCommand(
+            SampleContact(),
+            FulfillmentType.Pickup,
+            null,
+            new[] { new CreateOrderItemDto(pizza.Id, null, 2, Array.Empty<Guid>()) },
+            null,
+            PaymentMethod.OnPickup,
+            PromotionCode: "PIZZA21");
+
+        var handler = CreateHandler();
+
+        var act = () => handler.Handle(command, CancellationToken.None);
+
+        await act.Should().ThrowAsync<PromotionNotApplicableException>();
+    }
+
+    [Fact]
     public async Task Handle_LoggedInCustomerRedeemsPoints_RedeemsFromLoyaltyAccountAndAppliesDiscount()
     {
         var customerId = Guid.NewGuid();
