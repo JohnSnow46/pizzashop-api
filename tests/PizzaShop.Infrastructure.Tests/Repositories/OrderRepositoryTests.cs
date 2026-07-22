@@ -54,6 +54,7 @@ public sealed class OrderRepositoryTests : PostgresRepositoryTestBase
         loadedItem.Quantity.Should().Be(2);
         loadedItem.Extras.Should().HaveCount(1);
         loadedItem.Extras.Single().IngredientId.Should().Be(ingredientId);
+        loadedItem.Extras.Single().Price.Should().Be(order.Items.Single().Extras.Single().Price);
         loadedItem.LineTotal.Should().Be(order.Items.Single().LineTotal);
 
         var storedReference = await readRepository.GetProviderPaymentReferenceAsync(order.Id, CancellationToken.None);

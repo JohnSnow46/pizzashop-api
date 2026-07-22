@@ -69,6 +69,7 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
 
                 extra.Property(e => e.IngredientId).IsRequired();
                 extra.Property(e => e.Name).HasMaxLength(200).IsRequired();
+                extra.Property(e => e.Price).IsRequired();
             });
             item.Navigation(i => i.Extras).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
