@@ -1,15 +1,28 @@
 import { Link, useSearchParams } from 'react-router-dom'
 import { loadOrderResult } from '../checkout/orderResultStorage'
+import { OrderTrackingStatus } from '../components/orders/OrderTrackingStatus'
+import { useOrderTracking, type OrderTrackingSource } from '../hooks/useOrderTracking'
 
 /**
  * Confirmation page (ADR-0036) — a dedicated route (not part of the CheckoutPage wizard state)
  * because it must survive a full page reload on return from PayU's external domain
  * (PayU:ContinueUrl). Reads the last order result from sessionStorage, not the URL/state.
+ *
+ * Live-tracking (ADR-0038): guests are tracked via `guestTrackingToken` (also surfaced here as
+ * a shareable `/orders/track/:trackingToken` link, since sessionStorage doesn't follow the guest
+ * to another tab/device); logged-in customers are tracked via `orderId` instead.
  */
 export function OrderConfirmationPage() {
   const [searchParams] = useSearchParams()
   const paymentError = searchParams.get('error')
   const result = loadOrderResult()
+
+  const trackingSource: OrderTrackingSource | null = result
+    ? result.guestTrackingToken
+      ? { trackingToken: result.guestTrackingToken }
+      : { orderId: result.orderId }
+    : null
+  const tracking = useOrderTracking(trackingSource)
 
   if (!result) {
     return (
@@ -23,6 +36,8 @@ export function OrderConfirmationPage() {
       </div>
     )
   }
+
+  const trackingPath = result.guestTrackingToken ? `/orders/track/${result.guestTrackingToken}` : null
 
   return (
     <div className="checkout-step">
@@ -38,12 +53,15 @@ export function OrderConfirmationPage() {
         </p>
       )}
 
-      {result.guestTrackingToken && (
+      {trackingPath && (
         <p className="checkout-hint">
-          Twój identyfikator śledzenia zamówienia: <code>{result.guestTrackingToken}</code>. Zachowaj go, aby
-          sprawdzić status zamówienia (śledzenie na żywo pojawi się w kolejnej iteracji).
+          Link do śledzenia zamówienia:{' '}
+          <Link to={trackingPath}>{`${window.location.origin}${trackingPath}`}</Link>. Zachowaj go lub prześlij dalej
+          — pozwala sprawdzić status zamówienia z dowolnej karty lub urządzenia.
         </p>
       )}
+
+      <OrderTrackingStatus {...tracking} />
 
       <Link to="/">Wróć do menu</Link>
     </div>

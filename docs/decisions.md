@@ -48,6 +48,7 @@ utwórz `docs/adr/ADR-NNNN.md`**, nie dopisuj treści bezpośrednio tutaj.
 - [ADR-0035](adr/ADR-0035.md): Frontend — React + TypeScript (Vite) w `frontend/`, MVP katalog+koszyk, ręczne typy TS, koszyk client-side (localStorage), nazwana polityka CORS
 - [ADR-0036](adr/ADR-0036.md): Frontend — iteracja checkout jako gość (wizard jednostronicowy + osobna trasa potwierdzenia, mapping koszyk→CreateOrder, walidacja ręczna, obsługa ProblemDetails)
 - [ADR-0037](adr/ADR-0037.md): Frontend — iteracja auth (logowanie/rejestracja klienta), token w `localStorage`, `AuthContext`, brak zmian backendowych
+- [ADR-0038](adr/ADR-0038.md): Frontend — live-tracking statusu zamówienia (SignalR), hook `useOrderTracking`, nowa trasa `/orders/track/:trackingToken`, świadome odłożenie Vitest
 
 ---
 
@@ -75,6 +76,41 @@ Szablon wpisu:
 **Przeczytane, nieużyte:**
 - ADR-000Y — <dlaczego sprawdzony, ale ostatecznie nieistotny dla tego zadania>
 ```
+
+---
+
+### 2026-07-24 — Frontend: live-tracking statusu zamówienia (SignalR) na OrderConfirmationPage
+
+**Wykorzystane ADR:**
+- ADR-0028 — `OrderTrackingHub`, grupy per `OrderId`, `SubscribeToGuestOrder(trackingToken)` /
+  `SubscribeToOrder(orderId)`, autoryzacja przy subskrypcji (cicha przy błędzie)
+  - dobór metody Huba i wariantu REST (`GET /orders/{id}` vs `GET /orders/track/{token}`) 1:1 z
+    wariantem `orderId`/`trackingToken` po stronie frontendu
+  - JWT przekazany przez `accessTokenFactory` (query string `access_token`), nie nagłówek —
+    zgodnie z konfiguracją `Program.cs`
+- ADR-0032 — `HubHttpContextFilter` (fix backendowy `ICurrentUser` w Hubie)
+  - brak wpływu na frontend poza potwierdzeniem, że `SubscribeToOrder` faktycznie działa dla
+    zalogowanego właściciela; zweryfikowane, że frontend nie próbuje obchodzić/duplikować tego
+    fixu (nie przekazuje tożsamości ręcznie)
+- `docs/domain-model.md` sekcja 5.3 (graf `OrderStatus`) — komplet 8 wartości w
+  `OrderTrackingStatus.tsx`, `Rejected`/`Cancelled` odróżnione wizualnie od `Completed`
+
+**Wpływ na implementację:**
+- Nowy ADR-0038 (`docs/adr/ADR-0038.md`): klient SignalR (`@microsoft/signalr`), hook
+  `useOrderTracking` (jedno połączenie per komponent, `withAutomaticReconnect`), komponent
+  prezentacyjny `OrderTrackingStatus`, nowa trasa publiczna `/orders/track/:trackingToken`
+  (`TrackOrderPage`) — uzasadniona wymogiem "GUID w URL" z `CLAUDE.md` i tym, że
+  `sessionStorage` nie przenosi się między kartami/urządzeniami gościa.
+- `OrderConfirmationPage` zastąpiła placeholder tekstowy realnym live-trackingiem + klikalnym
+  linkiem do trasy trackingu.
+- Świadomie NIE wprowadzono Vitest/RTL (frontend nadal bez testów — spójne z ADR-0035/36/37).
+- Po przeglądzie (reviewer) doprecyzowano `useOrderTracking` o wariant `source: null` (bez
+  zbędnego fetchu, gdy nie ma czego śledzić) i usunięto z `OrderTrackingStatus` wyświetlanie
+  surowej treści błędu REST na rzecz komunikatu ogólnego.
+- `npm run build` (tsc + vite) i `npm run lint` (oxlint) — PASS, bez nowych ostrzeżeń.
+
+**Przeczytane, nieużyte:**
+- brak — zadanie dotyczyło wyłącznie obszaru ADR-0028/ADR-0032/domain-model 5.3
 
 ---
 

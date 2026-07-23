@@ -7,11 +7,13 @@ import { LoginPage } from './pages/LoginPage'
 import { MenuPage } from './pages/MenuPage'
 import { OrderConfirmationPage } from './pages/OrderConfirmationPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { TrackOrderPage } from './pages/TrackOrderPage'
 
 /**
  * ADR-0035 shipped catalog + cart; ADR-0036 adds guest checkout (+ its own confirmation route,
  * kept separate from the wizard because it must survive a full page reload on return from
- * PayU); ADR-0037 adds customer login/register. Order tracking is still a future iteration.
+ * PayU); ADR-0037 adds customer login/register; ADR-0038 adds SignalR live order tracking and
+ * the public `/orders/track/:trackingToken` route below.
  */
 export function AppRoutes() {
   return (
@@ -37,7 +39,7 @@ export function AppRoutes() {
             </RedirectIfAuthenticated>
           }
         />
-        {/* TODO: /orders/:trackingToken — przyszła iteracja */}
+        <Route path="/orders/track/:trackingToken" element={<TrackOrderPage />} />
       </Routes>
     </Layout>
   )

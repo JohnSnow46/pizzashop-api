@@ -14,6 +14,10 @@
 //   - src/PizzaShop.Application/Promotions/Dtos/PromotionDiscountLineDto.cs
 //   - src/PizzaShop.Application/Promotions/Dtos/PromotionDiscountPreviewDto.cs
 //   - src/PizzaShop.Application/Promotions/Queries/ValidatePromotionCodeQuery.cs
+//   - src/PizzaShop.Application/Orders/Dtos/OrderDto.cs (+ OrderItemDto, OrderItemExtraDto)
+//   - src/PizzaShop.Domain/Enums/OrderStatus.cs
+//   - src/PizzaShop.Domain/Enums/PaymentStatus.cs
+//   - SignalROrderNotifier's "OrderStatusChanged" push payload (ADR-0038)
 
 /** Mirror of PizzaShop.Application.Common.Dtos.MoneyDto. */
 export interface Money {
@@ -190,4 +194,76 @@ export interface ValidatePromotionCodeRequest {
 export interface PromotionDiscountPreview {
   isQualified: boolean
   discountAmount: Money | null
+}
+
+/**
+ * Mirror of PizzaShop.Domain.Enums.OrderStatus. Serialized as a string
+ * (JsonStringEnumConverter, ADR-0035), not a number.
+ */
+export type OrderStatus =
+  | 'PendingAcceptance'
+  | 'Accepted'
+  | 'InPreparation'
+  | 'Ready'
+  | 'OutForDelivery'
+  | 'Completed'
+  | 'Rejected'
+  | 'Cancelled'
+
+/**
+ * Mirror of PizzaShop.Domain.Enums.PaymentStatus. Serialized as a string
+ * (JsonStringEnumConverter, ADR-0035), not a number.
+ */
+export type PaymentStatus = 'Pending' | 'Authorized' | 'Paid' | 'Refunded' | 'Failed'
+
+/** Mirror of PizzaShop.Application.Orders.Dtos.OrderItemExtraDto. */
+export interface OrderItemExtra {
+  ingredientId: string
+  name: string
+  price: Money
+}
+
+/** Mirror of PizzaShop.Application.Orders.Dtos.OrderItemDto. */
+export interface OrderItem {
+  id: string
+  menuItemId: string
+  menuItemName: string
+  variantId: string | null
+  variantName: string | null
+  unitPrice: Money
+  quantity: number
+  notes: string | null
+  extras: OrderItemExtra[]
+  lineTotal: Money
+}
+
+/** Mirror of PizzaShop.Application.Orders.Dtos.OrderDto. */
+export interface Order {
+  id: string
+  number: string
+  customerId: string | null
+  contact: ContactDetails
+  fulfillmentType: FulfillmentType
+  deliveryAddress: Address | null
+  placedAt: string
+  requestedFulfillmentTime: string | null
+  estimatedReadyAt: string | null
+  status: OrderStatus
+  paymentMethod: PaymentMethod
+  paymentStatus: PaymentStatus
+  subtotal: Money
+  discountAmount: Money
+  deliveryFee: Money
+  total: Money
+  items: OrderItem[]
+}
+
+/**
+ * Mirror of the "OrderStatusChanged" SignalR push payload (SignalROrderNotifier,
+ * ADR-0028/0038). Sent to clients subscribed via OrderTrackingHub.
+ */
+export interface OrderStatusChangedEvent {
+  orderId: string
+  status: OrderStatus
+  estimatedReadyAt: string | null
 }

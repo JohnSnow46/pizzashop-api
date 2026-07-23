@@ -15,6 +15,14 @@ export default defineConfig({
         target: 'http://localhost:5105',
         changeOrigin: true,
       },
+      // Forwards /hubs/* (SignalR) to the same dev server as /api (ADR-0038, Decision 2).
+      // ws: true is required for Vite's proxy to upgrade these connections to WebSocket —
+      // unlike plain REST traffic, it isn't handled by default.
+      '/hubs': {
+        target: 'http://localhost:5105',
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
 })
