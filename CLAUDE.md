@@ -128,26 +128,53 @@ Typowy przepływ dla nowej funkcjonalności: `architect` (projekt) → `builder`
 
 ## Zasady pracy z kontekstem
 
-### Czytanie dokumentacji — obowiązkowo przez subagenta
-Nigdy nie czytaj w głównym wątku plików >150 linii, w szczególności
-`docs/decisions.md`, `docs/api-layer.md`, `docs/domain-model.md` i ADR-ów.
-Każdy z tych plików ma na górze sekcję `## Indeks` (jedna linia na
-ADR/sekcję + numer linii nagłówka) — jeśli plik, który ma powstać lub
-urosnąć, przekroczy ~150 linii, dodaj mu analogiczny Indeks zamiast
-zostawiać go bez skrótu.
+### Proces ADR: decisions.md / docs/adr/ / ADR Notes
+- **`docs/decisions.md` = wyłącznie indeks.** Lista ADR-ów z linkami do plików
+  źródłowych + sekcja `## ADR Notes` na dole. Nie zawiera treści decyzji.
+- **`docs/adr/ADR-NNNN.md` = źródło prawdy.** Pełna treść pojedynczej decyzji
+  (Kontekst → Decyzja → Konsekwencje). Jeden plik = jeden ADR.
+- **`## ADR Notes` w `docs/decisions.md` = historia wykorzystania.** Log per zadanie:
+  które ADR-y wykorzystano i z jakim skutkiem w kodzie, oraz które ADR-y sprawdzono, ale
+  ostatecznie okazały się nieistotne. Szablon wpisu i przykład są w samym pliku.
 
-Nigdy nie zlecaj architektowi "przeczytaj `docs/decisions.md`" ani innego
-pliku w całości — to i tak kończy się pełnym odczytem. Zamiast tego:
-1. Sam zajrzyj do sekcji `## Indeks` (to tylko kilkanaście linii, można
-   przeczytać bezpośrednio) i wskaż architektowi **konkretne numery
-   ADR/sekcji**, które wyglądają na istotne dla zadania.
-2. Zleć zadanie w formie: "Przeczytaj ADR-000X, ADR-000Y (z `docs/decisions.md`,
-   linie wskazane w Indeksie) i sekcję Z `docs/api-layer.md`. Odpowiedz na
-   pytania: [...]. Zwróć maks. 15 punktów, bez cytatów, bez przepisywania treści."
+### Czytanie dokumentacji — obowiązkowo przez subagenta i przez indeks
+Nigdy nie czytaj w głównym wątku plików >150 linii, w szczególności
+`docs/api-layer.md`, `docs/domain-model.md` i pojedynczych ADR-ów w `docs/adr/`.
+Każdy z tych plików ma na górze sekcję `## Indeks` (jedna linia na
+sekcję + numer linii nagłówka) — jeśli plik, który ma powstać lub
+urosnąć, przekroczy ~150 linii, dodaj mu analogiczny Indeks zamiast
+zostawiać go bez skrótu. `docs/decisions.md` jest z założenia krótki (sam indeks +
+ADR Notes) — można go czytać bezpośrednio, ale **nigdy nie czytaj całego
+`docs/decisions.md` jako sposobu na dotarcie do treści ADR** — treść żyje w
+`docs/adr/ADR-NNNN.md`, nie w `decisions.md`.
+
+**Zanim zajrzysz do indeksu — sprawdź `## ADR Notes`.** Jeśli zadanie dotyczy obszaru,
+który był już wcześniej dotykany (np. checkout, płatności, promocje, autoryzacja),
+najpierw przejrzyj wpisy `ADR Notes` z poprzednich zadań w tym obszarze. Często od razu
+wskazują właściwe ADR-y i ich wpływ na kod, bez potrzeby przeszukiwania indeksu czy
+czytania dodatkowych plików.
+
+Nigdy nie zlecaj architektowi "przeczytaj `docs/decisions.md`" ani `docs/adr/*.md` w
+całości — to i tak kończy się pełnym odczytem wszystkich ADR-ów. Zamiast tego:
+1. Sprawdź `## ADR Notes` w `docs/decisions.md` — czy podobne zadanie było już robione
+   i jakich ADR-ów użyto.
+2. Jeśli nie ma trafienia, zajrzyj do `## Indeks` w `docs/decisions.md` (krótka lista
+   linków, można przeczytać bezpośrednio) i wybierz **konkretne numery ADR**, które
+   wyglądają na istotne dla zadania.
+3. Otwórz (albo zleć architektowi) WYŁĄCZNIE `docs/adr/ADR-000X.md` dla wybranych
+   numerów — nigdy cały katalog `docs/adr/`.
+4. Zleć zadanie w formie: "Przeczytaj `docs/adr/ADR-000X.md`, `docs/adr/ADR-000Y.md`
+   i sekcję Z `docs/api-layer.md`. Odpowiedz na pytania: [...]. Zwróć maks. 15 punktów,
+   bez cytatów, bez przepisywania treści."
 
 Do głównego wątku wraca wyłącznie streszczenie.
 
 Wyjątek: plik, który za chwilę edytujesz — ten czytaj bezpośrednio.
+
+**Po zakończeniu zadania** dopisz wpis na górze `## ADR Notes` w `docs/decisions.md`
+(szablon w samym pliku): które ADR-y wykorzystano i jaki miały wpływ na implementację,
+oraz które ADR-y przeczytałeś, ale ostatecznie nieużyte — żeby przyszłe zadania w tym
+samym obszarze wiedziały, że są nieistotne, zamiast czytać je ponownie.
 
 ### Szukanie przed czytaniem
 1. `rg -n "wzorzec" docs/` żeby zlokalizować sekcję
