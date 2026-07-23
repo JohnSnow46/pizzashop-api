@@ -1,15 +1,18 @@
 import { BrowserRouter } from 'react-router-dom'
 import './App.css'
+import { AuthProvider } from './auth/AuthContext'
 import { CartProvider } from './cart/CartContext'
 import { AppRoutes } from './routes'
 
 function App() {
   return (
-    <CartProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </CartProvider>
+    <AuthProvider>
+      <CartProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </CartProvider>
+    </AuthProvider>
   )
 }
 

@@ -5,6 +5,22 @@
 const BASE_URL = '/api'
 
 /**
+ * JWT set by AuthContext (login/register/logout, ADR-0037) — module-level rather than passed
+ * per-request so existing call sites (menuApi/ordersApi/etc.) don't need their signatures
+ * touched. Deliberately not imported from AuthContext here to avoid a cyclic dependency
+ * (AuthContext imports authApi, which imports this module).
+ */
+let authToken: string | null = null
+
+export function setAuthToken(token: string | null): void {
+  authToken = token
+}
+
+function authHeaders(): Record<string, string> {
+  return authToken ? { Authorization: `Bearer ${authToken}` } : {}
+}
+
+/**
  * Shape of ASP.NET Core's ProblemDetails/ValidationProblemDetails bodies (ExceptionHandler,
  * ADR-0027), as far as this client cares about.
  */
@@ -50,7 +66,9 @@ async function toApiError(path: string, response: Response): Promise<ApiError> {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`)
+  const response = await fetch(`${BASE_URL}${path}`, {
+    headers: { ...authHeaders() },
+  })
 
   if (!response.ok) {
     throw await toApiError(path, response)
@@ -62,7 +80,7 @@ async function get<T>(path: string): Promise<T> {
 async function post<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(body),
   })
 

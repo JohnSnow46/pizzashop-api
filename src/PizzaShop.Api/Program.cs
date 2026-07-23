@@ -138,10 +138,12 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddSignalR(options => options.AddFilter<HubHttpContextFilter>());
 
 // 8. CORS (api-layer.md 9, ADR-0035) — named "frontend" policy for the React/Vite dev
-// frontend (currently anonymous/public MVP: menu + cart only, no cookies/Authorization
-// header sent cross-origin), so no AllowCredentials. Origins come from configuration
-// (Cors:Origins) rather than AllowAnyOrigin() so the policy can safely add credentials
-// with an explicit origin allow-list once auth-aware frontend calls exist.
+// frontend. AllowAnyHeader() already covers the "Authorization: Bearer <token>" header the
+// frontend now sends cross-origin for logged-in requests (ADR-0037): the token lives in
+// localStorage and is attached manually via fetch headers, not a cookie, so AllowCredentials
+// (which governs cookies/TLS client certs/HTTP auth, not custom JS-set headers) still isn't
+// needed. Origins come from configuration (Cors:Origins) rather than AllowAnyOrigin() so the
+// policy can add AllowCredentials later if a cookie-based auth flow ever replaces this one.
 builder.Services.AddCors(options => options.AddPolicy("frontend", policy => policy
     .WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? Array.Empty<string>())
     .AllowAnyHeader()

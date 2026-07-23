@@ -25,6 +25,34 @@
   padding: 8px 14px;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-link {
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.auth-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.auth-logout-btn {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
 /* Menu list */
 
 .menu-grid {

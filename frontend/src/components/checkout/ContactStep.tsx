@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ContactDetails } from '../../api/types'
 import { validateContact } from '../../checkout/validation'
+import { useAuth } from '../../hooks/useAuth'
 
 interface ContactStepProps {
   contact: ContactDetails
@@ -9,9 +10,24 @@ interface ContactStepProps {
   onBack: () => void
 }
 
-/** Checkout step 3: guest contact details (CreateOrderCommand.Contact). */
+/**
+ * Checkout step 3: guest/customer contact details (CreateOrderCommand.Contact). When logged in
+ * (ADR-0037), fullName/email are prefilled from the account once (fields stay editable) — phone
+ * is not prefilled since AuthResultDto doesn't carry it.
+ */
 export function ContactStep({ contact, onChange, onNext, onBack }: ContactStepProps) {
+  const { isAuthenticated, user } = useAuth()
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      return
+    }
+    if (contact.fullName.length === 0 && contact.email === null) {
+      onChange({ ...contact, fullName: user.fullName ?? contact.fullName, email: user.email })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, user])
 
   function handleNext() {
     const trimmedContact = { ...contact, fullName: contact.fullName.trim() }
