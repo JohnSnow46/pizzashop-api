@@ -137,8 +137,15 @@ builder.Services.AddAuthorization(options =>
 // real IHttpContextAccessor/ICurrentUser gap inside hub methods — see its doc comment.
 builder.Services.AddSignalR(options => options.AddFilter<HubHttpContextFilter>());
 
-// 8. CORS is future work (api-layer.md 9) — no frontend origin to configure yet, so it is
-// deliberately left out for now.
+// 8. CORS (api-layer.md 9, ADR-0035) — named "frontend" policy for the React/Vite dev
+// frontend (currently anonymous/public MVP: menu + cart only, no cookies/Authorization
+// header sent cross-origin), so no AllowCredentials. Origins come from configuration
+// (Cors:Origins) rather than AllowAnyOrigin() so the policy can safely add credentials
+// with an explicit origin allow-list once auth-aware frontend calls exist.
+builder.Services.AddCors(options => options.AddPolicy("frontend", policy => policy
+    .WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? Array.Empty<string>())
+    .AllowAnyHeader()
+    .AllowAnyMethod()));
 
 // 9. Global exception -> ProblemDetails mapping (api-layer.md 4, ADR-0027).
 builder.Services.AddExceptionHandler<ExceptionHandler>();
@@ -154,6 +161,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("frontend");
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -1712,3 +1712,377 @@ ADR-0020 (VO owned). Nowa migracja dodająca kolumny reguły na tabeli `Promotio
 ADR-0011 pozostaje w historii, domknięty tą decyzją. ADR-0019 (`Type` niemutowalny) utrzymany — reguła
 BuyXGetY również niemutowalna, zmiana = nowa promocja. Szczegóły modelu: domain-model.md sekcja 8.2
 (źródło prawdy dla buildera).
+
+---
+
+## ADR-0035: Frontend — React + TypeScript (Vite) w `frontend/`, MVP katalog+koszyk, ręczne typy TS, koszyk client-side (localStorage), nazwana polityka CORS
+
+**Data:** 2026-07-23
+**Status:** Zaakceptowana
+
+**Kontekst.**
+CLAUDE.md dotąd trzymał frontend „poza zakresem na start (API-first)". Właściciel produktu zdecydował
+o wejściu we frontend i ustalił (nie podlega renegocjacji): stack **React + TypeScript + Vite**; zakres
+**MVP = tylko katalog + koszyk** (przeglądanie menu, budowanie koszyka). Wprost **poza** MVP: checkout
+(adres/dostawa, termin, płatność), logowanie/rejestracja, live-tracking (SignalR), panel admina/obsługi —
+to kolejne iteracje; teraz zostawiamy tylko miejsce (routing), nie projektujemy ich szczegółowo.
+
+Stan Api istotny dla frontendu (zweryfikowany na kodzie):
+- `GET /api/menu` i `GET /api/menu/{id:guid}` (`[AllowAnonymous]`) → `MenuItemDto[]` / `MenuItemDto`
+  (`src/PizzaShop.Application/Catalog/Dtos/MenuItemDto.cs` + `MenuItemVariantDto`, `IngredientDto`,
+  wspólny `MoneyDto`). Enumy serializowane jako **stringi** (`JsonStringEnumConverter` w `Program.cs`) —
+  `MenuCategory` przychodzi jako `"Pizza"`/`"Drink"`/`"Side"`/`"Dessert"`/`"Sauce"`.
+- `GET /api/restaurant/config` (`[AllowAnonymous]`) → `RestaurantConfigDto` (dane restauracji, godziny,
+  progi) — na potrzeby nagłówka/informacji, nie krytyczny dla MVP.
+- **`Program.cs` nie ma skonfigurowanego CORS** (sekcja 8: „CORS is future work… deliberately left out").
+  Swagger/OpenAPI **jest** skonfigurowany (`AddSwaggerGen` + `UseSwagger`/`UseSwaggerUI` w Development).
+
+**Decyzja.**
+
+*(1) Umiejscowienie: `frontend/` w root repo, obok `src/`/`tests/`/`docs/`.* Osobny toolchain Node/npm,
+**poza** solucją .NET (`.sln` nie referuje frontendu). Uzasadnienie: czysty rozdział światów (dotnet vs
+npm), builder może pracować niezależnie, brak ryzyka, że `dotnet build`/`dotnet test` wciąga Node.
+
+*(2) CI: na razie NIE dodajemy frontendu do `ci.yml`.* Job pozostaje `dotnet build`/`dotnet test` (CLAUDE.md).
+Powód: MVP jest wczesny, nie ma jeszcze testów ani lintu frontendu, więc dokładanie kroku `npm ci && npm run
+build` do CI dziś tylko wydłuża pipeline bez realnej bramki jakości i wiąże wersję Node bez potrzeby. Zostaje
+**świadomy TODO** (tu, w ADR): gdy pojawią się testy/lint/typecheck frontendu → **osobny job** (`frontend`)
+w `ci.yml` (albo osobny workflow) z `node-version`, `npm ci`, `npm run build`, `npm run lint`,
+`npm run test` — uruchamiany warunkowo na zmiany w `frontend/**` (path filter), żeby nie blokować zmian
+czysto backendowych. To przyszły, mały krok — nie robimy go teraz.
+
+*(3) Typy/klient API: ręczne typy TS mirrorujące DTO (nie generacja z OpenAPI) — na start.* Choć Swagger
+istnieje (naturalny kandydat do `openapi-typescript`), MVP dotyka **dwóch** publicznych, stabilnych
+endpointów (menu + config). Ręczne, małe typy w `src/api/types.ts` (mirror `MenuItemDto` i zależnych,
+`MoneyDto`, `MenuCategory` jako union stringów) to najprostsza droga bez dokładania toolchainu generacji i
+zależności od uruchomionego Api w czasie builda frontendu. To ta sama filozofia, co Application mirrorujące
+Domain VO ręcznymi DTO. **Punkt przełomu (zapisany, nie na zapas):** gdy powierzchnia API urośnie (checkout,
+auth, admin — wiele endpointów i typów), przejść na generację `openapi-typescript` ze Swaggera (`/swagger/
+v1/swagger.json`) — wtedy osobny ADR/krok. Do tego czasu ręczne typy.
+
+*(4) Koszyk: wyłącznie client-side (localStorage + React Context/`useReducer`).* Koszyk w tym MVP **nie ma
+backendu** — nie tworzymy encji/endpointu „Cart". Byłoby to sprzeczne z modelem z CLAUDE.md/Domain, gdzie
+koszyk staje się `Order` dopiero przy złożeniu zamówienia (przyszła iteracja checkoutu). Koszyk żyje w stanie
+aplikacji (Context + reducer) i jest utrwalany w `localStorage` (przetrwanie odświeżenia). Pozycja koszyka
+referuje `menuItemId` + `variantId` (+ wybrane `extras` jako lista `ingredientId`) + `quantity`; ceny liczone
+**po stronie klienta wyłącznie do wyświetlenia** — źródłem prawdy dla cen pozostaje Api (przy checkoucie
+`CreateOrderCommand` przeliczy wszystko od nowa; klient-side total jest orientacyjny). Brak `AllowCredentials`
+w CORS na start jest z tym spójny (MVP anonimowy, bez cookies/JWT).
+
+*(5) CORS: nazwana polityka `"frontend"` z originami z konfiguracji — jedyna zmiana w Api w tej iteracji.*
+Frontend na innym originie (dev: `http://localhost:5173` — domyślny port Vite) niż Api wymaga CORS, inaczej
+przeglądarkowy `fetch` do `/api/menu` jest blokowany. Dodajemy nazwaną politykę czytającą originy z
+konfiguracji (`Cors:Origins`, tablica), `AllowAnyHeader()`, `AllowAnyMethod()`, **bez `AllowCredentials`**
+(MVP anonimowy — brak ciasteczek/nagłówka Authorization z frontendu; gdy dojdzie auth, poszerzymy politykę
+i włączymy credentials z jawną listą originów — przyszły krok). `app.UseCors("frontend")` w potoku **przed**
+`UseAuthentication`/`UseAuthorization`. To realizuje wcześniej zapowiedzianą w `api-layer.md` (linia ~452)
+„nazwaną politykę pod przyszły frontend".
+
+**Alternatywy rozważone.**
+- *Generacja typów z OpenAPI od razu* — odrzucona na teraz (dwa endpointy, koszt toolchainu > zysk; wróci
+  przy wzroście API, pkt 3).
+- *Frontend w `src/`* — odrzucona (mieszanie światów dotnet/npm w jednym drzewie, ryzyko dla `dotnet` build/test).
+- *CORS `AllowAnyOrigin()`* — odrzucona (origins z konfiguracji są bezpieczniejsze i wymagane, gdy w przyszłości
+  dojdą credentials — `AllowAnyOrigin` jest wtedy niedozwolone; lepiej od razu przyzwyczaić do listy originów).
+- *Koszyk na backendzie* — odrzucona (konflikt z modelem `Order`, przedwczesne; MVP client-side wystarcza).
+
+**Konsekwencje.**
+- Nowy katalog `frontend/` (Vite + React + TS) poza solucją .NET; niezależny toolchain npm. `.gitignore`
+  uzupełniony o `frontend/node_modules`, `frontend/dist` (build już jest lokalnie modyfikowany — patrz status repo).
+- Jedyna zmiana w kodzie Api: `Program.cs` — rejestracja `AddCors` z polityką `"frontend"` (origins z
+  `Cors:Origins`) + `app.UseCors("frontend")` przed auth; sekcja `Cors:Origins` w `appsettings.Development.json`
+  (`["http://localhost:5173"]`). Zastępuje komentarz „CORS is future work" realną polityką. `api-layer.md`
+  sekcja 9 do zaktualizowania (CORS z „planowane" na „zaimplementowane, polityka `frontend`").
+- CI bez zmian teraz; otwarty, świadomy TODO na osobny job frontendu przy pierwszych testach/lincie (pkt 2).
+- Typy TS mirrorują DTO ręcznie — przy każdej zmianie kontraktu menu trzeba zaktualizować `types.ts` (koszt
+  akceptowalny przy dwóch endpointach; przy wzroście → generacja, pkt 3).
+- Reszta flow (checkout, auth, tracking, admin) świadomie poza MVP; routing zostawia na nie miejsce, ale bez
+  implementacji — nie projektujemy ich teraz (osobne przyszłe ADR-y/iteracje).
+- CLAUDE.md (sekcja „Frontend" i „Status projektu") aktualizuje właściciel — nie ruszamy go z poziomu
+  architekta (analogicznie do zasady z ADR-0033: CLAUDE.md to konfiguracja projektu po stronie właściciela).
+
+**Zakres/kroki dla buildera.**
+
+*A. Api (jedyna zmiana backendowa):*
+1. `src/PizzaShop.Api/Program.cs` — dodać przed `builder.Build()`:
+   `builder.Services.AddCors(o => o.AddPolicy("frontend", p => p
+     .WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? Array.Empty<string>())
+     .AllowAnyHeader().AllowAnyMethod()));`
+   oraz w potoku (po `app.UseHttpsRedirection()`, **przed** `app.UseAuthentication()`): `app.UseCors("frontend");`.
+   Zastąpić komentarz sekcji 8 „CORS is future work" krótkim odwołaniem do ADR-0035.
+2. `src/PizzaShop.Api/appsettings.Development.json` — dodać `"Cors": { "Origins": [ "http://localhost:5173" ] }`.
+3. Test integracyjny (`WebApplicationFactory`, opcjonalny lecz zalecany): preflight/`Origin` z listy dostaje
+   nagłówek `Access-Control-Allow-Origin`; origin spoza listy — nie.
+
+*B. Frontend (nowy `frontend/`):*
+4. Scaffold: `npm create vite@latest frontend -- --template react-ts` (w root repo); następnie `npm install`
+   w `frontend/`. Dodać `react-router-dom` (routing pod przyszłe ekrany).
+5. Konfiguracja proxy dev (`vite.config.ts`): proxy `"/api"` → `http://localhost:5000` (lub aktualny origin
+   Api z `launchSettings`), żeby w devie unikać CORS i mieć jeden origin; CORS z pkt A i tak potrzebny dla
+   scenariusza bez proxy (np. build produkcyjny na innym hoście).
+6. Struktura folderów w `frontend/src/`:
+   - `api/` — `types.ts` (ręczny mirror: `Money`, `MenuCategory` union, `MenuItemVariant`, `Ingredient`,
+     `MenuItem`, `RestaurantConfig`), `client.ts` (cienki `fetch` wrapper: bazowy URL, parsowanie JSON,
+     błędy), `menuApi.ts` (`getMenu()`, `getMenuItem(id)`).
+   - `hooks/` — `useMenu()` (fetch `/api/menu`, stan loading/error/data), `useCart()` (dostęp do kontekstu
+     koszyka). Prosty fetch + `useEffect`/`useState` wystarcza; nie wprowadzać React Query w MVP (można
+     dopisać później).
+   - `cart/` — `CartContext.tsx` (Context + `useReducer`: akcje `add`/`remove`/`setQuantity`/`clear`),
+     `cartStorage.ts` (serializacja do/z `localStorage`), typy pozycji koszyka (`menuItemId`, `variantId`,
+     `extras: string[]`, `quantity`).
+   - `components/` — `MenuList`, `MenuItemCard` (nazwa, opis, warianty, cena, przycisk „dodaj"),
+     `VariantPicker`, `ExtrasPicker` (z `AllowedExtras`), `CartDrawer`/`CartView` (pozycje, ilości, suma
+     orientacyjna, „wyczyść"), `Layout`/`Header`.
+   - `pages/` — `MenuPage` (lista + koszyk), placeholder `CartPage` (jeśli osobny widok).
+   - `routes.tsx` — `react-router` z trasą `/` (menu). Zostawić komentarz-miejsce na przyszłe trasy
+     (`/checkout`, `/login`, `/orders/:trackingToken`) — **bez** implementacji.
+7. Wołanie `/api/menu`: `menuApi.getMenu()` → `MenuItem[]`; render w `MenuList`/`MenuItemCard`. Ceny z
+   `MoneyDto` (`amount`+`currency`) formatować do PLN. Pamiętać: `category` to string (union), nie liczba.
+8. Koszyk w UI: dodanie pozycji z `MenuItemCard` (wybrany wariant + extras) → `dispatch(add)`; `CartView`
+   pokazuje pozycje, pozwala zmienić ilość/usunąć, liczy sumę orientacyjną client-side; stan utrwalany w
+   `localStorage` przez `cartStorage`. Podkreślić w kodzie (komentarz), że cena to podgląd — źródłem prawdy
+   jest Api przy przyszłym checkoucie.
+9. README krótkie w `frontend/` (jak uruchomić: `npm install`, `npm run dev`; gdzie ustawić URL Api).
+10. `.gitignore` (root lub `frontend/`) — `frontend/node_modules/`, `frontend/dist/`.
+
+*Poza zakresem buildera teraz:* checkout, auth, SignalR, panel admina, testy/lint frontendu w CI, generacja
+typów z OpenAPI. Nie implementować — tylko zostawić miejsce w routingu (pkt 6).
+
+---
+
+## ADR-0036: Frontend — iteracja checkout jako gość (wizard jednostronicowy + osobna trasa potwierdzenia, mapping koszyk→CreateOrder, walidacja ręczna, obsługa ProblemDetails)
+
+**Data:** 2026-07-23
+**Status:** Zaakceptowana
+
+**Kontekst.**
+Po MVP katalog+koszyk (ADR-0035) właściciel zdecydował o kolejnej iteracji frontendu:
+**checkout wyłącznie jako gość** — bez logowania/rejestracji/JWT i bez punktów lojalnościowych
+(osobna, przyszła iteracja; nie projektujemy jej teraz, zostawiamy tylko miejsce w routingu,
+analogicznie jak ADR-0035 zostawił miejsce na checkout). Live-tracking (SignalR) także poza
+zakresem — po złożeniu zamówienia pokazujemy tylko stronę potwierdzenia z numerem i
+`GuestTrackingToken`, bez realnego trackingu.
+
+Kontrakty Api zweryfikowane na kodzie (nie z pamięci):
+- `POST /api/orders/check-delivery` (`[AllowAnonymous]`) — `CheckDeliveryAvailabilityQuery(AddressDto Address)`
+  → `DeliveryAvailabilityDto(bool IsAvailable, double? DistanceKm, MoneyDto? DeliveryFee)`. `DistanceKm`
+  i `DeliveryFee` są `null`, gdy `IsAvailable == false`. Fee to stawka standardowa restauracji — próg
+  darmowej dostawy nie jest tu jeszcze znany (subtotal koszyka nieznany na tym kroku).
+- `POST /api/orders` (`[AllowAnonymous]`) — `CreateOrderCommand(ContactDetailsDto Contact,
+  FulfillmentType FulfillmentType, AddressDto? DeliveryAddress, IReadOnlyList<CreateOrderItemDto> Items,
+  DateTimeOffset? RequestedFulfillmentTime, PaymentMethod PaymentMethod, string? PromotionCode = null,
+  int? PointsToRedeem = null)` → `CreateOrderResultDto(Guid OrderId, string Number, Guid? GuestTrackingToken,
+  string? PaymentRedirectUrl)`. `GuestTrackingToken` ustawiany tylko dla gościa; `PaymentRedirectUrl`
+  tylko dla `PaymentMethod.Online` (`null` dla `OnPickup`). `CustomerId` czytany po stronie handlera z
+  `ICurrentUser` (dla gościa `null`) — ciało żądania nie może go sfałszować.
+  - `ContactDetailsDto(string FullName, string PhoneNumber, string? Email = null)`.
+  - `AddressDto(string Street, string BuildingNumber, string City, string PostalCode,
+    string? ApartmentNumber = null, string? Notes = null)`.
+  - `CreateOrderItemDto(Guid MenuItemId, Guid? VariantId, int Quantity,
+    IReadOnlyList<Guid> ExtraIngredientIds, string? Notes = null)`.
+  - `PointsToRedeem` — zawsze `null` w tym MVP (gość nie ma punktów).
+  - Walidacja backendu (`CreateOrderCommandValidator`): `FullName` niepusty; `PhoneNumber` wg wzorca PL
+    `^(\+48[\s-]?)?\d{3}([\s-]?\d{3}){2}$`; `Email` — format e-mail tylko gdy niepusty; `Items` niepuste,
+    każdy `Quantity >= 1`; `DeliveryAddress` wymagany, gdy `FulfillmentType == Delivery`.
+- `POST /api/promotions/validate` (`[AllowAnonymous]`) — `ValidatePromotionCodeQuery(string Code,
+  MoneyDto Subtotal, MoneyDto DeliveryFee, IReadOnlyList<PromotionDiscountLineDto>? Lines = null)`
+  → `PromotionDiscountPreviewDto(bool IsQualified, MoneyDto? DiscountAmount)` (`DiscountAmount` `null`,
+  gdy `IsQualified == false`). `PromotionDiscountLineDto(Guid MenuItemId, MoneyDto UnitPrice, int Quantity)`
+  potrzebne dla `BuyXGetY` (ADR-0034); dla pozostałych typów może być puste/pominięte. To wyłącznie
+  **podgląd** — rzeczywisty rabat liczy `CreateOrderCommand` po stronie serwera.
+- `GET /api/restaurant/config` (`[AllowAnonymous]`) → `RestaurantConfigDto(Guid Id, string Name,
+  AddressDto Address, GeoCoordinateDto Location, double DeliveryRadiusKm, string TimeZoneId,
+  OpeningHoursDto OpeningHours, string ContactPhone, bool IsAcceptingOrders, MoneyDto? MinimumOrderValue,
+  MoneyDto? FreeDeliveryThreshold, MoneyDto DeliveryFee)`. Frontendowy `RestaurantConfig`/`OpeningHours`/
+  `Address` w `types.ts` **już istnieje i jest kompletny** (ADR-0035) — nie trzeba dociągać pól.
+- Enumy serializują się jako **stringi** (`JsonStringEnumConverter`, ADR-0035):
+  `FulfillmentType` = `"Delivery"|"Pickup"`, `PaymentMethod` = `"Online"|"OnPickup"`,
+  `DayOfWeek` jako nazwy (`"Monday"`…).
+- Błędy Api → `ProblemDetails`/`ValidationProblemDetails` (`ExceptionHandler`, ADR-0027): 400 walidacja
+  (`ValidationProblemDetails` z `errors: { pole: [komunikaty] }`), 404 not found, 409 konflikt stanu,
+  422 naruszenie reguły domenowej (m.in. adres poza obszarem dostawy wykryty przy submicie),
+  501 `NotSupported`. Ciało niesie `title` i `detail` (bezpieczne do pokazania).
+
+Stan frontendu istotny dla iteracji: `apiClient` (`api/client.ts`) obsługuje **tylko GET**
+(`apiClient.get`) — trzeba dodać `post`. `CartItem` (`cart/types.ts`) niesie `menuItemId`,
+`variantId: string|null`, `extraIds: string[]`, `quantity` (+ pola displayowe i orientacyjną cenę) —
+mapuje się 1:1 na `CreateOrderItemDto`. `PayU:ContinueUrl` w `appsettings.json` jest **pusty** (`""`);
+w `appsettings.Development.json` brak sekcji `PayU`.
+
+**Decyzja.**
+
+*(1) Struktura ekranów: JEDEN komponent-wizard `pages/CheckoutPage.tsx` ze stanem kroku (nie osobne
+pod-trasy `/checkout/step-x`).* Kroki 1–7 współdzielą jeden, spójny stan (tryb, adres+wynik
+`check-delivery`, kontakt, termin, płatność, kod promo, podsumowanie). Osobne pod-trasy wymuszałyby
+serializację/synchronizację tego stanu z URL i głębokie linkowanie w środek niedokończonego zamówienia
+— nadmiarowe dla MVP. Nawigacja „dalej/wstecz" to lokalny stan (`useReducer`). **Wyjątek — potwierdzenie
+jest OSOBNĄ trasą `/checkout/confirmation`**, bo musi przetrwać pełne przeładowanie strony przy powrocie
+z zewnętrznej domeny PayU (redirect `ContinueUrl`), czego stan wizardu w pamięci nie przetrwa.
+
+*(2) Kanał przekazania wyniku zamówienia do strony potwierdzenia: `sessionStorage`, jednakowy dla Online
+i OnPickup.* `CreateOrderResultDto` (orderId, number, guestTrackingToken, paymentRedirectUrl) zapisujemy do
+`sessionStorage` **przed** opuszczeniem SPA (przed `window.location.href = paymentRedirectUrl` dla Online;
+przed `navigate('/checkout/confirmation')` dla OnPickup). `PayU:ContinueUrl` jest **statyczny** w konfiguracji
+i nie zawiera `orderId` (gateway używa `_options.ContinueUrl` bez doklejania id), więc strona potwierdzenia
+nie odczyta zamówienia z URL — musi z `sessionStorage`. Jeden kanał dla obu ścieżek upraszcza kod i zachowanie.
+PayU może dokleić `?error=...` do `ContinueUrl` przy nieudanej/anulowanej płatności — strona potwierdzenia
+czyta ten parametr i pokazuje „płatność niepotwierdzona/w toku", ale i tak wyświetla numer zamówienia +
+`GuestTrackingToken` z `sessionStorage`, bo **zamówienie istnieje niezależnie od wyniku płatności**
+(`PaymentStatus` ⟂ `OrderStatus`, ADR-0007); potwierdzenie płatności przychodzi asynchronicznie webhookiem.
+
+*(3) `PayU:ContinueUrl` wskazuje na stronę potwierdzenia frontendu (zmiana tylko w konfiguracji dev).*
+Ustawiamy `PayU:ContinueUrl = "http://localhost:5173/checkout/confirmation"` w `appsettings.Development.json`.
+To jedyna zmiana backendowa tej iteracji i jest czysto konfiguracyjna (bez zmian w kodzie/gateway).
+Produkcyjny origin ustawi się przy wdrożeniu (poza zakresem).
+
+*(4) Mapping `CartItem` → `CreateOrderItemDto` jako czysta funkcja w module checkoutu (`checkout/mapCartToOrder.ts`),
+nie w `apiClient`.* `apiClient` zostaje cienki (tylko transport). Mapping: `{ menuItemId → MenuItemId,
+variantId → VariantId (null przechodzi na null/pominięcie), quantity → Quantity, extraIds → ExtraIngredientIds,
+Notes: null }`. Ceny z koszyka są orientacyjne (ADR-0035) i **nie** są wysyłane — serwer przelicza wszystko.
+Ten sam moduł buduje `PromotionDiscountLineDto[]` z koszyka dla podglądu promocji.
+
+*(5) Walidacja formularzy: ręczna, spójna z resztą MVP — bez `zod`/`react-hook-form`.* `package.json` nie ma
+bibliotek walidacyjnych; checkout to kilka prostych pól. Dokładamy tylko małe funkcje w `checkout/validation.ts`
+mirrorujące reguły backendu (wymagany `FullName`; telefon PL tym samym wzorcem co
+`CreateOrderCommandValidator`; e-mail opcjonalny, format tylko gdy podany; pola adresu wymagane dla dostawy).
+Walidacja frontendu **ułatwia** (blokuje „dalej", komunikaty inline) — źródłem prawdy pozostaje
+Api/Domain. Punkt przełomu (zapisany, nie na zapas): gdy dojdą złożone formularze (auth, panel admina),
+rozważyć `react-hook-form`+`zod` osobnym ADR.
+
+*(6) Termin realizacji walidowany na UI względem `RestaurantConfig.openingHours` — tylko orientacyjnie.*
+Domyślnie „na teraz" (`RequestedFulfillmentTime = null`). Przy „zaplanuj" — pokazujemy okna z `openingHours`
+dla wybranego dnia, blokujemy przeszłość i godziny poza oknem. Ostateczną walidację (godziny pracy, strefa
+czasowa `TimeZoneId`) i tak robi Domain. Wysyłamy `DateTimeOffset` (ISO 8601 z offsetem) — nie „gołą" lokalną
+godzinę. `IsAcceptingOrders == false` + „na teraz" → blokada z komunikatem (można zaplanować w godzinach pracy).
+
+*(7) Obsługa błędów Api: rozszerzamy `ApiError` o sparsowany `ProblemDetails`.* `apiClient.post` przy `!response.ok`
+parsuje ciało jako `problem+json`: dla 400 `ValidationProblemDetails` wyciąga `errors` (mapa pole→komunikaty) →
+błędy inline przy polach; dla 422/409/404/501 pokazuje `title`+`detail` jako baner na kroku podsumowania.
+Scenariusz szczególny: adres poza obszarem dostawy przy submicie mimo wcześniejszego `check-delivery` (race) →
+422 → baner + akcja „wróć do wyboru odbioru osobistego". Minimalny próg zamówienia (`MinimumOrderValue`) i próg
+darmowej dostawy (`FreeDeliveryThreshold`) pokazujemy orientacyjnie i blokujemy submit poniżej progu — backend
+egzekwuje to twardo.
+
+*(8) Routing: dodajemy realne `/checkout` i `/checkout/confirmation`; `/login` i `/orders/:trackingToken`
+zostają jako przyszłe.* Z listy TODO-placeholderów w `routes.tsx` usuwamy tylko `/checkout`.
+
+**Alternatywy rozważone.**
+- *Pod-trasy per krok (`/checkout/mode`, `/checkout/address`…)* — odrzucone: koszt synchronizacji stanu z URL i
+  deep-linki w środek niedokończonego zamówienia bez wartości dla MVP.
+- *Przekazanie wyniku zamówienia przez React Router `navigate(state)`* — odrzucone jako jedyny kanał: nie
+  przetrwa zewnętrznego redirectu PayU (pełne przeładowanie z innej domeny). `sessionStorage` działa dla obu ścieżek.
+- *Dynamiczny `ContinueUrl` per zamówienie (z `orderId`)* — odrzucone teraz: wymaga zmiany gateway/kontraktu
+  (backend), a `sessionStorage` rozwiązuje problem bez ruszania backendu. Do rozważenia, gdyby doszedł
+  wieloetapowy powrót/deep-link po płatności.
+- *`zod`+`react-hook-form`* — odrzucone na teraz (rozdmuchanie zależności dla kilku pól; wróci przy auth/adminie).
+- *Generacja typów z OpenAPI* — nadal odłożone (ADR-0035 pkt 3); dokładamy ręczne typy checkoutu. Powierzchnia
+  API rośnie — to sygnał do przyszłej migracji na `openapi-typescript` (osobny ADR).
+
+**Konsekwencje.**
+- Rośnie ręczny mirror typów (`api/types.ts`): dochodzą `FulfillmentType`, `PaymentMethod`, `ContactDetails`,
+  `CreateOrderItem`, `CreateOrderCommand`, `CreateOrderResult`, `DeliveryAvailability`, `ValidatePromotionCode`
+  (request), `PromotionDiscountPreview`, `PromotionDiscountLine`. Każda zmiana kontraktu Orders/Promotions/Restaurant
+  wymaga aktualizacji `types.ts` — koszt akceptowalny, ale zbliża moment migracji na generację (pkt wyżej).
+- `apiClient` przestaje być GET-only: dochodzi `post` + bogatszy `ApiError` (status + `title`/`detail`/`errors`).
+  Istniejące wywołania GET bez zmian.
+- Jedyna zmiana backendowa: `PayU:ContinueUrl` w `appsettings.Development.json` (`http://localhost:5173/checkout/confirmation`).
+  Bez zmian w kodzie Api/gateway. Produkcyjny origin — przy wdrożeniu.
+- Koszyk po udanym złożeniu zamówienia jest czyszczony (`clear()`), ale dopiero po zapisaniu wyniku do
+  `sessionStorage` i (dla Online) tuż przed redirectem — żeby powrót „wstecz" z PayU nie zostawił pustego koszyka
+  bez potwierdzenia. Szczegóły w planie buildera.
+- Punkty lojalnościowe, logowanie, live-tracking, panel obsługi — nadal poza zakresem; routing zostawia miejsce,
+  nie implementujemy (przyszłe ADR-y/iteracje). `PointsToRedeem` zawsze `null`.
+- CI bez zmian (spójne z ADR-0035 pkt 2; testy/lint frontendu = przyszły osobny job).
+
+**Zakres/kroki dla buildera.**
+
+*B0. Domknięcie logu decyzji:* wykonane przez architekta bezpośrednio w `docs/decisions.md` (ten wpis) — brak
+osobnego kroku dla buildera.
+
+*B1. Backend (jedyna zmiana, konfiguracja):*
+1. `src/PizzaShop.Api/appsettings.Development.json` — dodać sekcję
+   `"PayU": { "ContinueUrl": "http://localhost:5173/checkout/confirmation" }`. Bez zmian w kodzie.
+
+*B2. Warstwa API frontendu (`frontend/src/api/`):*
+2. `api/client.ts` — dodać `post<T>(path, body): Promise<T>` (`fetch` z `method: 'POST'`,
+   `headers: { 'Content-Type': 'application/json' }`, `body: JSON.stringify(body)`). Rozszerzyć `ApiError`
+   o `title?: string`, `detail?: string`, `errors?: Record<string, string[]>`; przy `!ok` próbować sparsować
+   ciało jako JSON `problem+json` i wypełnić te pola (fallback do dotychczasowego zachowania, gdy nie-JSON).
+3. `api/types.ts` — dodać mirror-typy: `FulfillmentType = 'Delivery' | 'Pickup'`,
+   `PaymentMethod = 'Online' | 'OnPickup'`, `ContactDetails { fullName; phoneNumber; email: string | null }`,
+   `CreateOrderItem { menuItemId; variantId: string | null; quantity; extraIngredientIds: string[];
+   notes: string | null }`, `CreateOrderCommand { contact; fulfillmentType; deliveryAddress: Address | null;
+   items: CreateOrderItem[]; requestedFulfillmentTime: string | null; paymentMethod; promotionCode: string | null;
+   pointsToRedeem: number | null }`, `CreateOrderResult { orderId; number; guestTrackingToken: string | null;
+   paymentRedirectUrl: string | null }`, `DeliveryAvailability { isAvailable; distanceKm: number | null;
+   deliveryFee: Money | null }`, `PromotionDiscountLine { menuItemId; unitPrice: Money; quantity }`,
+   `ValidatePromotionCodeRequest { code; subtotal: Money; deliveryFee: Money; lines: PromotionDiscountLine[] }`,
+   `PromotionDiscountPreview { isQualified; discountAmount: Money | null }`. (Komentarze mirrorujące ścieżki C#,
+   jak reszta pliku.)
+4. `api/ordersApi.ts` — `checkDelivery(address: Address): Promise<DeliveryAvailability>`
+   (`post('/orders/check-delivery', { address })`) oraz `createOrder(cmd: CreateOrderCommand): Promise<CreateOrderResult>`
+   (`post('/orders', cmd)`).
+5. `api/promotionsApi.ts` — `validatePromotion(req: ValidatePromotionCodeRequest): Promise<PromotionDiscountPreview>`
+   (`post('/promotions/validate', req)`).
+6. `api/restaurantApi.ts` — `getRestaurantConfig(): Promise<RestaurantConfig>` (`get('/restaurant/config')`).
+
+*B3. Moduł checkoutu (`frontend/src/checkout/`):*
+7. `checkout/mapCartToOrder.ts` — czyste funkcje:
+   `cartItemsToOrderItems(items: CartItem[]): CreateOrderItem[]` (mapping z pkt Decyzja 4, `notes: null`,
+   `variantId` `null`→`null`) oraz `cartItemsToPromotionLines(items: CartItem[]): PromotionDiscountLine[]`
+   (`{ menuItemId, unitPrice: { amount: unitPriceAmount, currency }, quantity }`). Komentarz: ceny orientacyjne,
+   serwer przelicza.
+8. `checkout/validation.ts` — walidatory pól zwracające komunikat lub `null`: `validateFullName`,
+   `validatePhoneNumber` (ten sam regex PL co backend), `validateEmailOptional`, `validateAddress`
+   (Street/BuildingNumber/City/PostalCode wymagane; PostalCode w formacie PL `NN-NNN` — miękko, jeśli backend
+   nie wymaga ostrzej). Eksport agregujący błędy per krok.
+9. `checkout/openingHours.ts` — helper: `getWindowsForDate(config, date): TimeRange[]`, `isWithinOpeningHours(config, when): boolean`,
+   `isInPast(when): boolean`. Do UI kroku terminu; ostateczna walidacja po stronie Domain.
+10. `checkout/orderResultStorage.ts` — `saveOrderResult(r: CreateOrderResult)` / `loadOrderResult(): CreateOrderResult | null`
+    / `clearOrderResult()` na `sessionStorage` (klucz np. `pizzashop.lastOrder`).
+11. `checkout/checkoutState.ts` — typ stanu wizardu (`step`, `fulfillmentType`, `address`, `deliveryCheck`,
+    `contact`, `schedule: { mode: 'now'|'scheduled'; at: string | null }`, `paymentMethod`, `promotionCode`,
+    `promotionPreview`) + `useReducer` (akcje: `setFulfillment`, `setAddress`, `setDeliveryCheck`, `setContact`,
+    `setSchedule`, `setPayment`, `setPromotion`, `goNext`, `goBack`).
+
+*B4. Komponenty i strony:*
+12. `pages/CheckoutPage.tsx` — wizard sterujący krokami, guard: pusty koszyk → redirect do `/cart` (lub `/`).
+    Ładuje `RestaurantConfig` na wejściu (loading/error). Renderuje krok wg stanu:
+    - Krok 1 `FulfillmentStep` — wybór `Delivery`/`Pickup`.
+    - Krok 2 `DeliveryAddressStep` (tylko `Delivery`) — formularz `Address` → `checkDelivery` →
+      jeśli `isAvailable == false`: komunikat + przycisk „wybierz odbiór osobisty" (cofa do kroku 1 z ustawionym
+      `Pickup`); jeśli `true`: zapamiętać `deliveryFee`/`distanceKm`, „dalej". Dla `Pickup` krok pomijany całkowicie.
+    - Krok 3 `ContactStep` — `ContactDetails` (FullName, PhoneNumber wymagane; Email opcjonalny) + walidacja ręczna.
+    - Krok 4 `FulfillmentTimeStep` — radio „na teraz" / „zaplanuj"; przy „zaplanuj" picker ograniczony
+      `openingHours` wybranego dnia, blokada przeszłości; wynik jako ISO `DateTimeOffset` lub `null`.
+    - Krok 5 `PaymentStep` — wybór `Online`/`OnPickup`.
+    - Krok 6 `PromotionField` (może być częścią podsumowania) — pole kodu + „sprawdź" → `validatePromotion`
+      (subtotal = orientacyjny total koszyka; deliveryFee = z `deliveryCheck` dla dostawy albo `0` dla odbioru;
+      lines = `cartItemsToPromotionLines`); pokazać `isQualified`/`discountAmount` informacyjnie.
+    - Krok 7 `OrderSummary` — pozycje, orientacyjny subtotal, dostawa (info o `FreeDeliveryThreshold`), podgląd
+      rabatu, dane kontaktowe/adres/termin/płatność; guard `MinimumOrderValue`; przycisk „Zamawiam".
+13. Submit w `CheckoutPage`: zbudować `CreateOrderCommand` (`items = cartItemsToOrderItems`,
+    `deliveryAddress` tylko dla `Delivery`, `requestedFulfillmentTime` z kroku 4, `promotionCode` lub `null`,
+    `pointsToRedeem: null`) → `createOrder`. Po sukcesie: `saveOrderResult(result)`, `clear()` koszyka, a następnie:
+    - `Online` (jest `paymentRedirectUrl`): `window.location.href = result.paymentRedirectUrl`.
+    - `OnPickup`: `navigate('/checkout/confirmation')`.
+    Obsłużyć `ApiError`: 400 → błędy inline/baner z `errors`; 422/409 → baner z `detail` (adres poza obszarem →
+    dodatkowo akcja powrotu do wyboru odbioru); inne → baner ogólny.
+14. `pages/OrderConfirmationPage.tsx` (trasa `/checkout/confirmation`) — `loadOrderResult()`; jeśli brak →
+    komunikat + link do menu. Jeśli jest: pokazać `Number`, `GuestTrackingToken` (jako informację/nieodgadnalny
+    identyfikator śledzenia — bez realnego trackingu SignalR w tej iteracji, ADR-0028/0031), odczytać `?error`
+    z query (PayU) i przy jego obecności pokazać „płatność niepotwierdzona/w toku" (bez blokowania widoku
+    zamówienia). Link „śledź zamówienie" może na razie prowadzić do placeholderu/`/orders/:trackingToken` (trasa
+    przyszła) lub być nieaktywny z adnotacją.
+15. `components/checkout/` — komponenty kroków z pkt 12 (`FulfillmentStep`, `DeliveryAddressStep`, `ContactStep`,
+    `FulfillmentTimeStep`, `PaymentStep`, `PromotionField`, `OrderSummary`) + opcjonalny `CheckoutStepper`
+    (pasek postępu). Trzymać spójny, prosty styl z istniejącymi klasami CSS (`cart-*`, `empty-state` itd.).
+16. `components/CartView.tsx` (lub `pages/CartPage.tsx`) — dodać przycisk/link „Przejdź do kasy" → `/checkout`
+    (widoczny, gdy koszyk niepusty).
+17. `routes.tsx` — dodać `<Route path="/checkout" element={<CheckoutPage />} />` i
+    `<Route path="/checkout/confirmation" element={<OrderConfirmationPage />} />`; z komentarza-TODO usunąć
+    tylko `/checkout` (zostawić `/login`, `/orders/:trackingToken`).
+
+*Poza zakresem buildera teraz:* logowanie/rejestracja, punkty lojalnościowe (`PointsToRedeem` zawsze `null`),
+live-tracking SignalR, panel obsługi/admina, testy/lint frontendu w CI, generacja typów z OpenAPI, dynamiczny
+`ContinueUrl` per zamówienie. Nie implementować — zostawić miejsce w routingu (pkt 17).

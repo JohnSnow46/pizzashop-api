@@ -31,6 +31,9 @@ public sealed class ApiTestFactory : WebApplicationFactory<Program>
     public const string SuperAdminEmail = "superadmin@pizzashop.test";
     public const string SuperAdminPassword = "SuperSecret123!";
 
+    /// <summary>Origin allowed by the "frontend" CORS policy in this test host (ADR-0035).</summary>
+    public const string AllowedCorsOrigin = "http://localhost:5173";
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
@@ -45,6 +48,7 @@ public sealed class ApiTestFactory : WebApplicationFactory<Program>
                 ["Jwt:ExpiryMinutes"] = "60",
                 ["Seed:SuperAdminEmail"] = SuperAdminEmail,
                 ["Seed:SuperAdminPassword"] = SuperAdminPassword,
+                ["Cors:Origins:0"] = AllowedCorsOrigin,
             });
         });
 

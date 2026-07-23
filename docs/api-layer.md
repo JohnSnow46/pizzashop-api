@@ -449,10 +449,12 @@ Kolejność w `Program.cs`:
    `IHttpContextAccessor.HttpContext` w metodach Huba (sekcja 8.3, ADR-0032); bez niego
    `ICurrentUser` cicho gubi tożsamość wewnątrz `SubscribeToOrder`.
 8. `AddExceptionHandler<...>()` + `AddProblemDetails()` (middleware wyjątków, sekcja 4).
-9. `AddCors(...)` — nazwana polityka pod przyszły frontend (origin z konfiguracji `Cors:Origins`);
-   domyślnie restrykcyjna. Włączyć w pipeline tylko jeśli skonfigurowano origin.
+9. `AddCors(...)` — zaimplementowane (ADR-0035): nazwana polityka `"frontend"` dla React/Vite,
+   originy z konfiguracji `Cors:Origins` (`WithOrigins` + `AllowAnyHeader` + `AllowAnyMethod`,
+   bez `AllowCredentials` — MVP frontendu jest anonimowy, brak cookies/nagłówka `Authorization`
+   wysyłanego cross-origin).
 
-Pipeline (`app`): `UseExceptionHandler()` → `UseHttpsRedirection()` → (`UseCors`) →
+Pipeline (`app`): `UseExceptionHandler()` → `UseHttpsRedirection()` → `UseCors("frontend")` →
 `UseAuthentication()` → `UseAuthorization()` → `MapControllers()` →
 `MapHub<OrderTrackingHub>("/hubs/order-tracking")`. Swagger w Development. `DbSeeder`
 (bootstrap SuperAdmin, 2.7) po `Database.Migrate()` w Development/na starcie.
