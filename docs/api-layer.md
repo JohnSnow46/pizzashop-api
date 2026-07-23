@@ -16,6 +16,25 @@ Application: `docs/application-layer.md` sekcja 3. Use case'y: sekcja 4. Graf `O
 
 ---
 
+## Indeks
+
+Jedna linia na sekcję z numerem linii nagłówka — użyj `Read` z `offset` na wskazaną linię
+zamiast czytać cały plik. Przy dopisywaniu nowej sekcji dopisz też jej linię tutaj.
+
+- 1 (L38). Zasady warstwy
+- 2 (L101). Tożsamość i uwierzytelnianie (ADR-0026)
+- 3 (L179). `ICurrentUser` — implementacja Api (`HttpContextCurrentUser`)
+- 4 (L198). Middleware wyjątków — `ProblemDetails` (ADR-0027)
+- 5 (L254). Autoryzacja ról — hierarchia jawna (ADR-0027)
+- 6 (L278). Kontrolery per moduł (ADR-0027)
+- 7 (L363). Webhook PayU — surowe body (ADR-0022/0027)
+- 8 (L384). SignalR — `OrderTrackingHub` + `IOrderNotifier` (ADR-0028)
+- 9 (L453). Program.cs / kompozycja DI (ADR-0027)
+- 10 (L489). Iteracje dla buildera
+- 11 (L522). Kroki Iteracji 1 (kolejność implementacji)
+
+---
+
 ## 1. Zasady warstwy
 
 - **Cienkie kontrolery.** Kontroler: (1) mapuje request → Command/Query, (2) woła

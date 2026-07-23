@@ -5,6 +5,51 @@ Wpisy są dopisywane, nie nadpisywane. Numeracja rosnąca.
 
 ---
 
+## Indeks
+
+Jedna linia na ADR z numerem linii nagłówka — użyj `Read` z `offset` na wskazaną linię
+zamiast czytać cały plik. Pełną treść czytaj tylko dla pozycji faktycznie istotnych dla
+zadania. **Przy dopisywaniu nowego ADR dopisz też jego linię tutaj.**
+
+- ADR-0001 (L53): Baza danych — PostgreSQL
+- ADR-0002 (L76): Dostawca płatności — PayU (tryb Sandbox na start)
+- ADR-0003 (L101): Model jednej lokalizacji (single-tenant)
+- ADR-0004 (L125): Role użytkowników — Customer / Employee / RestaurantAdmin / SuperAdmin
+- ADR-0005 (L160): Tożsamość (konto) vs. profil domenowy; zamówienie gościa
+- ADR-0006 (L190): Obszar dostawy jako promień od restauracji
+- ADR-0007 (L215): Płatność i realizacja jako niezależne stany
+- ADR-0008 (L247): Zamówienia z wyprzedzeniem (scheduling) i EstimatedReadyAt
+- ADR-0009 (L274): Punkty lojalnościowe jako elastyczny szkielet
+- ADR-0010 (L303): Czas w UTC (DateTimeOffset), znaczniki timestamptz
+- ADR-0011 (L324): BuyXGetY — wyliczenie rabatu odłożone
+- ADR-0012 (L355): Struktura warstwy Application — CQRS z cienką własną abstrakcją (bez MediatR)
+- ADR-0013 (L390): Kształt IPaymentGateway i przepływ potwierdzenia płatności PayU
+- ADR-0014 (L426): ILoyaltyPolicy — polityka naliczania/wymiany punktów w Application
+- ADR-0015 (L455): Dostęp do konfiguracji Restaurant przez repozytorium (pojedynczy rekord)
+- ADR-0016 (L482): Edycja wariantów MenuItem — jawny SetDefaultVariant zamiast auto-promocji
+- ADR-0017 (L536): Reguły zależne od roli/kontekstu w Application — `ForbiddenOperationException` (403), nie reużycie `ValidationException` ani przeciek roli do Domain
+- ADR-0018 (L653): Domknięcie płatności — refund przy anulowaniu, persystencja `ProviderPaymentReference`, klasyfikacja wyjątku „konflikt stanu wykryty w Application" i zakres płatności gościa
+- ADR-0019 (L791): Edycja Promotion — celowe metody `UpdateWindow`/`UpdateValue`/`UpdateUsageLimit`; `Type` niemutowalny; `UsageLimit` poniżej `UsageCount` dozwolony
+- ADR-0020 (L881): Strategia mapowania EF Core — DbContext, konfiguracje per agregat, mapowanie Value Objectów, konstruktory perystencyjne w Domain
+- ADR-0021 (L952): Dane sidecar (`GuestTrackingToken`, `ProviderPaymentReference`) jako shadow properties na tabeli `Orders`
+- ADR-0022 (L985): Implementacja PayU w Infrastructure (OAuth, inicjalizacja, weryfikacja podpisu, mapowanie statusów, idempotentny refund)
+- ADR-0023 (L1024): Geokodowanie — Nominatim (OSM) jako implementacja `IGeocodingService`
+- ADR-0024 (L1053): Granica kompozycji — które porty implementuje Infrastructure, a które Api (SignalR i `ICurrentUser` w Api)
+- ADR-0025 (L1084): Migracje EF Core, design-time factory i strategia testów integracyjnych (Testcontainers PostgreSQL)
+- ADR-0026 (L1120): Tożsamość i uwierzytelnianie — własny `UserAccount` + BCrypt (nie ASP.NET Core Identity), JWT, powiązanie konta z `Customer`
+- ADR-0027 (L1192): Warstwa Api — middleware wyjątków (ProblemDetails), autoryzacja ról z jawną hierarchią, cienkie kontrolery, webhook PayU z surowym body
+- ADR-0028 (L1266): SignalR live-tracking — `OrderTrackingHub` w Api, grupy per `OrderId`, subskrypcja gościa przez token i zalogowanego przez ownership
+- ADR-0029 (L1317): Powiązanie `Customer` ↔ `LoyaltyAccount` jednokierunkowe (FK na `LoyaltyAccount.CustomerId`) — usunięcie cyklu tworzenia, odrzucenie opcjonalnego `Guid? id` w fabrykach
+- ADR-0030 (L1413): Reconciliacja route-id vs. body-id w kontrolerach mutujących — route jako jedyne źródło prawdy (nadpisanie), bez guardu `BadRequest()`
+- ADR-0031 (L1445): Addendum do ADR-0028 — `NoopOrderNotifier` w Iteracji 3; live-tracking (SignalR) realnie nieaktywny do Iteracji 4
+- ADR-0032 (L1490): `HubHttpContextFilter` (`IHubFilter`) re-kotwiczy `IHttpContextAccessor.HttpContext` na czas wywołania metody Huba — naprawa cichej utraty `ICurrentUser` w SignalR
+- ADR-0033 (L1577): Finalizacja przelicznika punktów lojalnościowych (domknięcie ADR-0009/ADR-0014)
+- ADR-0034 (L1636): Implementacja promocji BuyXGetY — konfiguracja `BuyXGetYRule`, `OrderDiscountContext`, nowa sygnatura `CalculateDiscount` (domknięcie ADR-0011)
+- ADR-0035 (L1763): Frontend — React + TypeScript (Vite) w `frontend/`, MVP katalog+koszyk, ręczne typy TS, koszyk client-side (localStorage), nazwana polityka CORS
+- ADR-0036 (L1898): Frontend — iteracja checkout jako gość (wizard jednostronicowy + osobna trasa potwierdzenia, mapping koszyk→CreateOrder, walidacja ręczna, obsługa ProblemDetails)
+
+---
+
 ## ADR-0001: Baza danych — PostgreSQL
 
 **Data:** 2026-07-16

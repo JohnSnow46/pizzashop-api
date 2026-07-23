@@ -11,6 +11,25 @@ Legenda:
 
 ---
 
+## Indeks
+
+Jedna linia na sekcję z numerem linii nagłówka — użyj `Read` z `offset` na wskazaną linię
+zamiast czytać cały plik. Przy dopisywaniu nowej sekcji dopisz też jej linię tutaj.
+
+- 1 (L33). Przegląd agregatów
+- 2 (L49). Value Objecty
+- 3 (L88). Restaurant (agregat, single-tenant — ADR-0003)
+- 4 (L118). Katalog: MenuItem, Pizza, Ingredient, dodatki
+- 5 (L216). Order (agregat) — serce domeny
+- 6 (L334). Customer (agregat)
+- 7 (L362). LoyaltyAccount + LoyaltyTransaction (agregat — szkielet, ADR-0009; przelicznik ADR-0033)
+- 8 (L402). Promotion (agregat)
+- 9 (L543). Wyjątki domenowe
+- 10 (L581). Notatki projektowe / świadome uproszczenia
+- 11 (L615). Diagram relacji (skrót tekstowy)
+
+---
+
 ## 1. Przegląd agregatów
 
 | Agregat (korzeń) | Zawiera | Odpowiedzialność |

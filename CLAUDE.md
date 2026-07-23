@@ -126,6 +126,44 @@ Ten projekt korzysta z trzech subagentów zdefiniowanych w `.claude/agents/`:
 
 Typowy przepływ dla nowej funkcjonalności: `architect` (projekt) → `builder` (implementacja) → `reviewer` (przegląd) → poprawki przez `builder`.
 
+## Zasady pracy z kontekstem
+
+### Czytanie dokumentacji — obowiązkowo przez subagenta
+Nigdy nie czytaj w głównym wątku plików >150 linii, w szczególności
+`docs/decisions.md`, `docs/api-layer.md`, `docs/domain-model.md` i ADR-ów.
+Każdy z tych plików ma na górze sekcję `## Indeks` (jedna linia na
+ADR/sekcję + numer linii nagłówka) — jeśli plik, który ma powstać lub
+urosnąć, przekroczy ~150 linii, dodaj mu analogiczny Indeks zamiast
+zostawiać go bez skrótu.
+
+Nigdy nie zlecaj architektowi "przeczytaj `docs/decisions.md`" ani innego
+pliku w całości — to i tak kończy się pełnym odczytem. Zamiast tego:
+1. Sam zajrzyj do sekcji `## Indeks` (to tylko kilkanaście linii, można
+   przeczytać bezpośrednio) i wskaż architektowi **konkretne numery
+   ADR/sekcji**, które wyglądają na istotne dla zadania.
+2. Zleć zadanie w formie: "Przeczytaj ADR-000X, ADR-000Y (z `docs/decisions.md`,
+   linie wskazane w Indeksie) i sekcję Z `docs/api-layer.md`. Odpowiedz na
+   pytania: [...]. Zwróć maks. 15 punktów, bez cytatów, bez przepisywania treści."
+
+Do głównego wątku wraca wyłącznie streszczenie.
+
+Wyjątek: plik, który za chwilę edytujesz — ten czytaj bezpośrednio.
+
+### Szukanie przed czytaniem
+1. `rg -n "wzorzec" docs/` żeby zlokalizować sekcję
+2. `Read` z `offset`/`limit` — wąskie okno wokół trafienia
+Nigdy `Read` bez limitu na pliku, którego rozmiaru nie znasz.
+
+### Nie pytaj, jeśli możesz sprawdzić
+Zanim użyjesz AskUserQuestion, sprawdź: `git log --oneline -20`,
+`git status`, istniejące pliki. Pytaj tylko o decyzje produktowe,
+których nie da się wywnioskować z repo.
+Maksymalnie jedna runda pytań na sesję, wszystkie pytania naraz.
+
+### Zgłaszaj koszt
+Po fazie rozpoznania, przed implementacją, napisz jedną linijkę:
+"Rozpoznanie zakończone, wczytano ~Nk tokenów. Sugeruję /compact."
+
 ## Konwencje kodu
 - Nullable reference types: włączone (`<Nullable>enable</Nullable>`)
 - Async wszędzie tam, gdzie jest I/O (`async`/`await`, `CancellationToken` przekazywany dalej)

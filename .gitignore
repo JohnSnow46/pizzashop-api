@@ -11,6 +11,12 @@ obj/
 # Local code-review setup (not shared with the team)
 .editorconfig
 
+# Local VS Code usage notes (not shared with the team)
+VSCODE-SETUP.md
+
+# Local Claude Code usage/cost notes (not shared with the team)
+USAGE-TIPS.md
+
 # Test results
 [Tt]est[Rr]esult*/
 *.trx
