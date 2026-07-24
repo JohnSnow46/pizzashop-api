@@ -5,6 +5,7 @@ using PizzaShop.Application.Common.Abstractions;
 using PizzaShop.Application.Common.Messaging;
 using PizzaShop.Application.Identity.Commands;
 using PizzaShop.Application.Identity.Dtos;
+using PizzaShop.Application.Identity.Queries;
 
 namespace PizzaShop.Api.Controllers;
 
@@ -51,6 +52,14 @@ public sealed class AuthController : ControllerBase
     public async Task<ActionResult<AuthResultDto>> RegisterStaff(RegisterStaffAccountCommand command, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("staff")]
+    [Authorize(Roles = AuthRoles.Admin)]
+    public async Task<ActionResult<IReadOnlyList<UserAccountDto>>> GetStaff(CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new GetStaffAccountsQuery(), cancellationToken);
         return Ok(result);
     }
 

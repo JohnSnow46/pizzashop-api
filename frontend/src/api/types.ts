@@ -27,7 +27,19 @@
 //   - src/PizzaShop.Application/Catalog/Commands/SetMenuItemAvailabilityCommand.cs (admin catalog UI)
 //   - src/PizzaShop.Application/Catalog/Commands/CreateIngredientCommand.cs (admin catalog UI)
 //   - src/PizzaShop.Application/Catalog/Commands/UpdateIngredientCommand.cs (admin catalog UI)
+//   - src/PizzaShop.Domain/Enums/PromotionType.cs (admin promotions UI)
+//   - src/PizzaShop.Application/Promotions/Dtos/PromotionDto.cs (admin promotions UI)
+//   - src/PizzaShop.Application/Promotions/Dtos/BuyXGetYRuleDto.cs (admin promotions UI)
+//   - src/PizzaShop.Application/Promotions/Commands/CreatePromotionCommand.cs (admin promotions UI, ADR-0019)
+//   - src/PizzaShop.Application/Promotions/Commands/UpdatePromotionCommand.cs (admin promotions UI, ADR-0019)
 //   - src/PizzaShop.Application/Catalog/Dtos/MenuItemVariantDto.cs (MenuItemVariantInputDto, admin catalog UI)
+//   - src/PizzaShop.Application/Restaurant/Commands/UpdateOpeningHoursCommand.cs (admin restaurant UI)
+//   - src/PizzaShop.Application/Restaurant/Commands/UpdateDeliveryAreaCommand.cs (admin restaurant UI)
+//   - src/PizzaShop.Application/Restaurant/Commands/UpdateOrderingThresholdsCommand.cs (admin restaurant UI)
+//   - src/PizzaShop.Application/Identity/Dtos/UserAccountDto.cs (admin staff UI)
+//   - src/PizzaShop.Application/Identity/Commands/RegisterStaffAccountCommand.cs (admin staff UI)
+
+import type { UserRole } from '../auth/types'
 
 /** Mirror of PizzaShop.Application.Common.Dtos.MoneyDto. */
 export interface Money {
@@ -191,6 +203,25 @@ export interface RestaurantConfig {
   openingHours: OpeningHours
   contactPhone: string
   isAcceptingOrders: boolean
+  minimumOrderValue: Money | null
+  freeDeliveryThreshold: Money | null
+  deliveryFee: Money
+}
+
+/** Mirror of PizzaShop.Application.Restaurant.Commands.UpdateOpeningHoursCommand. */
+export interface UpdateOpeningHoursCommand {
+  openingHours: OpeningHours
+}
+
+/** Mirror of PizzaShop.Application.Restaurant.Commands.UpdateDeliveryAreaCommand. */
+export interface UpdateDeliveryAreaCommand {
+  latitude: number
+  longitude: number
+  deliveryRadiusKm: number
+}
+
+/** Mirror of PizzaShop.Application.Restaurant.Commands.UpdateOrderingThresholdsCommand. */
+export interface UpdateOrderingThresholdsCommand {
   minimumOrderValue: Money | null
   freeDeliveryThreshold: Money | null
   deliveryFee: Money
@@ -387,4 +418,88 @@ export interface LoyaltyTransaction {
 export interface LoyaltyBalance {
   pointsBalance: number
   transactions: LoyaltyTransaction[]
+}
+
+/**
+ * Mirror of PizzaShop.Domain.Enums.PromotionType. Serialized as a string
+ * (JsonStringEnumConverter, ADR-0035), not a number.
+ */
+export type PromotionType = 'Percentage' | 'FixedAmount' | 'FreeDelivery' | 'BuyXGetY'
+
+/** Mirror of PizzaShop.Application.Promotions.Dtos.BuyXGetYRuleDto (admin promotions UI). */
+export interface BuyXGetYRule {
+  triggerMenuItemId: string
+  buyQuantity: number
+  rewardMenuItemId: string
+  getQuantity: number
+  rewardDiscountPercentage: number
+}
+
+/** Mirror of PizzaShop.Application.Promotions.Dtos.PromotionDto (admin promotions UI). */
+export interface Promotion {
+  id: string
+  name: string
+  code: string | null
+  type: PromotionType
+  value: number | null
+  minOrderValue: Money | null
+  validFrom: string
+  validTo: string
+  isActive: boolean
+  usageLimit: number | null
+  usageCount: number
+  buyXGetY: BuyXGetYRule | null
+}
+
+/**
+ * Mirror of PizzaShop.Application.Promotions.Commands.CreatePromotionCommand (admin promotions
+ * UI). Full set of promotion fields — the fields NOT in UpdatePromotionCommand below (name,
+ * code, type, minOrderValue, buyXGetY) are create-only per ADR-0019.
+ */
+export interface CreatePromotionCommand {
+  name: string
+  type: PromotionType
+  validFrom: string
+  validTo: string
+  value: number | null
+  code: string | null
+  minOrderValue: Money | null
+  usageLimit: number | null
+  buyXGetY: BuyXGetYRule | null
+}
+
+/**
+ * Mirror of PizzaShop.Application.Promotions.Commands.UpdatePromotionCommand (admin promotions
+ * UI). Deliberately narrower than CreatePromotionCommand (ADR-0019) — name/code/type/
+ * minOrderValue/buyXGetY have no update mutation on the server. `promotionId` is overridden by
+ * the route on the server (docs/api-layer.md 1.1). `validFrom`/`validTo` must both be provided
+ * together or both omitted — the validator rejects setting only one.
+ */
+export interface UpdatePromotionCommand {
+  promotionId: string
+  isActive: boolean
+  validFrom: string | null
+  validTo: string | null
+  value: number | null
+  usageLimit: number | null
+}
+
+/** Mirror of PizzaShop.Application.Identity.Dtos.UserAccountDto (admin staff UI). */
+export interface StaffAccount {
+  id: string
+  email: string
+  role: UserRole
+  isActive: boolean
+  createdAt: string
+}
+
+/**
+ * Mirror of PizzaShop.Application.Identity.Commands.RegisterStaffAccountCommand (admin staff
+ * UI). The admin staff creation form only offers Employee/RestaurantAdmin as `role` — never
+ * SuperAdmin or Customer (the handler enforces who may create which role, ADR-0017).
+ */
+export interface CreateStaffAccountCommand {
+  email: string
+  password: string
+  role: UserRole
 }

@@ -41,4 +41,7 @@ public sealed class InMemoryUserAccountRepository : IUserAccountRepository
         _accounts[account.Id] = account;
         return Task.CompletedTask;
     }
+
+    public Task<IReadOnlyList<UserAccount>> GetAllAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<UserAccount>>(_accounts.Values.OrderBy(a => a.CreatedAt).ToList());
 }

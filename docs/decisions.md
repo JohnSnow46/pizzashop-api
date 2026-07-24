@@ -81,6 +81,35 @@ Szablon wpisu:
 
 ---
 
+### 2026-07-24 — Panel admina: zarządzanie kontami pracowników (/admin/staff)
+
+**Wykorzystane ADR:**
+- ADR-0004 — Role użytkowników (Customer/Employee/RestaurantAdmin/SuperAdmin)
+  - `GetStaffAccountsQueryHandler` filtruje `UserRole.Customer` — panel pokazuje wyłącznie
+    konta personelu.
+- ADR-0017 — `ForbiddenOperationException` dla reguł zależnych od roli/kontekstu w Application
+  - Bez zmian w kodzie: istniejący `RegisterStaffAccountCommandHandler` (RestaurantAdmin może
+    tworzyć tylko Employee, SuperAdmin — dowolną rolę personelu) ponownie użyty bez modyfikacji.
+- ADR-0027 — Autoryzacja ról z jawną hierarchią
+  - Nowy `GET /api/auth/staff` pod `[Authorize(Roles = AuthRoles.Admin)]`, analogicznie do
+    istniejącego `POST /api/auth/staff`.
+
+**Wpływ na implementację:**
+- Backend: `IUserAccountRepository.GetAllAsync`, `UserAccountDto` (bez `PasswordHash`),
+  `GetStaffAccountsQuery`/Handler, `GET /api/auth/staff` w `AuthController`. Dopisany wiersz w
+  `docs/api-layer.md` §6.1.
+- Frontend: `/admin/staff` (lista + formularz tworzenia), reużywa istniejący
+  `POST /api/auth/staff`. Selektor roli w UI celowo ogranicza się do
+  Employee/RestaurantAdmin (SuperAdmin niedostępny w formularzu jako dodatkowe
+  zabezpieczenie warstwy UI — realna reguła i tak żyje w handlerze).
+- Żadna migracja EF Core ani nowa reguła domenowa nie była potrzebna.
+
+**Przeczytane, nieużyte:**
+- ADR-0026 — sprawdzony (kontekst `UserAccount`/JWT), ale nie wniósł nic ponad już
+  istniejący kod, który tylko reużyto.
+
+---
+
 ### 2026-07-24 — Wykorzystanie punktów lojalnościowych w checkoucie
 
 **Wykorzystane ADR:**

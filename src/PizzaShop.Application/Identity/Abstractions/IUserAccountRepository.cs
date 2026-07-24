@@ -16,4 +16,6 @@ public interface IUserAccountRepository
     Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken);
 
     Task AddAsync(UserAccount account, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<UserAccount>> GetAllAsync(CancellationToken cancellationToken);
 }

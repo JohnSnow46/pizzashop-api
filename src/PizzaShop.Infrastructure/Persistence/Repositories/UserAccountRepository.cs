@@ -28,4 +28,9 @@ public sealed class UserAccountRepository : IUserAccountRepository
         _context.UserAccounts.Add(account);
         return Task.CompletedTask;
     }
+
+    public async Task<IReadOnlyList<UserAccount>> GetAllAsync(CancellationToken cancellationToken) =>
+        await _context.UserAccounts
+            .OrderBy(a => a.CreatedAt)
+            .ToListAsync(cancellationToken);
 }

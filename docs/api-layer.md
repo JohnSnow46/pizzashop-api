@@ -291,6 +291,7 @@ Kolumna „Use case" = Command/Query wołany przez `IDispatcher`.
 | POST | `/register` | `RegisterCustomerCommand` | AllowAnonymous |
 | POST | `/login` | `LoginCommand` | AllowAnonymous |
 | POST | `/staff` | `RegisterStaffAccountCommand` | `Admin` (SuperAdmin dla ról admin — reguła w handlerze) |
+| GET | `/staff` | `GetStaffAccountsQuery` | `Admin` |
 | GET | `/me` | (z `ICurrentUser`, bez CQRS) | Authorize (dowolna rola) |
 
 ### 6.2 `MenuController` (`/api/menu`) — Iteracja 2

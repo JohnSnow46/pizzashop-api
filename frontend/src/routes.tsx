@@ -3,6 +3,9 @@ import { RedirectIfAuthenticated } from './components/auth/RedirectIfAuthenticat
 import { RequireAuth } from './components/auth/RequireAuth'
 import { Layout } from './components/Layout'
 import { AdminMenuPage } from './pages/AdminMenuPage'
+import { AdminPromotionsPage } from './pages/AdminPromotionsPage'
+import { AdminRestaurantPage } from './pages/AdminRestaurantPage'
+import { AdminStaffPage } from './pages/AdminStaffPage'
 import { CartPage } from './pages/CartPage'
 import { CheckoutPage } from './pages/CheckoutPage'
 import { EmployeeOrdersPage } from './pages/EmployeeOrdersPage'
@@ -20,6 +23,11 @@ import { TrackOrderPage } from './pages/TrackOrderPage'
  * the public `/orders/track/:trackingToken` route below; ADR-0039 adds the `/account` panel
  * (order history + loyalty points), gated behind `RequireAuth`. `/admin/menu` is the admin
  * catalog management page (menu items + ingredients), gated to `AuthRoles.Admin` equivalents.
+ * `/admin/promotions` is the admin promotion management page (list + create/edit, ADR-0019),
+ * gated the same way. `/admin/restaurant` is the admin restaurant configuration page (opening
+ * hours, delivery area, ordering/free-delivery thresholds), gated the same way. `/admin/staff`
+ * is the admin staff account management page (list + create via RegisterStaffAccountCommand),
+ * gated the same way.
  */
 export function AppRoutes() {
   return (
@@ -67,6 +75,30 @@ export function AppRoutes() {
           element={
             <RequireAuth roles={['RestaurantAdmin', 'SuperAdmin']}>
               <AdminMenuPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/promotions"
+          element={
+            <RequireAuth roles={['RestaurantAdmin', 'SuperAdmin']}>
+              <AdminPromotionsPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/restaurant"
+          element={
+            <RequireAuth roles={['RestaurantAdmin', 'SuperAdmin']}>
+              <AdminRestaurantPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/staff"
+          element={
+            <RequireAuth roles={['RestaurantAdmin', 'SuperAdmin']}>
+              <AdminStaffPage />
             </RequireAuth>
           }
         />

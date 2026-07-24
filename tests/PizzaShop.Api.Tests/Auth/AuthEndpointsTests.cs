@@ -123,6 +123,44 @@ public sealed class AuthEndpointsTests : IClassFixture<ApiTestFactory>
     }
 
     [Fact]
+    public async Task GetStaff_WithoutAdminRole_ReturnsForbidden()
+    {
+        var client = await AuthTestHelper.CreateStaffClientAsync(_factory, UserRole.Employee);
+
+        var response = await client.GetAsync("/api/auth/staff");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task GetStaff_WithRestaurantAdminRole_ReturnsOk()
+    {
+        var client = await AuthTestHelper.CreateStaffClientAsync(_factory, UserRole.RestaurantAdmin);
+
+        var response = await client.GetAsync("/api/auth/staff");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<UserAccountDto>>(JsonOptions);
+        result.Should().NotBeNull();
+        result!.Should().NotContain(a => a.Role == UserRole.Customer);
+    }
+
+    [Fact]
+    public async Task GetStaff_WithSuperAdminRole_ReturnsOk()
+    {
+        var client = CreateClient();
+        var superAdminToken = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new LoginCommand(ApiTestFactory.SuperAdminEmail, ApiTestFactory.SuperAdminPassword));
+        var superAdminResult = await superAdminToken.Content.ReadFromJsonAsync<AuthResultDto>(JsonOptions);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", superAdminResult!.Token);
+
+        var response = await client.GetAsync("/api/auth/staff");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task Register_DuplicateEmail_ReturnsConflict()
     {
         var client = CreateClient();
