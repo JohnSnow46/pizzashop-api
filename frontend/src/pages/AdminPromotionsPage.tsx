@@ -32,7 +32,11 @@ export function AdminPromotionsPage() {
         {error && <p className="empty-state">{error}</p>}
 
         {!loading && !error && (
-          <PromotionList promotions={promotions} onEdit={(promotion) => setForm({ mode: 'edit', promotion })} />
+          <PromotionList
+            promotions={promotions}
+            onEdit={(promotion) => setForm({ mode: 'edit', promotion })}
+            onDeactivated={reload}
+          />
         )}
 
         {form.mode === 'closed' && (

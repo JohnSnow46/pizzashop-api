@@ -1,8 +1,12 @@
+import { useState } from 'react'
+import { deactivatePromotion } from '../../api/promotionsApi'
 import type { Promotion } from '../../api/types'
 
 interface PromotionListProps {
   promotions: Promotion[]
   onEdit: (promotion: Promotion) => void
+  /** Called after a successful deactivation so the caller can refetch the list. */
+  onDeactivated: () => void
 }
 
 const TYPE_LABELS: Record<Promotion['type'], string> = {
@@ -26,14 +30,31 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('pl-PL')
 }
 
-/** Read-only table of all promotions with an edit action (admin promotions UI). */
-export function PromotionList({ promotions, onEdit }: PromotionListProps) {
+/** Read-only table of all promotions with an edit action and a (one-way) deactivate action. */
+export function PromotionList({ promotions, onEdit, onDeactivated }: PromotionListProps) {
+  const [pendingId, setPendingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function deactivate(promotion: Promotion) {
+    setPendingId(promotion.id)
+    setError(null)
+    try {
+      await deactivatePromotion(promotion.id)
+      onDeactivated()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Nie udało się dezaktywować promocji.')
+    } finally {
+      setPendingId(null)
+    }
+  }
+
   if (promotions.length === 0) {
     return <p className="empty-state">Brak zdefiniowanych promocji.</p>
   }
 
   return (
     <div className="admin-table-wrap">
+      {error && <p className="checkout-error">{error}</p>}
       <table className="admin-table">
         <thead>
           <tr>
@@ -66,6 +87,15 @@ export function PromotionList({ promotions, onEdit }: PromotionListProps) {
                 <button type="button" onClick={() => onEdit(promotion)}>
                   Edytuj
                 </button>
+                {promotion.isActive && (
+                  <button
+                    type="button"
+                    disabled={pendingId === promotion.id}
+                    onClick={() => void deactivate(promotion)}
+                  >
+                    Dezaktywuj
+                  </button>
+                )}
               </td>
             </tr>
           ))}

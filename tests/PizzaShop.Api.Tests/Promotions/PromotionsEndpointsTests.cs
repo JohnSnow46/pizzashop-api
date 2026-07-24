@@ -177,4 +177,56 @@ public sealed class PromotionsEndpointsTests : IClassFixture<ApiTestFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    [Fact]
+    public async Task Deactivate_WithoutToken_ReturnsUnauthorized()
+    {
+        var client = _factory.CreateClient();
+        var id = Guid.NewGuid();
+
+        var response = await client.PatchAsync($"/api/promotions/{id}/deactivate", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Deactivate_WithCustomerRole_ReturnsForbidden()
+    {
+        var client = await AuthTestHelper.CreateCustomerClientAsync(_factory);
+        var id = Guid.NewGuid();
+
+        var response = await client.PatchAsync($"/api/promotions/{id}/deactivate", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Deactivate_WithAdminRole_DeactivatesPromotion()
+    {
+        var client = await AuthTestHelper.CreateStaffClientAsync(_factory, UserRole.RestaurantAdmin);
+        var code = $"DEACT-{Guid.NewGuid():N}".ToUpperInvariant();
+        var createResponse = await client.PostAsJsonAsync("/api/promotions", ValidCommand(code));
+        var id = await createResponse.Content.ReadFromJsonAsync<Guid>();
+
+        var deactivateResponse = await client.PatchAsync($"/api/promotions/{id}/deactivate", null);
+
+        deactivateResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var validateResponse = await client.PostAsJsonAsync(
+            "/api/promotions/validate",
+            new ValidatePromotionCodeQuery(code, new MoneyDto(50m, "PLN"), new MoneyDto(5m, "PLN")));
+        var preview = await validateResponse.Content.ReadFromJsonAsync<PromotionDiscountPreviewDto>();
+        preview!.IsQualified.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Deactivate_UnknownId_ReturnsNotFound()
+    {
+        var client = await AuthTestHelper.CreateStaffClientAsync(_factory, UserRole.RestaurantAdmin);
+        var id = Guid.NewGuid();
+
+        var response = await client.PatchAsync($"/api/promotions/{id}/deactivate", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }

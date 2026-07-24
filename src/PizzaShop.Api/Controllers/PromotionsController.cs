@@ -59,4 +59,12 @@ public sealed class PromotionsController : ControllerBase
         await _dispatcher.Send(command with { PromotionId = id }, cancellationToken);
         return NoContent();
     }
+
+    [HttpPatch("{id:guid}/deactivate")]
+    [Authorize(Roles = AuthRoles.Admin)]
+    public async Task<IActionResult> Deactivate(Guid id, CancellationToken cancellationToken)
+    {
+        await _dispatcher.Send(new DeactivatePromotionCommand(id), cancellationToken);
+        return NoContent();
+    }
 }

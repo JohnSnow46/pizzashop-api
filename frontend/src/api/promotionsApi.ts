@@ -32,3 +32,8 @@ export function createPromotion(command: CreatePromotionCommand): Promise<string
 export function updatePromotion(id: string, command: Omit<UpdatePromotionCommand, 'promotionId'>): Promise<void> {
   return apiClient.put<void>(`/promotions/${id}`, { ...command, promotionId: id })
 }
+
+/** PATCH /api/promotions/{id}/deactivate — dezaktywuje promocję (Admin role). */
+export function deactivatePromotion(id: string): Promise<void> {
+  return apiClient.patch<void>(`/promotions/${id}/deactivate`, {})
+}
