@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   acceptOrder,
+  cancelOrder,
   completeOrder,
   markReady,
   rejectOrder,
@@ -9,7 +10,7 @@ import {
 } from '../../api/ordersApi'
 import type { FulfillmentType, Order, OrderStatus } from '../../api/types'
 import { useOrderTracking } from '../../hooks/useOrderTracking'
-import { STATUS_LABELS } from './orderStatusLabels'
+import { PAYMENT_STATUS_LABELS, STATUS_LABELS } from './orderStatusLabels'
 
 const FULFILLMENT_LABELS: Record<FulfillmentType, string> = {
   Delivery: 'Dostawa',
@@ -29,6 +30,20 @@ interface QueueAction {
   label: string
   run: () => Promise<void>
   variant?: 'danger'
+  confirmMessage?: string
+}
+
+/** Cancel is available for any order past acceptance; ADR-0018 refunds it synchronously if paid online. */
+function buildCancelAction(order: Order, orderId: string): QueueAction {
+  const triggersRefund = order.paymentMethod === 'Online' && order.paymentStatus === 'Paid'
+  return {
+    label: 'Anuluj zamówienie',
+    variant: 'danger',
+    run: () => cancelOrder(orderId),
+    confirmMessage: triggersRefund
+      ? `Czy na pewno anulować zamówienie ${order.number}? Płatność zostanie automatycznie zwrócona.`
+      : `Czy na pewno anulować zamówienie ${order.number}?`,
+  }
 }
 
 function getActions(order: Order, orderId: string): QueueAction[] {
@@ -39,15 +54,15 @@ function getActions(order: Order, orderId: string): QueueAction[] {
         { label: 'Odrzuć', run: () => rejectOrder(orderId), variant: 'danger' },
       ]
     case 'Accepted':
-      return [{ label: 'Rozpocznij przygotowanie', run: () => startPreparation(orderId) }]
+      return [{ label: 'Rozpocznij przygotowanie', run: () => startPreparation(orderId) }, buildCancelAction(order, orderId)]
     case 'InPreparation':
-      return [{ label: 'Oznacz jako gotowe', run: () => markReady(orderId) }]
+      return [{ label: 'Oznacz jako gotowe', run: () => markReady(orderId) }, buildCancelAction(order, orderId)]
     case 'Ready':
       return order.fulfillmentType === 'Delivery'
-        ? [{ label: 'Wyślij do dostawy', run: () => startDelivery(orderId) }]
-        : [{ label: 'Zakończ', run: () => completeOrder(orderId) }]
+        ? [{ label: 'Wyślij do dostawy', run: () => startDelivery(orderId) }, buildCancelAction(order, orderId)]
+        : [{ label: 'Zakończ', run: () => completeOrder(orderId) }, buildCancelAction(order, orderId)]
     case 'OutForDelivery':
-      return [{ label: 'Zakończ', run: () => completeOrder(orderId) }]
+      return [{ label: 'Zakończ', run: () => completeOrder(orderId) }, buildCancelAction(order, orderId)]
     default:
       return []
   }
@@ -116,7 +131,8 @@ export function EmployeeOrderRow({ orderId, onLeftQueue }: EmployeeOrderRowProps
       <div className="account-order-list__details">
         <strong>{order.number}</strong>
         <span className="cart-item__meta">
-          {STATUS_LABELS[order.status]} · {FULFILLMENT_LABELS[order.fulfillmentType]}
+          {STATUS_LABELS[order.status]} · {FULFILLMENT_LABELS[order.fulfillmentType]} · Płatność:{' '}
+          {PAYMENT_STATUS_LABELS[order.paymentStatus]}
         </span>
         <span className="cart-item__meta">
           {order.contact.fullName} · {order.contact.phoneNumber}
@@ -133,7 +149,10 @@ export function EmployeeOrderRow({ orderId, onLeftQueue }: EmployeeOrderRowProps
               type="button"
               className={`queue-action-btn${action.variant === 'danger' ? ' queue-action-btn--danger' : ''}`}
               disabled={pendingAction !== null}
-              onClick={() => void runAction(action.label, action.run)}
+              onClick={() => {
+                if (action.confirmMessage && !window.confirm(action.confirmMessage)) return
+                void runAction(action.label, action.run)
+              }}
             >
               {pendingAction === action.label ? 'Wysyłanie...' : action.label}
             </button>

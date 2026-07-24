@@ -50,6 +50,11 @@ export function rejectOrder(orderId: string): Promise<void> {
   return apiClient.post<void>(`/orders/${orderId}/reject`, {})
 }
 
+/** POST /api/orders/{id}/cancel — staff cancels an order (ADR-0018: refunds synchronously if paid). */
+export function cancelOrder(orderId: string): Promise<void> {
+  return apiClient.post<void>(`/orders/${orderId}/cancel`, {})
+}
+
 /** POST /api/orders/{id}/start-preparation — staff moves an Accepted order into preparation. */
 export function startPreparation(orderId: string): Promise<void> {
   return apiClient.post<void>(`/orders/${orderId}/start-preparation`, {})

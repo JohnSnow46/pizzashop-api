@@ -81,6 +81,33 @@ Szablon wpisu:
 
 ---
 
+### 2026-07-24 — Przycisk "Anuluj" w kolejce pracownika + widoczność statusu refundu
+
+**Wykorzystane ADR:**
+- ADR-0018 — refund przy anulowaniu (online + Paid ⇒ refund synchroniczny przed odpowiedzią,
+  `PaymentStatus` → `Refunded`)
+  - wykorzystany wyłącznie do sformułowania treści `window.confirm` (ostrzeżenie o
+    automatycznym zwrocie płatności) — backend/handler bez zmian, logika refundu już
+    istniała i działała, brakowało tylko wywołania z UI
+
+**Wpływ na implementację:**
+- Backend niedotknięty — `POST /orders/{id}/cancel` (`OrdersController.Cancel`) i
+  `CancelOrderCommandHandler` już istniały i obsługiwały refund poprawnie; luka była
+  wyłącznie frontendowa (brak wywołania z UI pracownika).
+- Frontend: `ordersApi.ts` (`cancelOrder`), `orderStatusLabels.ts` (nowy eksport
+  `PAYMENT_STATUS_LABELS`, przeniesiony z lokalnej duplikacji w `MyAccountPage.tsx`),
+  `EmployeeOrderRow.tsx` — przycisk "Anuluj zamówienie" (`Accepted`/`InPreparation`/
+  `Ready`/`OutForDelivery`, celowo pominięty dla `PendingAcceptance` które ma już
+  "Odrzuć"), potwierdzenie przez `window.confirm` (brak komponentu modal w projekcie —
+  zgodnie z istniejącym poziomem prostoty), wiersz "Płatność: ..." w każdym statusie
+  kolejki, więc `Zwrócona` jest widoczna personelowi po refundzie.
+- `npm run build`/`npm run lint` — PASS. Reviewer-lite: brak błędów blokujących.
+
+**Przeczytane, nieużyte:**
+- brak — zadanie dotyczyło wyłącznie ADR-0018
+
+---
+
 ### 2026-07-24 — Książka adresowa klienta (/account + wybór adresu w checkoucie)
 
 **Wykorzystane ADR:**

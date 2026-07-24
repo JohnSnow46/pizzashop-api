@@ -10,22 +10,13 @@ import type {
   LoyaltyBalance,
   LoyaltyTransactionType,
   OrderSummary,
-  PaymentStatus,
 } from '../api/types'
-import { STATUS_LABELS } from '../components/orders/orderStatusLabels'
+import { PAYMENT_STATUS_LABELS, STATUS_LABELS } from '../components/orders/orderStatusLabels'
 import { validateAddress } from '../checkout/validation'
 
 const FULFILLMENT_LABELS: Record<FulfillmentType, string> = {
   Delivery: 'Dostawa',
   Pickup: 'Odbiór osobisty',
-}
-
-const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
-  Pending: 'Oczekuje',
-  Authorized: 'Autoryzowana',
-  Paid: 'Opłacona',
-  Refunded: 'Zwrócona',
-  Failed: 'Nieudana',
 }
 
 const LOYALTY_TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
