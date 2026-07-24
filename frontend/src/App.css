@@ -83,6 +83,28 @@
 
 /* Menu list */
 
+.menu-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.menu-filters__search {
+  flex-grow: 1;
+  min-width: 200px;
+  padding: 8px 10px;
+}
+
+.menu-filters__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
 .menu-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
