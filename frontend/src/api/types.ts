@@ -40,6 +40,8 @@
 //   - src/PizzaShop.Application/Identity/Commands/RegisterStaffAccountCommand.cs (admin staff UI)
 //   - src/PizzaShop.Application/Customers/Dtos/CustomerAddressDto.cs (address book)
 //   - src/PizzaShop.Application/Customers/Commands/AddCustomerAddressCommand.cs (address book)
+//   - src/PizzaShop.Application/Reports/Dtos/SalesReportDto.cs (admin reports UI)
+//   - src/PizzaShop.Application/Reports/Dtos/TopMenuItemDto.cs (admin reports UI)
 
 import type { UserRole } from '../auth/types'
 
@@ -519,4 +521,21 @@ export interface AddCustomerAddressCommand {
   label: string
   address: Address
   isDefault: boolean
+}
+
+/** Mirror of PizzaShop.Application.Reports.Dtos.TopMenuItemDto (admin reports UI). */
+export interface TopMenuItem {
+  menuItemId: string
+  menuItemName: string
+  quantitySold: number
+  revenue: Money
+}
+
+/** Mirror of PizzaShop.Application.Reports.Dtos.SalesReportDto (admin reports UI). */
+export interface SalesReport {
+  from: string
+  to: string
+  orderCount: number
+  revenue: Money
+  topMenuItems: TopMenuItem[]
 }

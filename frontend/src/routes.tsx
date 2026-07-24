@@ -4,6 +4,7 @@ import { RequireAuth } from './components/auth/RequireAuth'
 import { Layout } from './components/Layout'
 import { AdminMenuPage } from './pages/AdminMenuPage'
 import { AdminPromotionsPage } from './pages/AdminPromotionsPage'
+import { AdminReportsPage } from './pages/AdminReportsPage'
 import { AdminRestaurantPage } from './pages/AdminRestaurantPage'
 import { AdminStaffPage } from './pages/AdminStaffPage'
 import { CartPage } from './pages/CartPage'
@@ -27,7 +28,8 @@ import { TrackOrderPage } from './pages/TrackOrderPage'
  * gated the same way. `/admin/restaurant` is the admin restaurant configuration page (opening
  * hours, delivery area, ordering/free-delivery thresholds), gated the same way. `/admin/staff`
  * is the admin staff account management page (list + create via RegisterStaffAccountCommand),
- * gated the same way.
+ * gated the same way. `/admin/reports` is the admin sales report page (date range + top-items
+ * filters, order count/revenue/top menu items), gated the same way.
  */
 export function AppRoutes() {
   return (
@@ -99,6 +101,14 @@ export function AppRoutes() {
           element={
             <RequireAuth roles={['RestaurantAdmin', 'SuperAdmin']}>
               <AdminStaffPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/reports"
+          element={
+            <RequireAuth roles={['RestaurantAdmin', 'SuperAdmin']}>
+              <AdminReportsPage />
             </RequireAuth>
           }
         />

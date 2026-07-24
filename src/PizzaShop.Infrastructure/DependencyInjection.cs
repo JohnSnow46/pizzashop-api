@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<ILoyaltyAccountRepository, LoyaltyAccountRepository>();
         services.AddScoped<IPromotionRepository, PromotionRepository>();
         services.AddScoped<IUserAccountRepository, UserAccountRepository>();
+        services.AddScoped<IReportingRepository, ReportingRepository>();
 
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 

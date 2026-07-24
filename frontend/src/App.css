@@ -407,6 +407,12 @@
   padding: 16px;
 }
 
+.admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
 .admin-fieldset {
   border: 1px solid var(--border);
   border-radius: 6px;
