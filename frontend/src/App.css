@@ -327,3 +327,31 @@
   gap: 8px;
   margin-top: 8px;
 }
+
+/* Employee order queue */
+
+.queue-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.queue-action-btn {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-weight: 600;
+}
+
+.queue-action-btn:disabled {
+  background: var(--disabled-bg);
+  color: var(--text-muted);
+}
+
+.queue-action-btn--danger {
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}

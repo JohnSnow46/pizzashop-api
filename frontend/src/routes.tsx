@@ -4,6 +4,7 @@ import { RequireAuth } from './components/auth/RequireAuth'
 import { Layout } from './components/Layout'
 import { CartPage } from './pages/CartPage'
 import { CheckoutPage } from './pages/CheckoutPage'
+import { EmployeeOrdersPage } from './pages/EmployeeOrdersPage'
 import { LoginPage } from './pages/LoginPage'
 import { MenuPage } from './pages/MenuPage'
 import { MyAccountPage } from './pages/MyAccountPage'
@@ -48,6 +49,14 @@ export function AppRoutes() {
           element={
             <RequireAuth>
               <MyAccountPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/employee/orders"
+          element={
+            <RequireAuth roles={['Employee', 'RestaurantAdmin', 'SuperAdmin']}>
+              <EmployeeOrdersPage />
             </RequireAuth>
           }
         />

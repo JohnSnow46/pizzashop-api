@@ -1,11 +1,15 @@
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import type { UserRole } from '../auth/types'
 import { useAuth } from '../hooks/useAuth'
 import { useCart } from '../hooks/useCart'
 
 interface LayoutProps {
   children: ReactNode
 }
+
+/** Roles allowed onto /employee/orders — mirrors the RequireAuth roles in routes.tsx. */
+const STAFF_ROLES: UserRole[] = ['Employee', 'RestaurantAdmin', 'SuperAdmin']
 
 export function Layout({ children }: LayoutProps) {
   const { totalQuantity } = useCart()
@@ -33,6 +37,13 @@ export function Layout({ children }: LayoutProps) {
               <Link to="/account" className="auth-account-link">
                 Moje konto
               </Link>{' '}
+              {user && STAFF_ROLES.includes(user.role) && (
+                <>
+                  <Link to="/employee/orders" className="auth-account-link">
+                    Panel pracownika
+                  </Link>{' '}
+                </>
+              )}
               <button type="button" className="auth-logout-btn" onClick={handleLogout}>
                 Wyloguj
               </button>

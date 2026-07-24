@@ -31,3 +31,41 @@ export function getOrderByTrackingToken(trackingToken: string): Promise<Order> {
 export function getMyOrders(): Promise<OrderSummary[]> {
   return apiClient.get<OrderSummary[]>('/orders/mine')
 }
+
+/**
+ * GET /api/orders/queue — staff order queue (Employee/RestaurantAdmin/SuperAdmin), all
+ * non-terminal statuses sorted oldest-first (docs/api-layer.md 6.6).
+ */
+export function getOrderQueue(): Promise<Order[]> {
+  return apiClient.get<Order[]>('/orders/queue')
+}
+
+/** POST /api/orders/{id}/accept — staff accepts a PendingAcceptance order. */
+export function acceptOrder(orderId: string): Promise<void> {
+  return apiClient.post<void>(`/orders/${orderId}/accept`, {})
+}
+
+/** POST /api/orders/{id}/reject — staff rejects a PendingAcceptance order. */
+export function rejectOrder(orderId: string): Promise<void> {
+  return apiClient.post<void>(`/orders/${orderId}/reject`, {})
+}
+
+/** POST /api/orders/{id}/start-preparation — staff moves an Accepted order into preparation. */
+export function startPreparation(orderId: string): Promise<void> {
+  return apiClient.post<void>(`/orders/${orderId}/start-preparation`, {})
+}
+
+/** POST /api/orders/{id}/mark-ready — staff marks an InPreparation order as Ready. */
+export function markReady(orderId: string): Promise<void> {
+  return apiClient.post<void>(`/orders/${orderId}/mark-ready`, {})
+}
+
+/** POST /api/orders/{id}/start-delivery — staff sends a Ready delivery order out for delivery. */
+export function startDelivery(orderId: string): Promise<void> {
+  return apiClient.post<void>(`/orders/${orderId}/start-delivery`, {})
+}
+
+/** POST /api/orders/{id}/complete — staff completes a Ready (pickup) or OutForDelivery order. */
+export function completeOrder(orderId: string): Promise<void> {
+  return apiClient.post<void>(`/orders/${orderId}/complete`, {})
+}
