@@ -32,6 +32,14 @@ public sealed class RestaurantController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("info")]
+    [AllowAnonymous]
+    public async Task<ActionResult<RestaurantInfoDto>> GetInfo(CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new GetRestaurantInfoQuery(), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPut("opening-hours")]
     [Authorize(Roles = AuthRoles.Admin)]
     public async Task<IActionResult> UpdateOpeningHours(UpdateOpeningHoursCommand command, CancellationToken cancellationToken)

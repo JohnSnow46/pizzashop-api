@@ -10,13 +10,7 @@ internal static class RestaurantMapper
         new(
             restaurant.Id,
             restaurant.Name,
-            new AddressDto(
-                restaurant.Address.Street,
-                restaurant.Address.BuildingNumber,
-                restaurant.Address.City,
-                restaurant.Address.PostalCode,
-                restaurant.Address.ApartmentNumber,
-                restaurant.Address.Notes),
+            ToDto(restaurant.Address),
             new GeoCoordinateDto(restaurant.Location.Latitude, restaurant.Location.Longitude),
             restaurant.DeliveryRadiusKm,
             restaurant.TimeZoneId,
@@ -26,6 +20,21 @@ internal static class RestaurantMapper
             ToDto(restaurant.MinimumOrderValue),
             ToDto(restaurant.FreeDeliveryThreshold),
             ToDto(restaurant.DeliveryFee)!);
+
+    public static RestaurantInfoDto ToInfoDto(DomainRestaurant restaurant) =>
+        new(
+            restaurant.Name,
+            ToDto(restaurant.Address),
+            ToDto(restaurant.OpeningHours));
+
+    private static AddressDto ToDto(Address address) =>
+        new(
+            address.Street,
+            address.BuildingNumber,
+            address.City,
+            address.PostalCode,
+            address.ApartmentNumber,
+            address.Notes);
 
     public static OpeningHoursDto ToDto(OpeningHours openingHours)
     {
