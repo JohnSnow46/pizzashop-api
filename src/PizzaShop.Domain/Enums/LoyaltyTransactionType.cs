@@ -6,4 +6,5 @@ public enum LoyaltyTransactionType
     Redeemed,
     Adjusted,
     Expired,
+    Reversed,
 }

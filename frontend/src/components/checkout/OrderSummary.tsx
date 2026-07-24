@@ -1,6 +1,7 @@
 import type { RestaurantConfig } from '../../api/types'
 import type { CheckoutState } from '../../checkout/checkoutState'
 import type { CartItem } from '../../cart/types'
+import { LoyaltyPointsField } from './LoyaltyPointsField'
 
 export interface SubmitError {
   message: string
@@ -17,6 +18,7 @@ interface OrderSummaryProps {
   submitError: SubmitError | null
   fieldErrors: Record<string, string[]> | null
   onSwitchToPickup: () => void
+  onPointsToRedeemChange: (points: number | null) => void
   onSubmit: () => void
   onBack: () => void
 }
@@ -32,12 +34,16 @@ export function OrderSummary({
   submitError,
   fieldErrors,
   onSwitchToPickup,
+  onPointsToRedeemChange,
   onSubmit,
   onBack,
 }: OrderSummaryProps) {
   const deliveryFeeAmount = state.fulfillmentType === 'Delivery' ? (state.deliveryCheck?.deliveryFee?.amount ?? 0) : 0
   const discountAmount = state.promotionPreview?.isQualified ? (state.promotionPreview.discountAmount?.amount ?? 0) : 0
-  const total = subtotalAmount + deliveryFeeAmount - discountAmount
+  // 0.05 PLN/point mirrors LinearLoyaltyPolicy (ADR-0033/ADR-0040, see LoyaltyPointsField) —
+  // only for this orientational total, the server recalculates authoritatively.
+  const pointsDiscountAmount = (state.pointsToRedeem ?? 0) * 0.05
+  const total = subtotalAmount + deliveryFeeAmount - discountAmount - pointsDiscountAmount
 
   const minimumOrderValue = restaurantConfig.minimumOrderValue
   const belowMinimum = minimumOrderValue !== null && subtotalAmount < minimumOrderValue.amount
@@ -85,12 +91,29 @@ export function OrderSummary({
         </div>
       )}
 
+      {pointsDiscountAmount > 0 && (
+        <div className="cart-summary">
+          <span>Punkty lojalnościowe (orientacyjnie)</span>
+          <span>
+            -{pointsDiscountAmount.toFixed(2)} {currency}
+          </span>
+        </div>
+      )}
+
       <div className="cart-summary">
         <strong>Razem (orientacyjnie)</strong>
         <strong>
           {total.toFixed(2)} {currency}
         </strong>
       </div>
+
+      <LoyaltyPointsField
+        subtotal={{ amount: subtotalAmount, currency }}
+        promoDiscount={{ amount: discountAmount, currency }}
+        deliveryFee={{ amount: deliveryFeeAmount, currency }}
+        pointsToRedeem={state.pointsToRedeem}
+        onChange={onPointsToRedeemChange}
+      />
 
       {showFreeDeliveryHint && freeDeliveryThreshold && (
         <p className="checkout-hint">

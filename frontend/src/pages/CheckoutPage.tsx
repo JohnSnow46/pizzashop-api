@@ -82,7 +82,7 @@ export function CheckoutPage() {
       requestedFulfillmentTime: state.schedule.mode === 'scheduled' ? state.schedule.at : null,
       paymentMethod: state.paymentMethod,
       promotionCode: state.promotionCode,
-      pointsToRedeem: null,
+      pointsToRedeem: state.pointsToRedeem || null,
     }
 
     try {
@@ -105,6 +105,10 @@ export function CheckoutPage() {
             message: err.detail ?? err.title ?? 'Zamówienie nie mogło zostać złożone.',
             showSwitchToPickup: err.status === 422 && state.fulfillmentType === 'Delivery',
           })
+          // A rejected/conflicting loyalty redemption (ADR-0040: 422 discount-too-large/
+          // insufficient balance, 409 concurrent redemption) is server-authoritative — reset
+          // the field so retrying doesn't resubmit the same bad value.
+          dispatch({ type: 'setPointsToRedeem', points: null })
         } else {
           setSubmitError({ message: err.detail ?? err.title ?? err.message })
         }
@@ -202,6 +206,7 @@ export function CheckoutPage() {
           submitError={submitError}
           fieldErrors={fieldErrors}
           onSwitchToPickup={() => dispatch({ type: 'setFulfillment', fulfillmentType: 'Pickup' })}
+          onPointsToRedeemChange={(points) => dispatch({ type: 'setPointsToRedeem', points })}
           onSubmit={handleSubmit}
           onBack={() => dispatch({ type: 'goBack' })}
         />

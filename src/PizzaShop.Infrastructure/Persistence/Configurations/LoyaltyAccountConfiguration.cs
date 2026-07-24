@@ -20,6 +20,12 @@ public sealed class LoyaltyAccountConfiguration : IEntityTypeConfiguration<Loyal
         builder.HasIndex(l => l.CustomerId).IsUnique();
         builder.Property(l => l.PointsBalance).IsRequired();
 
+        // Optimistic concurrency via Postgres's native xmin system column (ADR-0040) — guards
+        // against a lost update when two concurrent orders redeem points from the same
+        // account. Zero schema changes; a concurrent write conflict surfaces as
+        // DbUpdateConcurrencyException, mapped to 409 by ExceptionHandler.
+        builder.UseXminAsConcurrencyToken();
+
         builder.OwnsMany(l => l.Transactions, transaction =>
         {
             transaction.ToTable("LoyaltyTransactions");

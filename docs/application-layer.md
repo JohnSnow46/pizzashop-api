@@ -178,7 +178,11 @@ Kroki handlera:
 6. Promocja (jeśli `PromotionCode`): patrz 4.5 — `IsQualifiedFor` → `CalculateDiscount` →
    `Order.ApplyPromotion` + `Promotion.RecordUsage`.
 7. Punkty (jeśli `PointsToRedeem` i `CustomerId != null`): `ILoyaltyPolicy.CalculateRedemptionValue`
-   → `Order.RedeemLoyaltyPoints` + `LoyaltyAccount.Redeem` (saldo sprawdza Domain).
+   → `Order.RedeemLoyaltyPoints` + `LoyaltyAccount.Redeem` (saldo sprawdza Domain;
+   `Order.RedeemLoyaltyPoints` odrzuca też rabat przekraczający pozostałą do zapłaty kwotę
+   zamówienia — `LoyaltyRedemptionExceedsOrderValueException`, ADR-0040). Zapis na
+   `LoyaltyAccount` chroniony optymistycznie (`xmin`, ADR-0040) — konflikt równoczesnego
+   zapisu ⇒ `DbUpdateConcurrencyException` ⇒ 409 (sekcja 5).
 8. Płatność: `Online` ⇒ `IPaymentGateway.InitializePaymentAsync` → `PaymentInitResult`
    (`RedirectUrl` + `ProviderPaymentReference`); referencję przekazujemy do `AddAsync`
    (krok 9), `RedirectUrl` do wyniku (krok 10). `OnPickup` ⇒ brak wywołania bramki,
@@ -213,9 +217,15 @@ Kolejność w handlerze:
 4. `order.Cancel()` (Domain: reguła terminalna).
 5. Jeśli `mustRefund`: `await IPaymentGateway.RefundAsync(new PaymentRefundRequest(order.Id, reference, order.Total), ct)`
    → następnie `order.RefundPayment()` (`Paid → Refunded`).
-6. `IOrderRepository.UpdateAsync(order)` + `IUnitOfWork.SaveChangesAsync` — atomowo
-   `Cancelled` + (ewentualnie) `Refunded`.
-7. `IOrderNotifier.OrderStatusChangedAsync(order.Id, order.Status, order.EstimatedReadyAt)`.
+6. **Rollback punktów lojalnościowych (ADR-0040):** jeśli `order.PointsRedeemed > 0` i
+   `order.CustomerId is { } customerId`, pobiera `LoyaltyAccount` (`GetByCustomerIdAsync`;
+   brak konta ⇒ `InvalidOperationException`, naruszenie niezmiennika — analogicznie do braku
+   `ProviderPaymentReference` w kroku 3) i woła `LoyaltyAccount.Reverse(order.PointsRedeemed,
+   ...)`, zapisane przez `UpdateAsync`. Ta sama logika (z tekstem `Reason` „...rejected") żyje
+   w `RejectOrderCommandHandler`.
+7. `IOrderRepository.UpdateAsync(order)` + `IUnitOfWork.SaveChangesAsync` — atomowo
+   `Cancelled` + (ewentualnie) `Refunded` + (ewentualnie) reversal punktów.
+8. `IOrderNotifier.OrderStatusChangedAsync(order.Id, order.Status, order.EstimatedReadyAt)`.
 
 **Awaria `RefundAsync`** (błąd sieci/bramki): wyjątek propaguje, krok 6 się nie wykonuje →
 nic nie zapisane, zamówienie zostaje w poprzednim stanie (nie `Cancelled`), operacja do
@@ -259,6 +269,7 @@ osobnym commandem — spójność z jedną transakcją i `RecordUsage`.
 |---|---|---|---|
 | `GetLoyaltyBalanceQuery` | Query | Customer | Saldo + historia transakcji. |
 | Naliczanie punktów | (efekt) | — | Nie osobny command użytkownika: przy `CompleteOrderCommand` handler woła `ILoyaltyPolicy.CalculatePointsToEarn` → `Order.SetPointsToEarn` → `LoyaltyAccount.Earn` (dla zamówień z kontem). |
+| Rollback punktów (ADR-0040) | (efekt) | — | Nie osobny command: `CancelOrderCommandHandler`/`RejectOrderCommandHandler` wołają `LoyaltyAccount.Reverse`, gdy anulowane/odrzucone zamówienie miało `PointsRedeemed > 0` — patrz 4.3.3. |
 
 Wymiana punktów: część `CreateOrderCommand` (krok 7), nie osobny command.
 
@@ -278,7 +289,8 @@ kod. Obowiązuje wszystkie handlery, także Iterację 3 (płatności/webhook Pay
 | **Konflikt stanu domenowego, nielegalny niezależnie od wykonawcy** (egzekwowany przez Domain) | `DomainException` i podtypy | Domain | **409/422/400** wg typu | `InvalidOrderStatusTransitionException` (anulowanie `Completed`), `BelowMinimumOrderValueException` |
 | **Nieufny/sfałszowany webhook** (nieważny podpis notyfikacji PayU) | `InvalidPaymentNotificationException` | Application | **400** (ew. 401) | podrobione „potwierdzenie" płatności |
 | **Jawnie niezaimplementowana gałąź** (ADR-0011) | `NotSupportedException` | Domain | **501/500** | `Promotion.CalculateDiscount` dla `BuyXGetY` — nie powinien wystąpić (Application odrzuca tworzenie takich promocji) |
-| **Naruszenie niezmiennika danych** (stan wewnętrznie sprzeczny, nie wina wykonawcy) | `InvalidOperationException` | Application | **500** | opłacone online zamówienie bez `ProviderPaymentReference` przy refundzie (4.3.3) |
+| **Naruszenie niezmiennika danych** (stan wewnętrznie sprzeczny, nie wina wykonawcy) | `InvalidOperationException` | Application | **500** | opłacone online zamówienie bez `ProviderPaymentReference` przy refundzie (4.3.3); klient z `PointsRedeemed > 0` bez `LoyaltyAccount` przy rollbacku (4.3.3, ADR-0040) |
+| **Konflikt współbieżności EF (optymistyczny token)** (dwa równoczesne zapisy na tym samym agregacie) | `DbUpdateConcurrencyException` | Infrastructure (EF Core) | **409** | dwa równoczesne zamówienia redeemujące punkty z tego samego `LoyaltyAccount` (ADR-0040, `xmin`) |
 
 **Rozróżnienie 403 vs 409-Application vs 409-Domain (ADR-0017/ADR-0018).**
 - **403 (`ForbiddenOperationException`)** = operacja *jest* legalna (uprzywilejowany wykonawca

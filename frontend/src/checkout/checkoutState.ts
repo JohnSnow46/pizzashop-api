@@ -31,6 +31,8 @@ export interface CheckoutState {
   paymentMethod: PaymentMethod | null
   promotionCode: string | null
   promotionPreview: PromotionDiscountPreview | null
+  /** Loyalty points the customer chose to redeem at checkout (ADR-0040), null for a guest/no selection. */
+  pointsToRedeem: number | null
 }
 
 export const initialCheckoutState: CheckoutState = {
@@ -43,6 +45,7 @@ export const initialCheckoutState: CheckoutState = {
   paymentMethod: null,
   promotionCode: null,
   promotionPreview: null,
+  pointsToRedeem: null,
 }
 
 export type CheckoutAction =
@@ -53,6 +56,7 @@ export type CheckoutAction =
   | { type: 'setSchedule'; schedule: ScheduleState }
   | { type: 'setPayment'; paymentMethod: PaymentMethod }
   | { type: 'setPromotion'; code: string | null; preview: PromotionDiscountPreview | null }
+  | { type: 'setPointsToRedeem'; points: number | null }
   | { type: 'goNext' }
   | { type: 'goBack' }
   | { type: 'goToStep'; step: CheckoutStep }
@@ -97,6 +101,8 @@ function checkoutReducer(state: CheckoutState, action: CheckoutAction): Checkout
       return { ...state, paymentMethod: action.paymentMethod }
     case 'setPromotion':
       return { ...state, promotionCode: action.code, promotionPreview: action.preview }
+    case 'setPointsToRedeem':
+      return { ...state, pointsToRedeem: action.points }
     case 'goNext':
       return { ...state, step: nextStep(state.step, state.fulfillmentType) }
     case 'goBack':

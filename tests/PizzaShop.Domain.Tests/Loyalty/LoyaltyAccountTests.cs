@@ -85,6 +85,31 @@ public class LoyaltyAccountTests
     }
 
     [Fact]
+    public void Reverse_ValidPoints_IncreasesBalanceAndAddsReversedTransaction()
+    {
+        var account = CreateAccount();
+        account.Earn(100, "Order #1", Now);
+        account.Redeem(40, "Order #1", Now);
+
+        account.Reverse(40, "Points refunded — order #1 cancelled", Now.AddMinutes(5), Guid.NewGuid());
+
+        account.PointsBalance.Should().Be(100);
+        account.Transactions.Should().Contain(t => t.Type == LoyaltyTransactionType.Reversed && t.Points == 40);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public void Reverse_NonPositivePoints_Throws(int points)
+    {
+        var account = CreateAccount();
+
+        var act = () => account.Reverse(points, "No-op", Now);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
     public void Adjust_NegativeBeyondBalance_ThrowsInsufficientLoyaltyPointsException()
     {
         var account = CreateAccount();

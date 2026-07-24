@@ -50,6 +50,7 @@ utwórz `docs/adr/ADR-NNNN.md`**, nie dopisuj treści bezpośrednio tutaj.
 - [ADR-0037](adr/ADR-0037.md): Frontend — iteracja auth (logowanie/rejestracja klienta), token w `localStorage`, `AuthContext`, brak zmian backendowych
 - [ADR-0038](adr/ADR-0038.md): Frontend — live-tracking statusu zamówienia (SignalR), hook `useOrderTracking`, nowa trasa `/orders/track/:trackingToken`, świadome odłożenie Vitest
 - [ADR-0039](adr/ADR-0039.md): Panel "Moje konto" — nowy `GET /api/orders/mine` (historia zamówień klienta), sortowanie historii punktów w istniejącym `GET /api/loyalty/balance` (bez nowego endpointu), `PointsRedeemed` w checkoucie świadomie odłożone
+- [ADR-0040](adr/ADR-0040.md): Wykorzystanie punktów lojalnościowych w checkoucie (`PointsToRedeem`) — UI dla zalogowanego klienta, guard clause w Domain przeciw rabatowi ponad wartość zamówienia, optymistyczna współbieżność (`xmin`) na `LoyaltyAccount`, zwrot punktów przy anulowaniu/odrzuceniu zamówienia
 
 ---
 
@@ -77,6 +78,65 @@ Szablon wpisu:
 **Przeczytane, nieużyte:**
 - ADR-000Y — <dlaczego sprawdzony, ale ostatecznie nieistotny dla tego zadania>
 ```
+
+---
+
+### 2026-07-24 — Wykorzystanie punktów lojalnościowych w checkoucie
+
+**Wykorzystane ADR:**
+- ADR-0033 — Finalizacja przelicznika punktów lojalnościowych
+  - `LinearLoyaltyPolicy.RedemptionValuePerPoint` (0,05 PLN/punkt) ponownie użyty jako
+    autorytatywne źródło przeliczenia po stronie serwera; front (`LoyaltyPointsField.tsx`)
+    mirroruje tę samą stałą wyłącznie do UX, bez własnej logiki biznesowej
+  - potwierdzone: brak % limitu redemption per zamówienie pozostaje w mocy — nowy guard
+    z ADR-0040 to poprawność matematyczna (rabat ≤ pozostała kwota), nie nowa polityka
+- ADR-0036 — Checkout jako gość
+  - guest checkout bez zmian: `[AllowAnonymous] POST /api/orders`, `pointsToRedeem: null`
+    dla niezalogowanego klienta; redemption wymaga zalogowania (jak przewidziano w ADR-0039)
+- ADR-0039 — Panel "Moje konto"
+  - decyzja (C) zrealizowana w tym zadaniu jako ADR-0040; nowy typ transakcji `Reversed`
+    wpięty w istniejące sortowanie/wyświetlanie historii punktów (`MyAccountPage.tsx`)
+- ADR-0012 — Guard clauses w Domain zamiast FluentValidation dla reguł stanowych
+  - wzorzec zastosowany w nowym guard clause `Order.RedeemLoyaltyPoints` (limit rabatu)
+    oraz w `LoyaltyAccount.Reverse`
+- ADR-0018 — wzorzec obsługi refundu przy anulowaniu
+  - wzorzec (jedna transakcja DB, atomowa zmiana statusu + efekt uboczny) powtórzony dla
+    zwrotu punktów w `CancelOrderCommandHandler`/`RejectOrderCommandHandler`
+
+**Wpływ na implementację:**
+- Nowy ADR-0040 (`docs/adr/ADR-0040.md`): decyzja architektoniczna — UI wyboru punktów
+  w checkoucie tylko dla zalogowanego klienta, `LoyaltyRedemptionExceedsOrderValueException`
+  (422) jako nowy guard clause w `Order.RedeemLoyaltyPoints`, optymistyczna współbieżność
+  (`UseXminAsConcurrencyToken()`) na `LoyaltyAccount` + `DbUpdateConcurrencyException` → 409,
+  nowa metoda `LoyaltyAccount.Reverse(...)` + `LoyaltyTransactionType.Reversed` wołane z
+  `CancelOrderCommandHandler`/`RejectOrderCommandHandler` (dotąd punkty ginęły bezpowrotnie
+  przy anulowaniu/odrzuceniu zamówienia z `PointsRedeemed > 0` — realna luka zamknięta).
+- Backend: `Order.cs`, `LoyaltyAccount.cs`, `LoyaltyTransactionType.cs`, nowy
+  `LoyaltyRedemptionExceedsOrderValueException.cs`, `LoyaltyAccountConfiguration.cs` (+
+  migracja `AddLoyaltyAccountConcurrencyToken`, zweryfikowana przez reviewera jako no-op
+  względem realnego SQL — Npgsql pomija DDL dla systemowej kolumny `xmin`),
+  `ExceptionHandler.cs`, `CancelOrderCommandHandler.cs`, `RejectOrderCommandHandler.cs`.
+  `CreateOrderCommand`/`CreateOrderCommandHandler` (krok 7, redemption przy tworzeniu
+  zamówienia) już istniały z wcześniejszej iteracji i nie wymagały zmian — IDOR
+  zweryfikowany: `CustomerId` pochodzi wyłącznie z `ICurrentUser`, nie z payloadu.
+- Frontend: nowy `components/checkout/LoyaltyPointsField.tsx` (widoczny tylko dla
+  zalogowanego klienta z saldem > 0), integracja w `OrderSummary.tsx`/`CheckoutPage.tsx`
+  (front przestaje wysyłać `pointsToRedeem: null` na sztywno; reset pola przy 422/409),
+  etykieta `Reversed` w `MyAccountPage.tsx`.
+- Reviewer: brak błędów blokujących (zgodność z ADR-0040 potwierdzona punkt po punkcie,
+  brak IDOR, migracja `xmin` zweryfikowana empirycznie jako no-op). Doprosił o dwa
+  brakujące testy graniczne (`discountAmount == remainingPayable`, `Reverse` z wartością
+  ujemną) i aktualizację nieaktualnego komentarza XML nad `RedeemLoyaltyPoints` — poprawki
+  wykonane przez buildera, `dotnet test` dla `PizzaShop.Domain.Tests`: 243/243.
+- `dotnet build`/`dotnet test` (Domain.Tests 243/243, Application.Tests 279/279,
+  Api.Tests 109/109) i `npm run build`/`npm run lint` (frontend) — PASS.
+  `PizzaShop.Infrastructure.Tests` pominięte (środowisko bez Dockera, niezwiązane z tym
+  zadaniem). Świadomie NIE dodano auto-anulowania zamówienia przy `PaymentStatus.Failed`
+  — poza zakresem, ryzyko rezydualne opisane w ADR-0040.
+
+**Przeczytane, nieużyte:**
+- brak — zadanie dotyczyło wyłącznie obszaru ADR-0033/ADR-0036/ADR-0039/ADR-0012/ADR-0018/
+  nowy ADR-0040
 
 ---
 

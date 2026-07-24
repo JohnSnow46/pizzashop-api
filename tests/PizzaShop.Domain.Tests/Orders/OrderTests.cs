@@ -530,6 +530,30 @@ public class OrderTests
         act.Should().Throw<LoyaltyPointsAlreadyRedeemedException>();
     }
 
+    [Fact]
+    public void RedeemLoyaltyPoints_DiscountExceedsRemainingPayable_ThrowsLoyaltyRedemptionExceedsOrderValueException()
+    {
+        // Default pickup order: subtotal 25, no delivery fee -> remaining payable is 25.
+        var order = CreatePickupOrder(customerId: Guid.NewGuid());
+
+        var act = () => order.RedeemLoyaltyPoints(1000, new Money(30m));
+
+        act.Should().Throw<LoyaltyRedemptionExceedsOrderValueException>();
+        order.PointsRedeemed.Should().Be(0);
+    }
+
+    [Fact]
+    public void RedeemLoyaltyPoints_DiscountEqualsRemainingPayable_Succeeds()
+    {
+        // Default pickup order: subtotal 25, no delivery fee -> remaining payable is 25.
+        var order = CreatePickupOrder(customerId: Guid.NewGuid());
+
+        order.RedeemLoyaltyPoints(500, new Money(25m));
+
+        order.PointsRedeemed.Should().Be(500);
+        order.Total.Amount.Should().Be(0m);
+    }
+
     // ---- Promotions (domain-model.md 5.4 rule 10, ADR-0009) ----
 
     [Fact]

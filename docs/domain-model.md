@@ -327,7 +327,12 @@ maskowałoby ten drugi, realny scenariusz PayU.
 9. **EstimatedReadyAt** ustawiany od stanu `Accepted` wzwyż; nie może być w przeszłości
    względem `PlacedAt`.
 10. **Punkty:** `PointsRedeemed` (i wynikający rabat) tylko gdy `CustomerId != null`
-    i saldo `LoyaltyAccount` wystarcza; `PointsToEarn` naliczane po `Completed`.
+    i saldo `LoyaltyAccount` wystarcza; `PointsToEarn` naliczane po `Completed`. Dodatkowo
+    (ADR-0040) rabat z redemption nie może przekroczyć pozostałej do zapłaty kwoty zamówienia
+    (`Subtotal - DiscountAmount + DeliveryFee` przed tą redemption) — inaczej
+    `LoyaltyRedemptionExceedsOrderValueException`. Jeśli zamówienie z `PointsRedeemed > 0`
+    zostanie później anulowane/odrzucone, punkty wracają na `LoyaltyAccount` przez
+    `LoyaltyAccount.Reverse` (Application, ADR-0040) — patrz §7.2.
 
 ---
 
@@ -379,8 +384,8 @@ rejestracji `LoyaltyAccount.Create(customerId)` wołane jest **po** utworzeniu `
 | Atrybut | Typ | Uwagi |
 |---|---|---|
 | `Id` | Guid | |
-| `Type` | enum `Earned` \| `Redeemed` \| `Adjusted` \| `Expired` | |
-| `Points` | int | dodatnie (Earned/Adjusted+) lub ujemne (Redeemed/Expired) |
+| `Type` | enum `Earned` \| `Redeemed` \| `Adjusted` \| `Expired` \| `Reversed` | |
+| `Points` | int | dodatnie (Earned/Adjusted+/Reversed) lub ujemne (Redeemed/Expired) |
 | `Reason` | string | Opis (np. „Zamówienie #1234", „Korekta") |
 | `OrderId` | Guid? | Powiązanie z zamówieniem, jeśli dotyczy |
 | `OccurredAt` | DateTimeOffset | |
@@ -388,6 +393,13 @@ rejestracji `LoyaltyAccount.Create(customerId)` wołane jest **po** utworzeniu `
 **Reguły:**
 - Historia jest append-only; nie modyfikujemy istniejących transakcji.
 - `PointsBalance` nigdy < 0 — nie można wydać więcej punktów niż saldo.
+- `Reversed` (ADR-0040): automatyczny zwrot punktów, gdy zamówienie z `PointsRedeemed > 0`
+  zostaje anulowane/odrzucone (`LoyaltyAccount.Reverse`, wołane z `CancelOrderCommandHandler`/
+  `RejectOrderCommandHandler`, atomowo ze zmianą statusu zamówienia). Celowo odróżniony od
+  `Adjusted` — jasne w historii, że to automatyczny mechanizm, nie ręczna korekta obsługi. Brak
+  górnego capu (przywraca dokładnie tyle, ile wydano). Współbieżny zapis na tym samym koncie
+  jest chroniony optymistycznie (`UseXminAsConcurrencyToken` na `LoyaltyAccount`, natywna
+  kolumna Postgres `xmin`) — konflikt ⇒ `DbUpdateConcurrencyException` ⇒ 409 (Api).
 - **Przelicznik NIE jest w Domain encji** — żyje za `ILoyaltyPolicy` w Application (ADR-0009).
   Encje tylko rejestrują skutki. Reguła przelicznika jest już **finalna** (ADR-0033), nie
   placeholder: naliczanie **1 pkt za każdy pełny 1 PLN** wartości `Subtotal` (floor), wymiana
@@ -569,6 +581,7 @@ Wszystkie dziedziczą po `DomainException` (bazowy), mapowanym na kody HTTP w mi
 | `InsufficientLoyaltyPointsException` | Próba wydania/odjęcia więcej punktów niż saldo. |
 | `LoyaltyRedemptionNotAllowedException` | Wymiana punktów przy zamówieniu gościa (`CustomerId == null`). |
 | `LoyaltyPointsAlreadyRedeemedException` | Powtórna wymiana punktów na tym samym zamówieniu. |
+| `LoyaltyRedemptionExceedsOrderValueException` | Rabat z redemption przekracza pozostałą do zapłaty kwotę zamówienia (ADR-0040). |
 | `AddressNotInAddressBookException` | Odwołanie do adresu spoza książki adresowej klienta. |
 
 Edycja `Promotion` (8.1) oraz implementacja `BuyXGetY` (8.2) **nie** wprowadzają nowych wyjątków

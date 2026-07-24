@@ -60,6 +60,20 @@ public class LoyaltyAccount
         AddTransaction(LoyaltyTransactionType.Redeemed, -points, reason, orderId, occurredAt);
     }
 
+    /// <summary>
+    /// Restores points previously redeemed on an order that was later cancelled/rejected
+    /// (domain-model.md 7.2, ADR-0040) — an automatic reversal, kept distinct in the history
+    /// from a manual <see cref="Adjust"/>. No upper cap: it always restores exactly what was
+    /// spent, never more.
+    /// </summary>
+    public void Reverse(int points, string reason, DateTimeOffset occurredAt, Guid? orderId = null)
+    {
+        if (points <= 0)
+            throw new ArgumentOutOfRangeException(nameof(points), "Reversed points must be greater than zero.");
+
+        AddTransaction(LoyaltyTransactionType.Reversed, points, reason, orderId, occurredAt);
+    }
+
     /// <summary>Manual correction (positive or negative), e.g. customer service goodwill or fix.</summary>
     public void Adjust(int points, string reason, DateTimeOffset occurredAt)
     {

@@ -8,6 +8,8 @@ using PizzaShop.Application.Common.Exceptions;
 using PizzaShop.Application.Orders.Commands;
 using PizzaShop.Application.Tests.TestHelpers;
 using PizzaShop.Domain.Enums;
+using PizzaShop.Domain.Loyalty;
+using PizzaShop.Domain.ValueObjects;
 
 namespace PizzaShop.Application.Tests.Orders.Commands;
 
@@ -16,11 +18,25 @@ public class CancelOrderCommandHandlerTests
     private readonly Mock<IOrderRepository> _orderRepository = new();
     private readonly Mock<IOrderNotifier> _orderNotifier = new();
     private readonly Mock<IPaymentGateway> _paymentGateway = new();
+    private readonly Mock<ILoyaltyAccountRepository> _loyaltyAccountRepository = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<ICurrentUser> _currentUser = new();
+    private readonly Mock<IClock> _clock = new();
+
+    public CancelOrderCommandHandlerTests()
+    {
+        _clock.Setup(c => c.UtcNow).Returns(DateTimeOffset.UtcNow);
+    }
 
     private CancelOrderCommandHandler CreateHandler() =>
-        new(_orderRepository.Object, _orderNotifier.Object, _paymentGateway.Object, _unitOfWork.Object, _currentUser.Object);
+        new(
+            _orderRepository.Object,
+            _orderNotifier.Object,
+            _paymentGateway.Object,
+            _loyaltyAccountRepository.Object,
+            _unitOfWork.Object,
+            _currentUser.Object,
+            _clock.Object);
 
     [Fact]
     public async Task Handle_OwningCustomerBeforeAccepted_CancelsAndNotifies()
@@ -240,5 +256,42 @@ public class CancelOrderCommandHandlerTests
             g => g.RefundAsync(It.IsAny<PaymentRefundRequest>(), It.IsAny<CancellationToken>()),
             Times.Never);
         _orderRepository.Verify(r => r.UpdateAsync(It.IsAny<Domain.Orders.Order>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_OrderWithRedeemedPoints_ReversesLoyaltyPoints()
+    {
+        var customerId = Guid.NewGuid();
+        var order = OrderTestFactory.CreateOrder(customerId: customerId);
+        order.RedeemLoyaltyPoints(50, new Money(2m));
+        var loyaltyAccount = LoyaltyAccount.Create(customerId);
+        _orderRepository.Setup(r => r.GetByIdAsync(order.Id, It.IsAny<CancellationToken>())).ReturnsAsync(order);
+        _loyaltyAccountRepository
+            .Setup(r => r.GetByCustomerIdAsync(customerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(loyaltyAccount);
+        _currentUser.Setup(c => c.Role).Returns(UserRole.Employee);
+
+        var handler = CreateHandler();
+
+        await handler.Handle(new CancelOrderCommand(order.Id), CancellationToken.None);
+
+        loyaltyAccount.PointsBalance.Should().Be(50);
+        loyaltyAccount.Transactions.Should().ContainSingle(t => t.Type == Domain.Enums.LoyaltyTransactionType.Reversed && t.Points == 50);
+        _loyaltyAccountRepository.Verify(r => r.UpdateAsync(loyaltyAccount, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_OrderWithoutRedeemedPoints_NeverTouchesLoyaltyAccount()
+    {
+        var order = OrderTestFactory.CreateOrder(customerId: Guid.NewGuid());
+        _orderRepository.Setup(r => r.GetByIdAsync(order.Id, It.IsAny<CancellationToken>())).ReturnsAsync(order);
+        _currentUser.Setup(c => c.Role).Returns(UserRole.Employee);
+
+        var handler = CreateHandler();
+
+        await handler.Handle(new CancelOrderCommand(order.Id), CancellationToken.None);
+
+        _loyaltyAccountRepository.Verify(r => r.GetByCustomerIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        _loyaltyAccountRepository.Verify(r => r.UpdateAsync(It.IsAny<LoyaltyAccount>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

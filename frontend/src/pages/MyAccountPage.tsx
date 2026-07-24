@@ -22,6 +22,7 @@ const LOYALTY_TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
   Redeemed: 'Wykorzystano',
   Adjusted: 'Korekta',
   Expired: 'Wygasło',
+  Reversed: 'Zwrot (anulowane zamówienie)',
 }
 
 function formatDateTime(value: string): string {

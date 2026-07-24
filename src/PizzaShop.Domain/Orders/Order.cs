@@ -293,7 +293,9 @@ public class Order
     /// <summary>
     /// Registers points spent on this order. The available-balance check itself lives on
     /// <c>LoyaltyAccount</c> (which throws <see cref="InsufficientLoyaltyPointsException"/>);
-    /// this method only enforces that redemption requires a registered customer.
+    /// this method enforces that redemption requires a registered customer and (ADR-0040)
+    /// that the resulting discount does not exceed the amount still payable on the order
+    /// (<see cref="LoyaltyRedemptionExceedsOrderValueException"/>).
     /// </summary>
     public void RedeemLoyaltyPoints(int points, Money discountAmount)
     {
@@ -304,6 +306,10 @@ public class Order
         if (PointsRedeemed > 0)
             throw new LoyaltyPointsAlreadyRedeemedException();
         ArgumentNullException.ThrowIfNull(discountAmount);
+
+        var remainingPayable = Subtotal.Subtract(DiscountAmount).Add(DeliveryFee);
+        if (discountAmount > remainingPayable)
+            throw new LoyaltyRedemptionExceedsOrderValueException(points, discountAmount, remainingPayable);
 
         PointsRedeemed = points;
         DiscountAmount = DiscountAmount.Add(discountAmount);

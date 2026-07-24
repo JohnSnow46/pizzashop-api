@@ -86,6 +86,10 @@ public sealed class ExceptionHandler : IExceptionHandler
         ForbiddenOperationException => (StatusCodes.Status403Forbidden, "Forbidden"),
         InvalidCredentialsException => (StatusCodes.Status401Unauthorized, "Invalid credentials"),
         ConflictException => (StatusCodes.Status409Conflict, "Conflict"),
+        // Optimistic concurrency conflict on an EF-tracked aggregate (ADR-0040, currently
+        // only LoyaltyAccount's xmin token) — same 409 as other state conflicts detected
+        // outside Domain.
+        Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException => (StatusCodes.Status409Conflict, "Conflict"),
         InvalidPaymentNotificationException => (StatusCodes.Status400BadRequest, "Invalid payment notification"),
         NotSupportedException => (StatusCodes.Status501NotImplemented, "Not implemented"),
         // Must come before ArgumentException — ArgumentOutOfRangeException derives from it and
