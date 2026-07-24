@@ -1,214 +1,70 @@
 # PizzaShop — kontekst projektu dla Claude Code
 
-## Czym jest ten projekt
-Aplikacja e-commerce do zamawiania pizzy online: katalog produktów (pizze, dodatki, promocje),
-koszyk, składanie zamówień, płatności, panel klienta, panel administratora/restauracji,
-śledzenie statusu zamówienia w czasie rzeczywistym.
+E-commerce do zamawiania pizzy: katalog, koszyk, zamówienia, płatności PayU, panel
+klienta/pracownika/admina, live-tracking statusu (SignalR). Jedna pizzeria, jedna
+lokalizacja. Stack: .NET 8 / ASP.NET Core / EF Core + PostgreSQL, Clean Architecture
+(`Domain`/`Application`/`Infrastructure`/`Api`), JWT, xUnit+Moq(+FluentAssertions).
+Frontend: React + TypeScript (Vite) w `frontend/`.
 
-## Stack technologiczny
-- **.NET 8**, C#
-- **ASP.NET Core Web API** (kontrolery, minimal API tam gdzie to sensowne)
-- **Entity Framework Core** + **PostgreSQL**
-- **Clean Architecture**: warstwy `Domain`, `Application`, `Infrastructure`, `Api`
-- **JWT** do autentykacji/autoryzacji (role: Customer, Employee, RestaurantAdmin, SuperAdmin — patrz "Role i uprawnienia")
-- **SignalR** do live-trackingu statusu zamówienia — dokładny graf stanów `OrderStatus`
-  jest jednym źródłem prawdy w `docs/domain-model.md` (sekcja 5.3), nie duplikować go tutaj
-- **Płatności: PayU** — integracja przez `IPaymentGateway` (interfejs w `Application`,
-  implementacja w `Infrastructure`). Na dev/test używamy środowiska **PayU Sandbox**
-  (osobne konto testowe, testowe transakcje, przełączenie na produkcję to tylko zmiana
-  kluczy API w konfiguracji). Endpoint webhooka/notyfikacji PayU w `Api` **nie może** być
-  chroniony JWT (wywołuje go PayU, nie zalogowany użytkownik) — musi zamiast tego
-  weryfikować podpis/sekcję żądania zgodnie z dokumentacją PayU, inaczej jest podatny na
-  sfałszowane potwierdzenia płatności
-- **xUnit + Moq** do testów jednostkowych, **FluentAssertions** jeśli potrzebne
-- Frontend: poza zakresem na start (API-first). Jeśli dojdzie frontend, ustalimy osobno.
+## Źródła prawdy (nie duplikuj ich treści tutaj)
 
-## Zakres biznesowy
-Jedna pizzeria, jedna lokalizacja (nie multi-tenant). Rola `RestaurantAdmin` to rola
-operacyjna dla personelu tej jednej restauracji — nie zakładamy modelu wielu niezależnych
-restauracji na wspólnej platformie. Nie projektuj encji/relacji pod multi-tenancy
-(np. `RestaurantId` jako partycjonowanie danych) bez wyraźnej decyzji zmieniającej ten zakres.
+| Obszar | Plik |
+|---|---|
+| Model domenowy: encje, flow zamówienia, role biznesowe, punkty lojalnościowe | `docs/domain-model.md` (ma `## Indeks`) |
+| Warstwa Api: kontrolery, JWT, autoryzacja ról, middleware wyjątków, SignalR, webhook PayU | `docs/api-layer.md` (ma `## Indeks`) |
+| Warstwa Application: CQRS, walidacja, porty | `docs/application-layer.md` (ma `## Indeks`) |
+| Warstwa Infrastructure: EF Core, PayU, geokodowanie | `docs/infrastructure-layer.md` (ma `## Indeks`) |
+| Decyzje architektoniczne | `docs/decisions.md` = indeks → `docs/adr/ADR-NNNN.md` = treść; `## ADR Notes` = log użycia per zadanie |
 
-### Role i uprawnienia
-- **Customer** — klient. Przegląda menu, składa zamówienia (jako gość albo zalogowany),
-  śledzi status własnego zamówienia, zbiera i wydaje punkty lojalnościowe (tylko z kontem).
-- **Employee** (pracownik) — obsługa kuchni/dostawy. Widzi kolejkę przychodzących zamówień,
-  zmienia status realizacji (Kitchen → Delivery/Ready for pickup → Delivered/Collected),
-  ustawia `EstimatedReadyAt`. Brak dostępu do zarządzania menu, cenami, promocjami czy
-  obszarem dostawy.
-- **RestaurantAdmin** — admin restauracji. Wszystko co `Employee`, plus zarządzanie menu
-  (pizze, dodatki, ceny), promocjami, obszarem dostawy (promień), godzinami pracy oraz
-  zarządzanie kontami `Employee`.
-- **SuperAdmin** — rola techniczna/właściciela platformy, ponad `RestaurantAdmin` (np.
-  zarządzanie kontami adminów, pełny dostęp do wszystkiego). Utrzymywana na wypadek
-  rozrostu do wielu lokalizacji w przyszłości — nie projektować pod nią żadnej logiki
-  multi-tenant już teraz (patrz wyżej), to czysto rola uprawnień.
+## Workflow agentów (`.claude/agents/`)
+`architect` (projekt, aktualizuje `docs/decisions.md`/`docs/domain-model.md`, NIE pisze
+kodu produkcyjnego) → `builder` (implementacja + testy) → `reviewer` (przegląd, NIE
+modyfikuje kodu) → poprawki przez `builder`. Wywołuj `architect` na start nowej
+funkcjonalności lub przy decyzji strukturalnej.
 
-**Konwencja autoryzacji:** role są rozłącznymi wartościami na koncie (JWT zawiera jedną
-rolę), ale uprawnieniami są hierarchiczne (`SuperAdmin` ⊇ `RestaurantAdmin` ⊇ `Employee`).
-Każdy endpoint wymagający roli `Employee` musi jawnie dopuszczać też `RestaurantAdmin` i
-`SuperAdmin` w `[Authorize(Roles = "Employee,RestaurantAdmin,SuperAdmin")]` (analogicznie
-endpointy `RestaurantAdmin` dopuszczają też `SuperAdmin`) — hierarchię egzekwuje warstwa
-autoryzacji w `Api`, nie sam token ani `Domain`.
-
-### Flow zamówienia
-1. **Tryb realizacji** — klient na starcie wybiera **dostawę** albo **odbiór osobisty**
-   w lokalu.
-2. **Adres (tylko dla dostawy)** — przy trybie "dostawa" klient podaje lub geolokalizuje
-   adres i system od razu sprawdza, czy mieści się w obsługiwanym obszarze dostawy (patrz
-   niżej) — jeśli nie, zamówienie z dostawą nie jest możliwe (klient może cofnąć się do
-   kroku 1 i wybrać odbiór osobisty). Przy odbiorze osobistym ten krok jest całkowicie
-   pomijany — adres nie jest zbierany.
-3. **Koszyk i zamówienie bez/z kontem** — klient może dodać pizze do koszyka i złożyć
-   zamówienie jako gość (bez rejestracji) albo zalogowany (z kontem). Punkty lojalnościowe
-   nalicza się tylko przy zamówieniach z kontem. Zamówienie gościa musi mieć bezpieczny,
-   nieodgadnalny identyfikator do śledzenia statusu (np. GUID w URL, nie sekwencyjne ID) —
-   gość nie ma JWT, więc dostęp do podglądu statusu nie może opierać się na autoryzacji roli.
-4. **Termin realizacji** — klient może zamówić "na teraz" albo zaplanować zamówienie na
-   wybraną godzinę (nawet jeśli restauracja jest aktualnie zamknięta), o ile mieści się to
-   w godzinach pracy restauracji dla wybranego dnia. `Order` przechowuje
-   `RequestedFulfillmentTime`.
-5. **Płatność** — klient wybiera płatność **online (PayU)** albo **przy odbiorze/dostawie**
-   (gotówka/karta kurierowi/w lokalu). Status płatności (`PaymentStatus`) jest niezależny od
-   statusu realizacji zamówienia (`OrderStatus`, patrz `docs/domain-model.md` sekcja 5.3) —
-   zamówienie z płatnością "przy odbiorze" trafia do kuchni od razu, zamówienie płatne
-   online czeka z przyjęciem do kuchni na potwierdzenie płatności.
-
-### Obszar dostawy
-Admin definiuje obszar dostawy jako **promień (w km) od adresu restauracji**. Walidacja
-adresu klienta = odległość w linii prostej (lub przez API mapowe, do ustalenia przez
-architekta) od punktu restauracji ≤ skonfigurowany promień. Jeden promień na start; wiele
-stref z różnymi opłatami za dostawę to możliwe rozszerzenie, nie projektować na zapas bez
-wyraźnej potrzeby.
-
-### Punkty lojalnościowe
-Klienci z kontem zbierają punkty za zamówienia i mogą nimi zapłacić (częściowo lub
-całościowo) za kolejne zamówienie. Dokładny przelicznik (zł → punkty) i reguła wymiany
-(rabat kwotowy vs. konkretne nagrody) **nie są jeszcze ustalone** — architekt ma zaprojektować
-elastyczny szkielet (np. `LoyaltyAccount` + historia transakcji punktowych jako osobna
-encja/value object w `Domain`), tak żeby konkretną regułę naliczania/wymiany dało się
-dostosować później bez przebudowy modelu.
-
-### Szacowany czas realizacji (ustawiany przez obsługę)
-Po złożeniu zamówienia obsługa restauracji (rola `Employee`, ewentualnie `RestaurantAdmin`) ustawia
-**szacowany czas, po którym pizza będzie gotowa/dostarczona** (`EstimatedReadyAt` lub
-podobne pole na `Order`). To odrębna wartość od `RequestedFulfillmentTime` (życzenia klienta
-przy składaniu zamówienia) — jest ustawiana/aktualizowana przez personel już po przyjęciu
-zamówienia do realizacji i powinna być widoczna dla klienta przez live-tracking (SignalR).
-
-## CI
-- **GitHub Actions**: build + testy (`dotnet build`, `dotnet test`) uruchamiane przy każdym
-  PR i push do głównej gałęzi. Docelowy hosting jeszcze nie ustalony — nie zakładaj
-  konkretnej platformy (Azure/AWS/VPS) w kodzie czy konfiguracji bez wyraźnej decyzji.
-
-## Struktura repozytorium (docelowa)
-```
-src/
-  PizzaShop.Domain/           # encje, value objecty, reguły biznesowe, brak zależności na zewnątrz
-  PizzaShop.Application/      # use case'y (CQRS: Commands/Queries), interfejsy, DTO
-  PizzaShop.Infrastructure/   # EF Core, repozytoria, integracje zewnętrzne (płatności, e-mail)
-  PizzaShop.Api/              # kontrolery, middleware, konfiguracja DI, SignalR huby
-tests/
-  PizzaShop.Domain.Tests/
-  PizzaShop.Application.Tests/
-  PizzaShop.Api.Tests/
-docs/
-  decisions.md                 # log decyzji architektonicznych (ADR-lite)
-  domain-model.md               # opis modelu domenowego
-```
-
-## Reguły pracy z agentami
-Ten projekt korzysta z trzech subagentów zdefiniowanych w `.claude/agents/`:
-
-- **architect** — projektuje, aktualizuje `docs/decisions.md` i `docs/domain-model.md`, NIE pisze kodu produkcyjnego. Wywołuj go na start nowej funkcjonalności lub gdy trzeba podjąć decyzję strukturalną.
-- **builder** — implementuje kod zgodnie z ustaleniami architekta i konwencjami poniżej. Pisze też testy do własnego kodu.
-- **reviewer** — czyta diff/kod, sprawdza zgodność z Clean Architecture, konwencjami, testami. NIE modyfikuje kodu — tylko raportuje uwagi.
-
-Typowy przepływ dla nowej funkcjonalności: `architect` (projekt) → `builder` (implementacja) → `reviewer` (przegląd) → poprawki przez `builder`.
-
-## Zasady pracy z kontekstem
-
-### Proces ADR: decisions.md / docs/adr/ / ADR Notes
-- **`docs/decisions.md` = wyłącznie indeks.** Lista ADR-ów z linkami do plików
-  źródłowych + sekcja `## ADR Notes` na dole. Nie zawiera treści decyzji.
-- **`docs/adr/ADR-NNNN.md` = źródło prawdy.** Pełna treść pojedynczej decyzji
-  (Kontekst → Decyzja → Konsekwencje). Jeden plik = jeden ADR.
-- **`## ADR Notes` w `docs/decisions.md` = historia wykorzystania.** Log per zadanie:
-  które ADR-y wykorzystano i z jakim skutkiem w kodzie, oraz które ADR-y sprawdzono, ale
-  ostatecznie okazały się nieistotne. Szablon wpisu i przykład są w samym pliku.
-
-### Czytanie dokumentacji — obowiązkowo przez subagenta i przez indeks
-Nigdy nie czytaj w głównym wątku plików >150 linii, w szczególności
-`docs/api-layer.md`, `docs/domain-model.md` i pojedynczych ADR-ów w `docs/adr/`.
-Każdy z tych plików ma na górze sekcję `## Indeks` (jedna linia na
-sekcję + numer linii nagłówka) — jeśli plik, który ma powstać lub
-urosnąć, przekroczy ~150 linii, dodaj mu analogiczny Indeks zamiast
-zostawiać go bez skrótu. `docs/decisions.md` jest z założenia krótki (sam indeks +
-ADR Notes) — można go czytać bezpośrednio, ale **nigdy nie czytaj całego
-`docs/decisions.md` jako sposobu na dotarcie do treści ADR** — treść żyje w
-`docs/adr/ADR-NNNN.md`, nie w `decisions.md`.
-
-**Zanim zajrzysz do indeksu — sprawdź `## ADR Notes`.** Jeśli zadanie dotyczy obszaru,
-który był już wcześniej dotykany (np. checkout, płatności, promocje, autoryzacja),
-najpierw przejrzyj wpisy `ADR Notes` z poprzednich zadań w tym obszarze. Często od razu
-wskazują właściwe ADR-y i ich wpływ na kod, bez potrzeby przeszukiwania indeksu czy
-czytania dodatkowych plików.
-
-Nigdy nie zlecaj architektowi "przeczytaj `docs/decisions.md`" ani `docs/adr/*.md` w
-całości — to i tak kończy się pełnym odczytem wszystkich ADR-ów. Zamiast tego:
-1. Sprawdź `## ADR Notes` w `docs/decisions.md` — czy podobne zadanie było już robione
-   i jakich ADR-ów użyto.
-2. Jeśli nie ma trafienia, zajrzyj do `## Indeks` w `docs/decisions.md` (krótka lista
-   linków, można przeczytać bezpośrednio) i wybierz **konkretne numery ADR**, które
-   wyglądają na istotne dla zadania.
+## Zasady korzystania z dokumentacji
+1. Zadanie w znanym obszarze (checkout, płatności, promocje, autoryzacja...) → najpierw
+   sprawdź `## ADR Notes` w `docs/decisions.md`.
+2. Brak trafienia → `## Indeks` w `docs/decisions.md`, wybierz konkretne numery ADR.
 3. Otwórz (albo zleć architektowi) WYŁĄCZNIE `docs/adr/ADR-000X.md` dla wybranych
-   numerów — nigdy cały katalog `docs/adr/`.
-4. Zleć zadanie w formie: "Przeczytaj `docs/adr/ADR-000X.md`, `docs/adr/ADR-000Y.md`
-   i sekcję Z `docs/api-layer.md`. Odpowiedz na pytania: [...]. Zwróć maks. 15 punktów,
-   bez cytatów, bez przepisywania treści."
+   numerów — nigdy cały katalog `docs/adr/`, nigdy `docs/decisions.md` w całości jako
+   sposób na dotarcie do treści ADR.
+4. Nigdy nie czytaj w głównym wątku plików >150 linii (`docs/domain-model.md`,
+   `docs/api-layer.md`, pojedynczych ADR) bez offsetu — użyj ich `## Indeks` +
+   `Read offset/limit`, albo zleć subagentowi konkretne pytanie z limitem odpowiedzi
+   (maks. 15 punktów, bez cytatów, bez przepisywania treści). Do głównego wątku wraca
+   wyłącznie streszczenie. Wyjątek: plik, który za chwilę edytujesz.
+5. Szukanie przed czytaniem: `rg -n "wzorzec" docs/` → `Read` z offset/limit. Nigdy
+   `Read` bez limitu na pliku o nieznanym rozmiarze.
+6. Po zadaniu: dopisz wpis na górze `## ADR Notes` w `docs/decisions.md` (szablon w
+   pliku) — użyte ADR-y i ich wpływ na implementację, oraz przeczytane-nieużyte.
+7. Nie pytaj, jeśli można sprawdzić: `git log --oneline -20`, `git status`, pliki repo.
+   `AskUserQuestion` tylko o decyzje produktowe niewywnioskowalne z repo, max. 1 runda
+   pytań na sesję.
+8. Po rozpoznaniu, przed implementacją: "Rozpoznanie zakończone, wczytano ~Nk tokenów.
+   Sugeruję /compact."
 
-Do głównego wątku wraca wyłącznie streszczenie.
+## Krytyczne ograniczenia (skrót — pełna treść w źródłach prawdy powyżej)
+- **Webhook PayU nie może wymagać JWT** — weryfikacja przez podpis/sekcję żądania PayU,
+  inaczej podatny na sfałszowane potwierdzenia płatności.
+  → `docs/api-layer.md` §7, ADR-0013/ADR-0022/ADR-0027.
+- **Respektuj hierarchię ról w `[Authorize]`**: endpoint `Employee` musi jawnie dopuszczać
+  też `RestaurantAdmin`,`SuperAdmin` (analogicznie `RestaurantAdmin` → `SuperAdmin`) —
+  hierarchię egzekwuje `Api`, nie token ani `Domain`; używaj stałych `AuthRoles`.
+  → `docs/api-layer.md` §5, ADR-0004/ADR-0027.
+- **Single-tenant** — nie projektuj encji/relacji pod multi-tenancy (`RestaurantId` jako
+  partycjonowanie) bez nowego ADR zmieniającego zakres. → ADR-0003.
+- **Reguły biznesowe zależne od stanu** (obszar dostawy, godziny pracy, przejścia
+  statusów) żyją jako guard clauses w `Domain`, nie w FluentValidation — walidator
+  sprawdza tylko kształt danych. → `docs/application-layer.md` §1, ADR-0012.
+- **Nie zakładaj platformy hostingu/CI** (Azure/AWS/VPS) bez wyraźnej decyzji.
 
-Wyjątek: plik, który za chwilę edytujesz — ten czytaj bezpośrednio.
-
-**Po zakończeniu zadania** dopisz wpis na górze `## ADR Notes` w `docs/decisions.md`
-(szablon w samym pliku): które ADR-y wykorzystano i jaki miały wpływ na implementację,
-oraz które ADR-y przeczytałeś, ale ostatecznie nieużyte — żeby przyszłe zadania w tym
-samym obszarze wiedziały, że są nieistotne, zamiast czytać je ponownie.
-
-### Szukanie przed czytaniem
-1. `rg -n "wzorzec" docs/` żeby zlokalizować sekcję
-2. `Read` z `offset`/`limit` — wąskie okno wokół trafienia
-Nigdy `Read` bez limitu na pliku, którego rozmiaru nie znasz.
-
-### Nie pytaj, jeśli możesz sprawdzić
-Zanim użyjesz AskUserQuestion, sprawdź: `git log --oneline -20`,
-`git status`, istniejące pliki. Pytaj tylko o decyzje produktowe,
-których nie da się wywnioskować z repo.
-Maksymalnie jedna runda pytań na sesję, wszystkie pytania naraz.
-
-### Zgłaszaj koszt
-Po fazie rozpoznania, przed implementacją, napisz jedną linijkę:
-"Rozpoznanie zakończone, wczytano ~Nk tokenów. Sugeruję /compact."
-
-## Konwencje kodu
-- Nullable reference types: włączone (`<Nullable>enable</Nullable>`)
-- Async wszędzie tam, gdzie jest I/O (`async`/`await`, `CancellationToken` przekazywany dalej)
-- CQRS w warstwie Application: `Commands/`, `Queries/`, każdy handler w osobnym pliku
-- Walidacja wejścia: **FluentValidation w `Application`** dla walidacji DTO/requestów
-  (kształt danych, wymagane pola, formaty). Reguły biznesowe zależne od stanu (np. adres w
-  promieniu dostawy, godziny pracy, przejścia statusów) żyją jako guard clauses/metody w
-  `Domain`, nie w walidatorach — walidator sprawdza "czy dane są poprawnej postaci",
-  Domain pilnuje "czy operacja jest dozwolona"
-- Wyjątki domenowe dziedziczą po `DomainException`, mapowane na odpowiednie kody HTTP w middleware
-- Repozytoria przez interfejsy w `Application`, implementacje w `Infrastructure`
-- Każdy nowy use case (Command/Query) ma odpowiadający test jednostkowy
-
-## Konwencje nazewnictwa
-- Encje: liczba pojedyncza (`Pizza`, `Order`, `OrderItem`)
-- Commands: `CreateOrderCommand`, `AddPizzaToCartCommand` (czasownik + rzeczownik + `Command`)
-- Queries: `GetOrderByIdQuery`, `GetMenuQuery`
-- Testy: `MethodName_Scenario_ExpectedResult`
+## Konwencje globalne
+- Nullable reference types: włączone. Async wszędzie gdzie I/O, `CancellationToken`
+  przekazywany dalej. Wyjątki domenowe dziedziczą po `DomainException`.
+- CQRS: `Commands/`, `Queries/` — jeden handler = jeden plik = jeden test jednostkowy.
+- Nazewnictwo: encje l. pojedyncza (`Order`), `CreateOrderCommand`, `GetOrderByIdQuery`,
+  testy `MethodName_Scenario_ExpectedResult`.
 
 ## Komendy
 ```bash
@@ -219,61 +75,7 @@ dotnet ef database update -p src/PizzaShop.Infrastructure -s src/PizzaShop.Api
 dotnet run --project src/PizzaShop.Api
 ```
 
-## Środowisko do przeglądania kodu
-VS Code (zainstalowany 2026-07-20) + rozszerzenia: C# Dev Kit/C#, ESLint, Prettier,
-GitLens, Git Graph, Error Lens, Todo Tree, Better Comments, Code Spell Checker,
-indent-rainbow, Material Icon Theme, EditorConfig. Bez integracji GitHub/GitLab PR —
-przegląd lokalny (diff, blame, historia).
-
-**Flow przeglądu zmian od agentów:**
-1. Source Control (`Ctrl+Shift+G`) — diff inline zmienionych plików.
-2. Error Lens — od razu widać błędy kompilacji C# / warningi ESLint przy linii.
-3. `Shift+F12` (Find All References) na zmienionych publicznych metodach — sprawdzić, czy
-   zmiana w `Domain` nie psuje `Application`/`Api`.
-4. Todo Tree — sprawdzić niedomknięte `TODO`/`FIXME` (konwencja: `TODO(architect):` przy
-   miejscach wymagających decyzji architektonicznej).
-5. Git Graph — podejrzeć historię/branch przed zatwierdzeniem.
-
-Inne skróty: `Ctrl+T` szybki skok do klasy, `F12`/`Alt+F12` go to/peek definition,
-GitLens blame inline przy najechaniu na linię.
-
-## Status projektu
-`docs/decisions.md` (ADR-lite, 29 wpisów), `docs/domain-model.md`, `docs/api-layer.md` i
-`docs/infrastructure-layer.md` są aktualnym źródłem prawdy o modelu i warstwach; ten plik
-opisuje tylko ogólny zakres i konwencje, nie duplikuj z niego szczegółów.
-
-Zaimplementowane i zbudowane (0 błędów kompilacji; `dotnet test` zielony poza
-`PizzaShop.Infrastructure.Tests`, które wymagają lokalnie uruchomionego Dockera dla
-Testcontainers):
-- **Domain** — pełny model (VO, wyjątki, enumy, encje katalogu, `Restaurant`, `Order`/
-  `OrderItem`, `Customer`/`LoyaltyAccount`, `Promotion`), pełne pokrycie testami (205 testów).
-- **Application** — CQRS use case'y, porty, DTO, walidatory FluentValidation (260 testów).
-- **Infrastructure** — EF Core + PostgreSQL (konfiguracje mapowania, migracje), 7
-  repozytoriów + `UnitOfWork`, `PayUPaymentGateway`, `NominatimGeocodingService`, testy
-  integracyjne na Testcontainers (wymagają Docker).
-- **Api — Iteracje 1–4 (kompletne, `docs/api-layer.md` sekcja 10)** — 104 testy
-  (`WebApplicationFactory`), w tym integracyjny test end-to-end `HubConnection` (ADR-0032):
-  - **Iteracja 1** (tożsamość + JWT): `UserAccount` (Application/Identity), BCrypt,
-    `RegisterCustomerCommand`/`LoginCommand`/`RegisterStaffAccountCommand`, `JwtTokenGenerator`,
-    `HttpContextCurrentUser`, globalny middleware wyjątków → `ProblemDetails`, `AuthController`
-    (`/register`, `/login`, `/staff`, `/me`), `DbSeeder` (bootstrap `SuperAdmin`).
-  - **Iteracja 2** — `MenuController`, `IngredientsController`, `RestaurantController`,
-    `PromotionsController` (odczyt publiczny + admin).
-  - **Iteracja 3** — `OrdersController`, `PaymentsController` (webhook PayU surowe body, bez JWT).
-  - **Iteracja 4** — SignalR (`OrderTrackingHub`, `SignalROrderNotifier` zarejestrowany zamiast
-    tymczasowego `NoopOrderNotifier` z ADR-0031, `HubHttpContextFilter` z ADR-0032 naprawiający
-    utratę `ICurrentUser` w metodach Huba), `LoyaltyController`.
-
-Ważne decyzje po drodze: **ADR-0029** — powiązanie `Customer`↔`LoyaltyAccount` jest
-jednokierunkowe (`LoyaltyAccount.CustomerId` jedyny nośnik FK; `Customer.LoyaltyAccountId`
-usunięty, migracja `DropCustomerLoyaltyAccountId`). Wzorzec wiążący na przyszłość: relacje 1:1
-między agregatami — FK po stronie zależnej, bez opcjonalnych `id` w fabrykach do uzgadniania
-tożsamości między agregatami. **ADR-0030** — route jako jedyne źródło prawdy dla id w
-kontrolerach mutujących (nadpisanie, bez guardu `BadRequest()`).
-
-Świadomie odłożone (nie blokują niczego, ale niedookreślone — patrz ADR-0009/0011/0014):
-konkretny przelicznik punktów lojalnościowych (`ILoyaltyPolicy` ma tymczasową, prostą
-implementację placeholder), `Promotion.CalculateDiscount` dla `BuyXGetY` (rzuca
-`NotSupportedException`).
-
-CI: `.github/workflows/ci.yml` — `dotnet build`/`dotnet test` na push/PR do `main`.
+## Środowisko
+VS Code, przegląd lokalny (Source Control diff, GitLens, Git Graph) — bez integracji
+GitHub/GitLab PR. CI: `.github/workflows/ci.yml` (`dotnet build`/`dotnet test` na
+push/PR do `main`).
