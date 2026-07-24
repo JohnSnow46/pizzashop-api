@@ -62,6 +62,15 @@ public sealed class OrdersController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>The logged-in customer's own order history, newest first (ADR-0039).</summary>
+    [HttpGet("mine")]
+    [Authorize(Roles = AuthRoles.Customer)]
+    public async Task<ActionResult<IReadOnlyList<OrderSummaryDto>>> GetMine(CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new GetMyOrdersQuery(), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("queue")]
     [Authorize(Roles = AuthRoles.Staff)]
     public async Task<ActionResult<IReadOnlyList<OrderDto>>> GetQueue(CancellationToken cancellationToken)

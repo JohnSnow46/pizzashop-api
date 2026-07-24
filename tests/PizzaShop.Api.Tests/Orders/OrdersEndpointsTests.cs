@@ -186,6 +186,47 @@ public sealed class OrdersEndpointsTests : IClassFixture<ApiTestFactory>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
+    // ---- GET /mine ----
+
+    [Fact]
+    public async Task GetMine_WithoutToken_ReturnsUnauthorized()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/api/orders/mine");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task GetMine_WithStaffRole_ReturnsForbidden()
+    {
+        var staffClient = await AuthTestHelper.CreateStaffClientAsync(_factory, UserRole.Employee);
+
+        var response = await staffClient.GetAsync("/api/orders/mine");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task GetMine_TwoCustomers_EachSeesOnlyOwnOrders()
+    {
+        var menuItemId = await CreateDrinkMenuItemAsync("Cola-MineScoping");
+
+        var customerAClient = await AuthTestHelper.CreateCustomerClientAsync(_factory);
+        var createdA = await CreateOrderAsync(customerAClient, PickupOrderCommand(menuItemId));
+
+        var customerBClient = await AuthTestHelper.CreateCustomerClientAsync(_factory);
+        var createdB = await CreateOrderAsync(customerBClient, PickupOrderCommand(menuItemId));
+
+        var responseA = await customerAClient.GetAsync("/api/orders/mine");
+
+        responseA.StatusCode.Should().Be(HttpStatusCode.OK);
+        var ordersA = await responseA.Content.ReadFromJsonAsync<List<OrderSummaryDto>>(JsonOptions);
+        ordersA.Should().ContainSingle(o => o.Id == createdA.OrderId);
+        ordersA.Should().NotContain(o => o.Id == createdB.OrderId);
+    }
+
     // ---- GET /track/{trackingToken} ----
 
     [Fact]

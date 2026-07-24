@@ -49,6 +49,7 @@ utwórz `docs/adr/ADR-NNNN.md`**, nie dopisuj treści bezpośrednio tutaj.
 - [ADR-0036](adr/ADR-0036.md): Frontend — iteracja checkout jako gość (wizard jednostronicowy + osobna trasa potwierdzenia, mapping koszyk→CreateOrder, walidacja ręczna, obsługa ProblemDetails)
 - [ADR-0037](adr/ADR-0037.md): Frontend — iteracja auth (logowanie/rejestracja klienta), token w `localStorage`, `AuthContext`, brak zmian backendowych
 - [ADR-0038](adr/ADR-0038.md): Frontend — live-tracking statusu zamówienia (SignalR), hook `useOrderTracking`, nowa trasa `/orders/track/:trackingToken`, świadome odłożenie Vitest
+- [ADR-0039](adr/ADR-0039.md): Panel "Moje konto" — nowy `GET /api/orders/mine` (historia zamówień klienta), sortowanie historii punktów w istniejącym `GET /api/loyalty/balance` (bez nowego endpointu), `PointsRedeemed` w checkoucie świadomie odłożone
 
 ---
 
@@ -76,6 +77,55 @@ Szablon wpisu:
 **Przeczytane, nieużyte:**
 - ADR-000Y — <dlaczego sprawdzony, ale ostatecznie nieistotny dla tego zadania>
 ```
+
+---
+
+### 2026-07-24 — Panel "Moje konto": historia zamówień + historia punktów lojalnościowych
+
+**Wykorzystane ADR:**
+- ADR-0033 — Finalizacja przelicznika punktów lojalnościowych
+  - potwierdzenie, że `LoyaltyAccount.Transactions` (append-only) jest już kompletnym źródłem
+    historii punktów — nie trzeba nowego mechanizmu domenowego, tylko odczyt + sortowanie
+- ADR-0036 — Checkout jako gość
+  - potwierdzenie, że `PointsRedeemed = null` w `CreateOrderCommand` z frontendu to świadoma,
+    udokumentowana decyzja tamtego zadania, nie przeoczenie — punkt wyjścia do decyzji (C)
+    w nowym ADR-0039 (wykorzystanie punktów w checkoucie zostaje osobną iteracją)
+- ADR-0037 — Frontend auth (logowanie/rejestracja)
+  - wzorzec `AuthContext`/`useAuth`, `RedirectIfAuthenticated` jako szablon dla nowego
+    `RequireAuth` (odwrotna logika: brak sesji → redirect do `/login`)
+
+**Wpływ na implementację:**
+- Nowy ADR-0039 (`docs/adr/ADR-0039.md`): backend dostaje nowy `GET /api/orders/mine`
+  (`GetMyOrdersQuery`/`GetMyOrdersQueryHandler`, `OrderSummaryDto`,
+  `IOrderRepository.GetByCustomerIdAsync`, bez paginacji) — ale historia punktów **nie**
+  dostaje nowego endpointu: okazało się, że istniejący `GET /api/loyalty/balance` już zwracał
+  pełną historię transakcji (`LoyaltyBalanceDto.Transactions`), tylko niesortowaną; jedyna
+  zmiana backendu po stronie punktów to `LoyaltyMapper.ToDto` sortujący malejąco po
+  `OccurredAt`. Reviewer nie zgłosił błędów blokujących (brak IDOR — `ICurrentUser.CustomerId`
+  poprawnie scope'uje `/orders/mine`), tylko doprosił o e2e testy autoryzacji/IDOR dla nowego
+  endpointu w `OrdersEndpointsTests.cs` (dwóch klientów, brak tokenu, rola Staff) — dopisane.
+- Frontend: `frontend/src/api/loyaltyApi.ts` (nowy), `ordersApi.getMyOrders`, nowe typy w
+  `api/types.ts` (`OrderSummary`, `LoyaltyBalance`, `LoyaltyTransaction`,
+  `LoyaltyTransactionType`), `components/auth/RequireAuth.tsx` (nowy, analogiczny do
+  `RedirectIfAuthenticated` ale odwrócony), trasa `/account` w `routes.tsx`, link "Moje konto"
+  w `Layout.tsx`, nowa strona `pages/MyAccountPage.tsx`. `STATUS_LABELS` z
+  `OrderTrackingStatus.tsx` wydzielony do osobnego `orders/orderStatusLabels.ts`, żeby uniknąć
+  ostrzeżenia lintera (`react/only-export-components`) przy re-eksporcie stałej z pliku
+  komponentu.
+- Świadomie NIE dodano linku do widoku szczegółu zamówienia z listy "Moje konto" — apka nie ma
+  jeszcze żadnej trasy szczegółu zamówienia dla zalogowanego właściciela (tylko
+  `/orders/track/:token` dla gości i live-tracking tuż po checkoucie); lista pokazuje tylko
+  podsumowanie (`OrderSummaryDto`).
+- `PointsRedeemed` w checkoucie: potwierdzona rekomendacja architekta z ADR-0039 (C) —
+  **osobna iteracja/ADR**, nie ruszane w tym zadaniu. Panel konta w tej iteracji tylko
+  wyświetla saldo/historię.
+- `dotnet build`/`dotnet test` (Application.Tests 275/275, Api.Tests 109/109) i
+  `npm run build`/`npm run lint` (frontend) — PASS, bez nowych ostrzeżeń.
+  `PizzaShop.Infrastructure.Tests` pominięte (środowisko bez Dockera, niezwiązane z tym
+  zadaniem).
+
+**Przeczytane, nieużyte:**
+- brak — zadanie dotyczyło wyłącznie obszaru ADR-0033/ADR-0036/ADR-0037/nowy ADR-0039
 
 ---
 

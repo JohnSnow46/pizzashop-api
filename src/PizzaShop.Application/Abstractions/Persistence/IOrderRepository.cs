@@ -24,6 +24,12 @@ public interface IOrderRepository
     Task<IReadOnlyList<Order>> GetQueueAsync(CancellationToken cancellationToken);
 
     /// <summary>
+    /// A registered customer's own orders, newest first (<c>PlacedAt</c> descending), no
+    /// paging in this iteration (ADR-0039) — the "Moje konto" order history.
+    /// </summary>
+    Task<IReadOnlyList<Order>> GetByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Persists a newly created order. <paramref name="guestTrackingToken"/> is the
     /// unpredictable token generated for guest orders (<c>Order.CustomerId is null</c>) and
     /// is <c>null</c> for orders placed by a registered customer, who instead tracks their

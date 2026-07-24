@@ -30,6 +30,9 @@ export function Layout({ children }: LayoutProps) {
           {isAuthenticated ? (
             <span className="auth-status">
               {user?.email}{' '}
+              <Link to="/account" className="auth-account-link">
+                Moje konto
+              </Link>{' '}
               <button type="button" className="auth-logout-btn" onClick={handleLogout}>
                 Wyloguj
               </button>

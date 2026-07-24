@@ -41,6 +41,16 @@ public sealed class InMemoryOrderRepository : IOrderRepository
         return Task.FromResult<IReadOnlyList<Order>>(queue);
     }
 
+    public Task<IReadOnlyList<Order>> GetByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken)
+    {
+        var orders = _orders.Values
+            .Where(o => o.CustomerId == customerId)
+            .OrderByDescending(o => o.PlacedAt)
+            .ToList();
+
+        return Task.FromResult<IReadOnlyList<Order>>(orders);
+    }
+
     public Task AddAsync(Order order, Guid? guestTrackingToken, string? providerPaymentReference, CancellationToken cancellationToken)
     {
         _orders[order.Id] = order;

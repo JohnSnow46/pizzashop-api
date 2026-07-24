@@ -53,6 +53,34 @@
   cursor: pointer;
 }
 
+.auth-account-link {
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* Account page */
+
+.account-order-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.account-order-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+}
+
+.account-order-list__details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 /* Menu list */
 
 .menu-grid {

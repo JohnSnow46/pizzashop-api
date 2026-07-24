@@ -18,6 +18,10 @@
 //   - src/PizzaShop.Domain/Enums/OrderStatus.cs
 //   - src/PizzaShop.Domain/Enums/PaymentStatus.cs
 //   - SignalROrderNotifier's "OrderStatusChanged" push payload (ADR-0038)
+//   - src/PizzaShop.Application/Orders/Dtos/OrderSummaryDto.cs (ADR-0039)
+//   - src/PizzaShop.Application/Loyalty/Dtos/LoyaltyBalanceDto.cs (ADR-0039)
+//   - src/PizzaShop.Application/Loyalty/Dtos/LoyaltyTransactionDto.cs (ADR-0039)
+//   - src/PizzaShop.Domain/Enums/LoyaltyTransactionType.cs (ADR-0039)
 
 /** Mirror of PizzaShop.Application.Common.Dtos.MoneyDto. */
 export interface Money {
@@ -266,4 +270,43 @@ export interface OrderStatusChangedEvent {
   orderId: string
   status: OrderStatus
   estimatedReadyAt: string | null
+}
+
+/**
+ * Mirror of PizzaShop.Application.Orders.Dtos.OrderSummaryDto (ADR-0039) — the row shape
+ * for the logged-in customer's own order history (`GET /api/orders/mine`).
+ */
+export interface OrderSummary {
+  id: string
+  number: string
+  placedAt: string
+  status: OrderStatus
+  fulfillmentType: FulfillmentType
+  paymentStatus: PaymentStatus
+  total: Money
+  itemsCount: number
+}
+
+/**
+ * Mirror of PizzaShop.Domain.Enums.LoyaltyTransactionType. Serialized as a string
+ * (JsonStringEnumConverter, ADR-0035), not a number.
+ */
+export type LoyaltyTransactionType = 'Earned' | 'Redeemed' | 'Adjusted' | 'Expired'
+
+/** Mirror of PizzaShop.Application.Loyalty.Dtos.LoyaltyTransactionDto (ADR-0039). */
+export interface LoyaltyTransaction {
+  type: LoyaltyTransactionType
+  points: number
+  reason: string
+  orderId: string | null
+  occurredAt: string
+}
+
+/**
+ * Mirror of PizzaShop.Application.Loyalty.Dtos.LoyaltyBalanceDto (`GET /api/loyalty/balance`).
+ * `transactions` arrives sorted descending by `occurredAt` (ADR-0039).
+ */
+export interface LoyaltyBalance {
+  pointsBalance: number
+  transactions: LoyaltyTransaction[]
 }

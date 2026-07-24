@@ -1,17 +1,6 @@
 import type { OrderStatus } from '../../api/types'
 import type { OrderTrackingConnectionState, UseOrderTrackingResult } from '../../hooks/useOrderTracking'
-
-/** Polish label per OrderStatus (all 8 values, src/PizzaShop.Domain/Enums/OrderStatus.cs). */
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  PendingAcceptance: 'Oczekuje na potwierdzenie',
-  Accepted: 'Przyjęte',
-  InPreparation: 'W przygotowaniu',
-  Ready: 'Gotowe do odbioru',
-  OutForDelivery: 'W drodze',
-  Completed: 'Zrealizowane',
-  Rejected: 'Odrzucone',
-  Cancelled: 'Anulowane',
-}
+import { STATUS_LABELS } from './orderStatusLabels'
 
 /** Terminal negative statuses — shown visually/textually distinct from Completed. */
 const NEGATIVE_STATUSES: ReadonlySet<OrderStatus> = new Set(['Rejected', 'Cancelled'])

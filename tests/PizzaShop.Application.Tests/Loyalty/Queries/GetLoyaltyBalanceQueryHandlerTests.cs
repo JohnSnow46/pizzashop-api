@@ -38,6 +38,28 @@ public class GetLoyaltyBalanceQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_MultipleTransactions_ReturnsThemSortedByOccurredAtDescending()
+    {
+        var customerId = Guid.NewGuid();
+        _currentUser.Setup(c => c.CustomerId).Returns(customerId);
+
+        var now = DateTimeOffset.UtcNow;
+        var account = LoyaltyAccount.Create(customerId);
+        account.Earn(10, "Oldest", now.AddDays(-2));
+        account.Earn(20, "Newest", now);
+        account.Earn(30, "Middle", now.AddDays(-1));
+        _loyaltyAccountRepository
+            .Setup(r => r.GetByCustomerIdAsync(customerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(account);
+
+        var handler = CreateHandler();
+
+        var result = await handler.Handle(new GetLoyaltyBalanceQuery(), CancellationToken.None);
+
+        result.Transactions.Select(t => t.Reason).Should().Equal("Newest", "Middle", "Oldest");
+    }
+
+    [Fact]
     public async Task Handle_NoCustomerId_ThrowsForbiddenOperationException()
     {
         _currentUser.Setup(c => c.CustomerId).Returns((Guid?)null);

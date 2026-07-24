@@ -8,6 +8,7 @@ internal static class LoyaltyMapper
         new(
             account.PointsBalance,
             account.Transactions
+                .OrderByDescending(t => t.OccurredAt)
                 .Select(t => new LoyaltyTransactionDto(t.Type, t.Points, t.Reason, t.OrderId, t.OccurredAt))
                 .ToList());
 }

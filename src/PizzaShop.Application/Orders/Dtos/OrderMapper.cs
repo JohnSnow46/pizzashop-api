@@ -26,6 +26,17 @@ internal static class OrderMapper
             ToDto(order.Total)!,
             order.Items.Select(ToDto).ToList());
 
+    public static OrderSummaryDto ToSummaryDto(Order order) =>
+        new(
+            order.Id,
+            order.Number,
+            order.PlacedAt,
+            order.Status,
+            order.FulfillmentType,
+            order.PaymentStatus,
+            ToDto(order.Total)!,
+            order.Items.Count);
+
     private static OrderItemDto ToDto(OrderItem item) =>
         new(
             item.Id,

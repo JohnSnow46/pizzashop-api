@@ -48,6 +48,12 @@ public sealed class OrderRepository : IOrderRepository
             .OrderBy(o => o.PlacedAt)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Order>> GetByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken) =>
+        await _context.Orders
+            .Where(o => o.CustomerId == customerId)
+            .OrderByDescending(o => o.PlacedAt)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(
         Order order,
         Guid? guestTrackingToken,

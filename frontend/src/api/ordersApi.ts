@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { Address, CreateOrderCommand, CreateOrderResult, DeliveryAvailability, Order } from './types'
+import type { Address, CreateOrderCommand, CreateOrderResult, DeliveryAvailability, Order, OrderSummary } from './types'
 
 /** POST /api/orders/check-delivery — flow step 2 (CLAUDE.md), checked before showing the cart. */
 export function checkDelivery(address: Address): Promise<DeliveryAvailability> {
@@ -25,4 +25,9 @@ export function getOrderById(orderId: string): Promise<Order> {
  */
 export function getOrderByTrackingToken(trackingToken: string): Promise<Order> {
   return apiClient.get<Order>(`/orders/track/${trackingToken}`)
+}
+
+/** GET /api/orders/mine — logged-in customer's own order history, newest first (ADR-0039). */
+export function getMyOrders(): Promise<OrderSummary[]> {
+  return apiClient.get<OrderSummary[]>('/orders/mine')
 }
