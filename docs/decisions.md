@@ -81,6 +81,41 @@ Szablon wpisu:
 
 ---
 
+### 2026-07-24 — Książka adresowa klienta (/account + wybór adresu w checkoucie)
+
+**Wykorzystane ADR:**
+- ADR-0020 — Strategia mapowania EF Core, konstruktory perystencyjne w Domain
+  - `CustomerAddress`/`Customer.AddressBook` miały już gotowe mapowanie (`OwnsMany` w
+    `CustomerConfiguration`) — potwierdzono brak potrzeby nowej migracji
+    (`dotnet ef migrations has-pending-model-changes`).
+- ADR-0017 — `ForbiddenOperationException` dla reguł zależnych od roli/kontekstu w Application
+  - Nowe handlery (`Add`/`Remove`/`SetDefaultCustomerAddressCommand`,
+    `GetCustomerAddressesQuery`) skalują się do `ICurrentUser.CustomerId`, mirror
+    `GetLoyaltyBalanceQueryHandler`.
+- ADR-0027 — Cienkie kontrolery, autoryzacja ról
+  - Nowy `CustomersController` (`[Authorize(Roles = AuthRoles.Customer)]`), bez id-w-URL dla
+    operacji na cudzych zasobach — mirror `LoyaltyController`.
+- ADR-0036 / ADR-0039 — Checkout jako gość / panel "Moje konto"
+  - Wybór zapisanego adresu w `DeliveryAddressStep` dodany jako auth-gated rozszerzenie (mirror
+    `LoyaltyPointsField`/`ContactStep`) — gość nie widzi zmiany, flow bez auth nienaruszony.
+
+**Wpływ na implementację:**
+- Domain/Infrastructure bez zmian — `Customer.AddAddress/RemoveAddress/SetDefaultAddress` i EF
+  mapping już istniały.
+- Application: nowy folder `Customers/` (Dtos, Commands, Queries) — pierwsze CRUD dla
+  `CustomerAddress` w tej warstwie.
+- Api: nowy `CustomersController` (`GET/POST /api/customers/addresses`,
+  `DELETE .../{id}`, `PATCH .../{id}/default`).
+- Frontend: sekcja "Adresy dostawy" w `MyAccountPage`, wybór zapisanego adresu w
+  `DeliveryAddressStep`, pierwszy DELETE endpoint w `api/client.ts`.
+
+**Przeczytane, nieużyte:**
+- ADR-0006 — obszar dostawy jako promień od restauracji: sprawdzony, ale dodawanie adresu do
+  książki adresowej celowo nie waliduje promienia dostawy (robi to dopiero
+  `CheckDeliveryAvailabilityQuery` przy checkoutcie) — poza zakresem tego zadania.
+
+---
+
 ### 2026-07-24 — Panel admina: zarządzanie kontami pracowników (/admin/staff)
 
 **Wykorzystane ADR:**

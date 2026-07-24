@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ApiError } from '../../api/client'
 import { checkDelivery } from '../../api/ordersApi'
-import type { Address, DeliveryAvailability } from '../../api/types'
+import { getMyAddresses } from '../../api/customersApi'
+import type { Address, CustomerAddress, DeliveryAvailability } from '../../api/types'
 import { validateAddress } from '../../checkout/validation'
+import { useAuth } from '../../hooks/useAuth'
 
 const EMPTY_ADDRESS: Address = {
   street: '',
@@ -34,14 +36,42 @@ export function DeliveryAddressStep({
   onNext,
   onBack,
 }: DeliveryAddressStepProps) {
+  const { isAuthenticated, user } = useAuth()
   const [form, setForm] = useState<Address>(address ?? EMPTY_ADDRESS)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [checking, setChecking] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
   const [result, setResult] = useState<DeliveryAvailability | null>(deliveryCheck)
+  const [savedAddresses, setSavedAddresses] = useState<CustomerAddress[]>([])
+
+  const isEligibleForSavedAddresses = isAuthenticated && user?.role === 'Customer'
+
+  useEffect(() => {
+    if (!isEligibleForSavedAddresses) {
+      return
+    }
+
+    let cancelled = false
+    getMyAddresses()
+      .then((addresses) => {
+        if (!cancelled) setSavedAddresses(addresses)
+      })
+      .catch(() => {
+        if (!cancelled) setSavedAddresses([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isEligibleForSavedAddresses])
 
   function updateField<K extends keyof Address>(field: K, value: Address[K]) {
     setForm((prev) => ({ ...prev, [field]: value }))
+    setResult(null)
+  }
+
+  function applySavedAddress(entry: CustomerAddress) {
+    setForm(entry.address)
+    setErrors({})
     setResult(null)
   }
 
@@ -68,6 +98,20 @@ export function DeliveryAddressStep({
   return (
     <div className="checkout-step">
       <h3>Adres dostawy</h3>
+
+      {isEligibleForSavedAddresses && savedAddresses.length > 0 && (
+        <div className="checkout-field">
+          <span>Zapisane adresy</span>
+          <div className="queue-actions">
+            {savedAddresses.map((entry) => (
+              <button type="button" key={entry.id} className="queue-action-btn" onClick={() => applySavedAddress(entry)}>
+                {entry.label}
+                {entry.isDefault ? ' (domyślny)' : ''}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="checkout-form-grid">
         <label className="checkout-field">

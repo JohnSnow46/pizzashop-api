@@ -134,4 +134,22 @@ async function patch<T>(path: string, body: unknown): Promise<T> {
   return (await response.json()) as T
 }
 
-export const apiClient = { get, post, put, patch }
+async function del<T>(path: string): Promise<T> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    method: 'DELETE',
+    headers: { ...authHeaders() },
+  })
+
+  if (!response.ok) {
+    throw await toApiError(path, response)
+  }
+
+  // 204 No Content (e.g. RemoveCustomerAddressCommand) has no body to parse.
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  return (await response.json()) as T
+}
+
+export const apiClient = { get, post, put, patch, delete: del }

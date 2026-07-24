@@ -38,6 +38,8 @@
 //   - src/PizzaShop.Application/Restaurant/Commands/UpdateOrderingThresholdsCommand.cs (admin restaurant UI)
 //   - src/PizzaShop.Application/Identity/Dtos/UserAccountDto.cs (admin staff UI)
 //   - src/PizzaShop.Application/Identity/Commands/RegisterStaffAccountCommand.cs (admin staff UI)
+//   - src/PizzaShop.Application/Customers/Dtos/CustomerAddressDto.cs (address book)
+//   - src/PizzaShop.Application/Customers/Commands/AddCustomerAddressCommand.cs (address book)
 
 import type { UserRole } from '../auth/types'
 
@@ -502,4 +504,19 @@ export interface CreateStaffAccountCommand {
   email: string
   password: string
   role: UserRole
+}
+
+/** Mirror of PizzaShop.Application.Customers.Dtos.CustomerAddressDto (address book). */
+export interface CustomerAddress {
+  id: string
+  label: string
+  address: Address
+  isDefault: boolean
+}
+
+/** Mirror of PizzaShop.Application.Customers.Commands.AddCustomerAddressCommand (address book). */
+export interface AddCustomerAddressCommand {
+  label: string
+  address: Address
+  isDefault: boolean
 }
