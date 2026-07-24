@@ -88,7 +88,50 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     throw await toApiError(path, response)
   }
 
+  // 204 No Content (e.g. the order queue action endpoints) has no body to parse.
+  if (response.status === 204) {
+    return undefined as T
+  }
+
   return (await response.json()) as T
 }
 
-export const apiClient = { get, post }
+async function put<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    throw await toApiError(path, response)
+  }
+
+  // 204 No Content (e.g. UpdateMenuItemCommand/UpdateIngredientCommand) has no body to parse.
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  return (await response.json()) as T
+}
+
+async function patch<T>(path: string, body: unknown): Promise<T> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    throw await toApiError(path, response)
+  }
+
+  // 204 No Content (e.g. SetMenuItemAvailabilityCommand) has no body to parse.
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  return (await response.json()) as T
+}
+
+export const apiClient = { get, post, put, patch }

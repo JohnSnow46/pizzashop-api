@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getMenu } from '../api/menuApi'
-import type { MenuItem } from '../api/types'
+import { getIngredients } from '../api/ingredientsApi'
+import type { Ingredient } from '../api/types'
 
-interface UseMenuResult {
-  items: MenuItem[]
+interface UseIngredientsResult {
+  ingredients: Ingredient[]
   loading: boolean
   error: string | null
-  /** Re-fetches the menu list without a full remount — used by the admin catalog page. */
+  /** Re-fetches the ingredient dictionary without a full remount. */
   reload: () => void
 }
 
-/** Loads the public menu list (GET /api/menu) once on mount. */
-export function useMenu(): UseMenuResult {
-  const [items, setItems] = useState<MenuItem[]>([])
+/** Loads the ingredient dictionary (GET /api/ingredients, Admin role) — admin catalog UI only. */
+export function useIngredients(): UseIngredientsResult {
+  const [ingredients, setIngredients] = useState<Ingredient[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
@@ -23,15 +23,15 @@ export function useMenu(): UseMenuResult {
     setLoading(true)
     setError(null)
 
-    getMenu()
+    getIngredients()
       .then((result) => {
         if (!cancelled) {
-          setItems(result)
+          setIngredients(result)
         }
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load menu')
+          setError(err instanceof Error ? err.message : 'Nie udało się załadować składników.')
         }
       })
       .finally(() => {
@@ -47,5 +47,5 @@ export function useMenu(): UseMenuResult {
 
   const reload = useCallback(() => setReloadToken((token) => token + 1), [])
 
-  return { items, loading, error, reload }
+  return { ingredients, loading, error, reload }
 }

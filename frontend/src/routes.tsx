@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { RedirectIfAuthenticated } from './components/auth/RedirectIfAuthenticated'
 import { RequireAuth } from './components/auth/RequireAuth'
 import { Layout } from './components/Layout'
+import { AdminMenuPage } from './pages/AdminMenuPage'
 import { CartPage } from './pages/CartPage'
 import { CheckoutPage } from './pages/CheckoutPage'
 import { EmployeeOrdersPage } from './pages/EmployeeOrdersPage'
@@ -17,7 +18,8 @@ import { TrackOrderPage } from './pages/TrackOrderPage'
  * kept separate from the wizard because it must survive a full page reload on return from
  * PayU); ADR-0037 adds customer login/register; ADR-0038 adds SignalR live order tracking and
  * the public `/orders/track/:trackingToken` route below; ADR-0039 adds the `/account` panel
- * (order history + loyalty points), gated behind `RequireAuth`.
+ * (order history + loyalty points), gated behind `RequireAuth`. `/admin/menu` is the admin
+ * catalog management page (menu items + ingredients), gated to `AuthRoles.Admin` equivalents.
  */
 export function AppRoutes() {
   return (
@@ -57,6 +59,14 @@ export function AppRoutes() {
           element={
             <RequireAuth roles={['Employee', 'RestaurantAdmin', 'SuperAdmin']}>
               <EmployeeOrdersPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin/menu"
+          element={
+            <RequireAuth roles={['RestaurantAdmin', 'SuperAdmin']}>
+              <AdminMenuPage />
             </RequireAuth>
           }
         />

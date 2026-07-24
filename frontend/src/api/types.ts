@@ -22,6 +22,12 @@
 //   - src/PizzaShop.Application/Loyalty/Dtos/LoyaltyBalanceDto.cs (ADR-0039)
 //   - src/PizzaShop.Application/Loyalty/Dtos/LoyaltyTransactionDto.cs (ADR-0039)
 //   - src/PizzaShop.Domain/Enums/LoyaltyTransactionType.cs (ADR-0039)
+//   - src/PizzaShop.Application/Catalog/Commands/CreateMenuItemCommand.cs (admin catalog UI)
+//   - src/PizzaShop.Application/Catalog/Commands/UpdateMenuItemCommand.cs (admin catalog UI, ADR-0016)
+//   - src/PizzaShop.Application/Catalog/Commands/SetMenuItemAvailabilityCommand.cs (admin catalog UI)
+//   - src/PizzaShop.Application/Catalog/Commands/CreateIngredientCommand.cs (admin catalog UI)
+//   - src/PizzaShop.Application/Catalog/Commands/UpdateIngredientCommand.cs (admin catalog UI)
+//   - src/PizzaShop.Application/Catalog/Dtos/MenuItemVariantDto.cs (MenuItemVariantInputDto, admin catalog UI)
 
 /** Mirror of PizzaShop.Application.Common.Dtos.MoneyDto. */
 export interface Money {
@@ -64,6 +70,73 @@ export interface MenuItem {
   variants: MenuItemVariant[]
   baseIngredients: Ingredient[]
   allowedExtras: Ingredient[]
+}
+
+/**
+ * Mirror of PizzaShop.Application.Catalog.Dtos.MenuItemVariantInputDto (admin catalog UI).
+ * `id: null` means "add new variant"; a set `id` means "existing variant, reconcile"
+ * (UpdateMenuItemCommandHandler.ReconcileVariants, ADR-0016).
+ */
+export interface MenuItemVariantInput {
+  id: string | null
+  name: string
+  price: Money
+  isDefault: boolean
+}
+
+/** Mirror of PizzaShop.Application.Catalog.Commands.CreateMenuItemCommand (admin catalog UI). */
+export interface CreateMenuItemCommand {
+  name: string
+  category: MenuCategory
+  basePrice: Money
+  description: string | null
+  imageUrl: string | null
+  baseIngredientIds: string[]
+  allowedExtraIds: string[]
+  variants: MenuItemVariantInput[]
+}
+
+/**
+ * Mirror of PizzaShop.Application.Catalog.Commands.UpdateMenuItemCommand (admin catalog UI).
+ * Full PUT/replace semantics for ingredients and variants — `id` is overridden by the route
+ * on the server, matching docs/api-layer.md 1.1.
+ */
+export interface UpdateMenuItemCommand {
+  id: string
+  name: string
+  description: string | null
+  imageUrl: string | null
+  basePrice: Money
+  baseIngredientIds: string[]
+  allowedExtraIds: string[]
+  variants: MenuItemVariantInput[]
+}
+
+/**
+ * Mirror of PizzaShop.Application.Catalog.Commands.SetMenuItemAvailabilityCommand (admin
+ * catalog UI). `menuItemId` is overridden by the route on the server (docs/api-layer.md 1.1).
+ */
+export interface SetMenuItemAvailabilityCommand {
+  menuItemId: string
+  isAvailable: boolean
+}
+
+/** Mirror of PizzaShop.Application.Catalog.Commands.CreateIngredientCommand (admin catalog UI). */
+export interface CreateIngredientCommand {
+  name: string
+  extraPrice: Money
+  category: string | null
+}
+
+/**
+ * Mirror of PizzaShop.Application.Catalog.Commands.UpdateIngredientCommand (admin catalog UI).
+ * `id` is overridden by the route on the server (docs/api-layer.md 1.1).
+ */
+export interface UpdateIngredientCommand {
+  id: string
+  name: string
+  extraPrice: Money
+  isAvailable: boolean
 }
 
 /** Mirror of PizzaShop.Application.Restaurant.Dtos.TimeRangeDto. */
@@ -160,7 +233,11 @@ export interface CreateOrderCommand {
   requestedFulfillmentTime: string | null
   paymentMethod: PaymentMethod
   promotionCode: string | null
-  /** Always null in this MVP — a guest has no loyalty points to redeem (ADR-0036). */
+  /**
+   * Points the customer chose to redeem at checkout (ADR-0040), or null for a guest/no
+   * selection. The server recalculates and enforces the discount authoritatively — this
+   * value is only a request.
+   */
   pointsToRedeem: number | null
 }
 
@@ -289,9 +366,10 @@ export interface OrderSummary {
 
 /**
  * Mirror of PizzaShop.Domain.Enums.LoyaltyTransactionType. Serialized as a string
- * (JsonStringEnumConverter, ADR-0035), not a number.
+ * (JsonStringEnumConverter, ADR-0035), not a number. 'Reversed' added by ADR-0040 — an
+ * automatic refund of points when an order with redeemed points is cancelled/rejected.
  */
-export type LoyaltyTransactionType = 'Earned' | 'Redeemed' | 'Adjusted' | 'Expired'
+export type LoyaltyTransactionType = 'Earned' | 'Redeemed' | 'Adjusted' | 'Expired' | 'Reversed'
 
 /** Mirror of PizzaShop.Application.Loyalty.Dtos.LoyaltyTransactionDto (ADR-0039). */
 export interface LoyaltyTransaction {

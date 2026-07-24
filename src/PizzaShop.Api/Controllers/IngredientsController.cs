@@ -2,15 +2,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PizzaShop.Api.Auth;
 using PizzaShop.Application.Catalog.Commands;
+using PizzaShop.Application.Catalog.Dtos;
+using PizzaShop.Application.Catalog.Queries;
 using PizzaShop.Application.Common.Messaging;
 
 namespace PizzaShop.Api.Controllers;
 
 /// <summary>
-/// Ingredient dictionary endpoints (api-layer.md 6.3). Thin: maps request -> Command, calls
-/// <see cref="IDispatcher"/>, maps result -> <see cref="IActionResult"/>. No business logic.
-/// No GET listing endpoint on purpose — there is no corresponding Query in Application yet
-/// (api-layer.md 6.3 note); do not add one speculatively.
+/// Ingredient dictionary endpoints (api-layer.md 6.3). Thin: maps request -> Command/Query,
+/// calls <see cref="IDispatcher"/>, maps result -> <see cref="IActionResult"/>. No business logic.
 /// </summary>
 [ApiController]
 [Route("api/ingredients")]
@@ -21,6 +21,14 @@ public sealed class IngredientsController : ControllerBase
     public IngredientsController(IDispatcher dispatcher)
     {
         _dispatcher = dispatcher;
+    }
+
+    [HttpGet]
+    [Authorize(Roles = AuthRoles.Admin)]
+    public async Task<ActionResult<IReadOnlyList<IngredientDto>>> GetAll(CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new GetIngredientsQuery(), cancellationToken);
+        return Ok(result);
     }
 
     [HttpPost]

@@ -11,6 +11,9 @@ interface LayoutProps {
 /** Roles allowed onto /employee/orders — mirrors the RequireAuth roles in routes.tsx. */
 const STAFF_ROLES: UserRole[] = ['Employee', 'RestaurantAdmin', 'SuperAdmin']
 
+/** Roles allowed onto /admin/menu — mirrors the RequireAuth roles in routes.tsx (AuthRoles.Admin). */
+const ADMIN_ROLES: UserRole[] = ['RestaurantAdmin', 'SuperAdmin']
+
 export function Layout({ children }: LayoutProps) {
   const { totalQuantity } = useCart()
   const { isAuthenticated, user, logout } = useAuth()
@@ -41,6 +44,13 @@ export function Layout({ children }: LayoutProps) {
                 <>
                   <Link to="/employee/orders" className="auth-account-link">
                     Panel pracownika
+                  </Link>{' '}
+                </>
+              )}
+              {user && ADMIN_ROLES.includes(user.role) && (
+                <>
+                  <Link to="/admin/menu" className="auth-account-link">
+                    Panel admina
                   </Link>{' '}
                 </>
               )}

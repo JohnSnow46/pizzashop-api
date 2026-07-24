@@ -305,10 +305,11 @@ Kolumna „Use case" = Command/Query wołany przez `IDispatcher`.
 > PUT `/{id}` i PATCH `/{id}/availability`: route nadpisuje `Id`/`MenuItemId` w Commandzie (1.1).
 
 ### 6.3 `IngredientsController` (`/api/ingredients`) — Iteracja 2
+| Metoda | Ścieżka | Use case | Autoryzacja |
+|---|---|---|---|
+| GET | `/` | `GetIngredientsQuery` | `Admin` |
 | POST | `/` | `CreateIngredientCommand` | `Admin` |
 | PUT | `/{id}` | `UpdateIngredientCommand` | `Admin` |
-> Lista składników dla admina (GET) — jeśli potrzebna w UI, dodać `GetIngredientsQuery`
-> w Application (nie ma jej dziś w 4.1); nie tworzyć na zapas.
 > PUT `/{id}`: route nadpisuje `Id` w Commandzie (1.1).
 
 ### 6.4 `RestaurantController` (`/api/restaurant`) — Iteracja 2
