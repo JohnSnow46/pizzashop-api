@@ -16,11 +16,55 @@ Frontend: React + TypeScript (Vite) w `frontend/`.
 | Warstwa Infrastructure: EF Core, PayU, geokodowanie | `docs/infrastructure-layer.md` (ma `## Indeks`) |
 | Decyzje architektoniczne | `docs/decisions.md` = indeks → `docs/adr/ADR-NNNN.md` = treść; `## ADR Notes` = log użycia per zadanie |
 
-## Workflow agentów (`.claude/agents/`)
-`architect` (projekt, aktualizuje `docs/decisions.md`/`docs/domain-model.md`, NIE pisze
-kodu produkcyjnego) → `builder` (implementacja + testy) → `reviewer` (przegląd, NIE
-modyfikuje kodu) → poprawki przez `builder`. Wywołuj `architect` na start nowej
-funkcjonalności lub przy decyzji strukturalnej.
+## Tryby pracy i workflow agentów (`.claude/agents/`)
+Domyślny tryb to **fast**. Tryb wybiera główny wątek sam, na podstawie tabeli poniżej —
+bez pytania usera i bez spawnowania dodatkowego agenta tylko po to, żeby zaklasyfikować
+zadanie. W razie wątpliwości wybierz niższy tryb i eskaluj do wyższego dopiero, gdy w
+trakcie implementacji faktycznie pojawi się potrzeba decyzji architektonicznej.
+
+| Sygnał | Fast (small) | Normal (medium) | Deep (large) |
+|---|---|---|---|
+| Warstwy dotknięte | 1 (tylko `Api`/tylko frontend) | 2-3 warstwy | zmiana granic warstw/wzorca |
+| Reguła biznesowa w `Domain` | brak nowej | pojedyncza, prosta | złożona / wiele agregatów |
+| Migracja EF Core | brak | pojedyncza, addytywna | zmiana istniejącego schematu/relacji |
+| Bezpieczeństwo/płatności/role | nie dotyczy | pośrednio | wprost |
+| Przykłady | nowa strona, komponent UI, stylowanie, prosty endpoint CRUD | nowy moduł, integracja zewnętrzna | duży refaktor, zmiana architektury, decyzja krytyczna |
+
+**Workflow per tryb:**
+- **Fast** (domyślny): `builder` → `reviewer-lite`.
+- **Normal**: `architect-lite` → `builder` → `reviewer-lite`.
+- **Deep**: `architect` → `builder` → `reviewer`.
+
+`architect`/`reviewer` (pełne) — WYŁĄCZNIE deep mode. `architect-lite` nie pisze ADR ani
+nie modyfikuje `docs/decisions.md`/`docs/domain-model.md` — daje tylko krótki plan (cel,
+dotknięte pliki, rozwiązanie, ryzyka, walidacja). `reviewer-lite` sprawdza wyłącznie rzeczy
+blokujące (build/test, bezpieczeństwo, oczywiste błędy) — pomija pełny audyt Clean
+Architecture i stylu. `task-classifier` istnieje na wypadek naprawdę niejasnego zakresu —
+w typowym przypadku klasyfikację robi główny wątek wg tabeli wyżej, bez spawnowania go.
+
+Liczba dotkniętych warstw to sygnał **pomocniczy**, nie samodzielne kryterium: prosty
+endpoint CRUD z natury dotyka Api+Application (czasem +Infrastructure), a mimo to zostaje
+fast mode, dopóki nie wprowadza nowej reguły biznesowej w `Domain`, nieaddytywnej migracji
+ani niczego z bezpieczeństwem/płatnościami/rolami wprost. Nie eskaluj trybu tylko dlatego,
+że zmiana dotyka więcej niż jednego pliku.
+
+### Reguły obowiązkowe
+
+**Domyślne zachowanie:** Małe zadania MUSZĄ iść przez `builder` → `reviewer-lite`. Nie
+spawnuj `architect` ani `reviewer` (pełnych), dopóki zadanie jednoznacznie nie spełnia
+kryteriów normal/deep z tabeli wyżej.
+
+**Dyscyplina zakresu:** Agenci mają dostarczać działające zmiany, nie dokumentację.
+Dokumentacja (ADR, pełny plan architekta) powstaje tylko tam, gdzie faktycznie zapada nowa
+decyzja i ułatwia to dalszą pracę — nie jest celem samym w sobie.
+
+**Warunki zakończenia:** Każdy agent kończy pracę, gdy osiągnie swój zdefiniowany output
+(patrz jego plik w `.claude/agents/`). Nie kontynuuje eksploracji niepowiązanych części
+repo "przy okazji".
+
+**Priorytet — projekt portfolio:** Optymalizuj w tej kolejności: 1) działająca funkcja,
+2) szybka iteracja, 3) spójność z istniejącym kodem. Nie projektuj pod skalę enterprise
+(sharding, multi-region, event sourcing itp.) bez wyraźnej potrzeby zgłoszonej przez usera.
 
 ## Zasady korzystania z dokumentacji
 1. Zadanie w znanym obszarze (checkout, płatności, promocje, autoryzacja...) → najpierw
@@ -36,8 +80,9 @@ funkcjonalności lub przy decyzji strukturalnej.
    wyłącznie streszczenie. Wyjątek: plik, który za chwilę edytujesz.
 5. Szukanie przed czytaniem: `rg -n "wzorzec" docs/` → `Read` z offset/limit. Nigdy
    `Read` bez limitu na pliku o nieznanym rozmiarze.
-6. Po zadaniu: dopisz wpis na górze `## ADR Notes` w `docs/decisions.md` (szablon w
-   pliku) — użyte ADR-y i ich wpływ na implementację, oraz przeczytane-nieużyte.
+6. Po zadaniu w **normal/deep mode**: dopisz wpis na górze `## ADR Notes` w
+   `docs/decisions.md` (szablon w pliku) — użyte ADR-y i ich wpływ na implementację, oraz
+   przeczytane-nieużyte. W **fast mode** pomiń ten krok, jeśli nic z ADR nie było użyte.
 7. Nie pytaj, jeśli można sprawdzić: `git log --oneline -20`, `git status`, pliki repo.
    `AskUserQuestion` tylko o decyzje produktowe niewywnioskowalne z repo, max. 1 runda
    pytań na sesję.
