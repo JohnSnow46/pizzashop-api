@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router-dom'
 import { RedirectIfAuthenticated } from './components/auth/RedirectIfAuthenticated'
 import { RequireAuth } from './components/auth/RequireAuth'
 import { Layout } from './components/Layout'
+import { AdminDashboardPage } from './pages/AdminDashboardPage'
 import { AdminMenuPage } from './pages/AdminMenuPage'
 import { AdminPromotionsPage } from './pages/AdminPromotionsPage'
 import { AdminReportsPage } from './pages/AdminReportsPage'
@@ -29,7 +30,8 @@ import { TrackOrderPage } from './pages/TrackOrderPage'
  * hours, delivery area, ordering/free-delivery thresholds), gated the same way. `/admin/staff`
  * is the admin staff account management page (list + create via RegisterStaffAccountCommand),
  * gated the same way. `/admin/reports` is the admin sales report page (date range + top-items
- * filters, order count/revenue/top menu items), gated the same way.
+ * filters, order count/revenue/top menu items), gated the same way. `/admin` is the admin panel
+ * landing page with tile links into the sub-pages above, gated the same way.
  */
 export function AppRoutes() {
   return (
@@ -69,6 +71,14 @@ export function AppRoutes() {
           element={
             <RequireAuth roles={['Employee', 'RestaurantAdmin', 'SuperAdmin']}>
               <EmployeeOrdersPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <RequireAuth roles={['RestaurantAdmin', 'SuperAdmin']}>
+              <AdminDashboardPage />
             </RequireAuth>
           }
         />

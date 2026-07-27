@@ -11,7 +11,7 @@ interface LayoutProps {
 /** Roles allowed onto /employee/orders — mirrors the RequireAuth roles in routes.tsx. */
 const STAFF_ROLES: UserRole[] = ['Employee', 'RestaurantAdmin', 'SuperAdmin']
 
-/** Roles allowed onto /admin/menu, /admin/promotions, /admin/restaurant, /admin/staff and /admin/reports — mirrors the RequireAuth roles in routes.tsx (AuthRoles.Admin). */
+/** Roles allowed onto /admin, /admin/menu, /admin/promotions, /admin/restaurant, /admin/staff and /admin/reports — mirrors the RequireAuth roles in routes.tsx (AuthRoles.Admin). */
 const ADMIN_ROLES: UserRole[] = ['RestaurantAdmin', 'SuperAdmin']
 
 export function Layout({ children }: LayoutProps) {
@@ -49,7 +49,7 @@ export function Layout({ children }: LayoutProps) {
               )}
               {user && ADMIN_ROLES.includes(user.role) && (
                 <>
-                  <Link to="/admin/menu" className="auth-account-link">
+                  <Link to="/admin" className="auth-account-link">
                     Panel admina
                   </Link>{' '}
                   <Link to="/admin/promotions" className="auth-account-link">
