@@ -82,6 +82,35 @@ Szablon wpisu:
 
 ---
 
+### 2026-07-27 — Rate-limiting InitializeGuest: rozpoznanie follow-upu z ADR-0041 (bez implementacji)
+
+**Wykorzystane ADR:**
+- ADR-0041 — Retry płatności PayU dla gościa
+  - Sekcja follow-up ("przy realnym sygnale nadużycia") była bezpośrednim triggerem tego
+    zadania — sprawdzono, czy nastąpił.
+
+**Nowa decyzja:** brak — TODO otwarte, nie ADR.
+- User jawnie potwierdził (pytanie zwrotne przed przekazaniem do `architect-lite`), że NIE
+  chce teraz implementować rate-limitingu na `POST
+  /api/payments/orders/track/{trackingToken}/initialize` (`PaymentsController.InitializeGuest`,
+  `[AllowAnonymous]`) — brak realnego sygnału nadużycia w produkcji, endpoint nie jest
+  jeszcze wystawiony publicznie pod obciążeniem (projekt portfolio). Zadanie zatrzymane
+  przed etapem `architect-lite`/`builder`, zero zmian w kodzie.
+- **TODO (otwarte):** wdrożyć rate-limiting na `InitializeGuest` przy pierwszym realnym
+  sygnale nadużycia (np. `Microsoft.AspNetCore.RateLimiting`, wbudowany od .NET 7 — sprawdzić
+  najpierw, czy jest już skonfigurowany w `Program.cs`; limit per `trackingToken` albo per IP,
+  próg z zapasem żeby nie blokować legalnego retry płatności). Pozostałe endpointy
+  `PaymentsController` (`Initialize` z JWT, `GetStatus`, `PayUWebhook`) poza zakresem — inny
+  model zagrożenia.
+
+**Wpływ na implementację:**
+- Brak — decyzja o nierealizowaniu teraz, zadokumentowana jako otwarty punkt.
+
+**Przeczytane, nieużyte:**
+- brak
+
+---
+
 ### 2026-07-27 — Retry płatności PayU po porzuconej/nieudanej sesji (gość + zalogowany)
 
 **Wykorzystane ADR:**
