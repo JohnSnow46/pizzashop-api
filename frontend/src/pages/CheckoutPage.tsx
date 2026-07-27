@@ -26,6 +26,21 @@ export function CheckoutPage() {
   const navigate = useNavigate()
   const [state, dispatch] = useCheckoutState()
 
+  // Purely presentational (not part of useCheckoutState/checkoutState.ts): drives the
+  // fade/slide direction of the step transition below. Does not affect validation,
+  // step logic, or data sent to the API.
+  const [stepDirection, setStepDirection] = useState<'forward' | 'back'>('forward')
+
+  function goNext() {
+    setStepDirection('forward')
+    dispatch({ type: 'goNext' })
+  }
+
+  function goBack() {
+    setStepDirection('back')
+    dispatch({ type: 'goBack' })
+  }
+
   const [config, setConfig] = useState<RestaurantConfig | null>(null)
   const [configLoading, setConfigLoading] = useState(true)
   const [configError, setConfigError] = useState<string | null>(null)
@@ -125,92 +140,97 @@ export function CheckoutPage() {
       <h2>Zamówienie</h2>
       <CheckoutStepper step={state.step} fulfillmentType={state.fulfillmentType} />
 
-      {state.step === 1 && (
-        <FulfillmentStep
-          fulfillmentType={state.fulfillmentType}
-          onSelect={(type) => dispatch({ type: 'setFulfillment', fulfillmentType: type })}
-          onNext={() => dispatch({ type: 'goNext' })}
-        />
-      )}
+      <div
+        key={state.step}
+        className={`checkout-step-transition${stepDirection === 'back' ? ' checkout-step-transition--back' : ''}`}
+      >
+        {state.step === 1 && (
+          <FulfillmentStep
+            fulfillmentType={state.fulfillmentType}
+            onSelect={(type) => dispatch({ type: 'setFulfillment', fulfillmentType: type })}
+            onNext={goNext}
+          />
+        )}
 
-      {state.step === 2 && (
-        <DeliveryAddressStep
-          address={state.address}
-          deliveryCheck={state.deliveryCheck}
-          onChecked={(address, result) => {
-            dispatch({ type: 'setAddress', address })
-            dispatch({ type: 'setDeliveryCheck', result })
-          }}
-          onSwitchToPickup={() => {
-            dispatch({ type: 'setFulfillment', fulfillmentType: 'Pickup' })
-            dispatch({ type: 'goToStep', step: 1 })
-          }}
-          onNext={() => dispatch({ type: 'goNext' })}
-          onBack={() => dispatch({ type: 'goBack' })}
-        />
-      )}
+        {state.step === 2 && (
+          <DeliveryAddressStep
+            address={state.address}
+            deliveryCheck={state.deliveryCheck}
+            onChecked={(address, result) => {
+              dispatch({ type: 'setAddress', address })
+              dispatch({ type: 'setDeliveryCheck', result })
+            }}
+            onSwitchToPickup={() => {
+              dispatch({ type: 'setFulfillment', fulfillmentType: 'Pickup' })
+              dispatch({ type: 'goToStep', step: 1 })
+            }}
+            onNext={goNext}
+            onBack={goBack}
+          />
+        )}
 
-      {state.step === 3 && (
-        <ContactStep
-          contact={state.contact}
-          onChange={(contact) => dispatch({ type: 'setContact', contact })}
-          onNext={() => dispatch({ type: 'goNext' })}
-          onBack={() => dispatch({ type: 'goBack' })}
-        />
-      )}
+        {state.step === 3 && (
+          <ContactStep
+            contact={state.contact}
+            onChange={(contact) => dispatch({ type: 'setContact', contact })}
+            onNext={goNext}
+            onBack={goBack}
+          />
+        )}
 
-      {state.step === 4 && (
-        <FulfillmentTimeStep
-          schedule={state.schedule}
-          restaurantConfig={config}
-          onChange={(schedule) => dispatch({ type: 'setSchedule', schedule })}
-          onNext={() => dispatch({ type: 'goNext' })}
-          onBack={() => dispatch({ type: 'goBack' })}
-        />
-      )}
+        {state.step === 4 && (
+          <FulfillmentTimeStep
+            schedule={state.schedule}
+            restaurantConfig={config}
+            onChange={(schedule) => dispatch({ type: 'setSchedule', schedule })}
+            onNext={goNext}
+            onBack={goBack}
+          />
+        )}
 
-      {state.step === 5 && (
-        <PaymentStep
-          paymentMethod={state.paymentMethod}
-          onSelect={(method) => dispatch({ type: 'setPayment', paymentMethod: method })}
-          onNext={() => dispatch({ type: 'goNext' })}
-          onBack={() => dispatch({ type: 'goBack' })}
-        />
-      )}
+        {state.step === 5 && (
+          <PaymentStep
+            paymentMethod={state.paymentMethod}
+            onSelect={(method) => dispatch({ type: 'setPayment', paymentMethod: method })}
+            onNext={goNext}
+            onBack={goBack}
+          />
+        )}
 
-      {state.step === 6 && (
-        <PromotionField
-          code={state.promotionCode}
-          preview={state.promotionPreview}
-          subtotal={{ amount: totalAmount, currency }}
-          deliveryFee={
-            state.fulfillmentType === 'Delivery' && state.deliveryCheck?.deliveryFee
-              ? state.deliveryCheck.deliveryFee
-              : { amount: 0, currency }
-          }
-          lines={cartItemsToPromotionLines(items)}
-          onApply={(code, preview) => dispatch({ type: 'setPromotion', code, preview })}
-          onNext={() => dispatch({ type: 'goNext' })}
-          onBack={() => dispatch({ type: 'goBack' })}
-        />
-      )}
+        {state.step === 6 && (
+          <PromotionField
+            code={state.promotionCode}
+            preview={state.promotionPreview}
+            subtotal={{ amount: totalAmount, currency }}
+            deliveryFee={
+              state.fulfillmentType === 'Delivery' && state.deliveryCheck?.deliveryFee
+                ? state.deliveryCheck.deliveryFee
+                : { amount: 0, currency }
+            }
+            lines={cartItemsToPromotionLines(items)}
+            onApply={(code, preview) => dispatch({ type: 'setPromotion', code, preview })}
+            onNext={goNext}
+            onBack={goBack}
+          />
+        )}
 
-      {state.step === 7 && (
-        <OrderSummary
-          items={items}
-          subtotalAmount={totalAmount}
-          currency={currency}
-          state={state}
-          restaurantConfig={config}
-          submitting={submitting}
-          submitError={submitError}
-          fieldErrors={fieldErrors}
-          onSwitchToPickup={() => dispatch({ type: 'setFulfillment', fulfillmentType: 'Pickup' })}
-          onPointsToRedeemChange={(points) => dispatch({ type: 'setPointsToRedeem', points })}
-          onSubmit={handleSubmit}
-          onBack={() => dispatch({ type: 'goBack' })}
-        />
-      )}
+        {state.step === 7 && (
+          <OrderSummary
+            items={items}
+            subtotalAmount={totalAmount}
+            currency={currency}
+            state={state}
+            restaurantConfig={config}
+            submitting={submitting}
+            submitError={submitError}
+            fieldErrors={fieldErrors}
+            onSwitchToPickup={() => dispatch({ type: 'setFulfillment', fulfillmentType: 'Pickup' })}
+            onPointsToRedeemChange={(points) => dispatch({ type: 'setPointsToRedeem', points })}
+            onSubmit={handleSubmit}
+            onBack={goBack}
+          />
+        )}
+      </div>
     </div>
   )
 }

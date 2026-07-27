@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { MenuItem } from '../api/types'
 import { buildCartItemKey } from '../cart/types'
 import { useCart } from '../hooks/useCart'
@@ -20,6 +20,18 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
   const { addItem } = useCart()
   const [selectedVariantId, setSelectedVariantId] = useState(() => defaultVariantId(item))
   const [selectedExtraIds, setSelectedExtraIds] = useState<string[]>([])
+  // Purely presentational: briefly flags the button as "just added" for a subtle
+  // confirmation animation (Faza 2 accent) — no effect on cart state/business logic.
+  const [justAdded, setJustAdded] = useState(false)
+  const justAddedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (justAddedTimeoutRef.current) {
+        clearTimeout(justAddedTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const selectedVariant = item.variants.find((v) => v.id === selectedVariantId) ?? null
   const selectedExtras = item.allowedExtras.filter((extra) => selectedExtraIds.includes(extra.id))
@@ -41,6 +53,12 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
       currency: item.basePrice.currency,
       quantity: 1,
     })
+
+    setJustAdded(true)
+    if (justAddedTimeoutRef.current) {
+      clearTimeout(justAddedTimeoutRef.current)
+    }
+    justAddedTimeoutRef.current = setTimeout(() => setJustAdded(false), 700)
   }
 
   return (
@@ -67,8 +85,13 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
         {unitPriceAmount.toFixed(2)} {item.basePrice.currency}
       </p>
 
-      <button type="button" className="add-to-cart-btn" disabled={!item.isAvailable} onClick={handleAddToCart}>
-        Dodaj do koszyka
+      <button
+        type="button"
+        className={`add-to-cart-btn${justAdded ? ' add-to-cart-btn--added' : ''}`}
+        disabled={!item.isAvailable}
+        onClick={handleAddToCart}
+      >
+        {justAdded ? 'Dodano ✓' : 'Dodaj do koszyka'}
       </button>
     </article>
   )
