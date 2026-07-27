@@ -1,12 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using PizzaShop.Application.Abstractions.Email;
 using PizzaShop.Application.Abstractions.Geocoding;
 using PizzaShop.Application.Abstractions.Loyalty;
 using PizzaShop.Application.Abstractions.Payments;
 using PizzaShop.Application.Abstractions.Persistence;
 using PizzaShop.Application.Common.Abstractions;
 using PizzaShop.Application.Identity.Abstractions;
+using PizzaShop.Infrastructure.Email;
 using PizzaShop.Infrastructure.Geocoding;
 using PizzaShop.Infrastructure.Identity;
 using PizzaShop.Infrastructure.Loyalty;
@@ -41,9 +43,11 @@ public static class DependencyInjection
         services.AddScoped<ILoyaltyAccountRepository, LoyaltyAccountRepository>();
         services.AddScoped<IPromotionRepository, PromotionRepository>();
         services.AddScoped<IUserAccountRepository, UserAccountRepository>();
+        services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
         services.AddScoped<IReportingRepository, ReportingRepository>();
 
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
+        services.AddScoped<IEmailSender, LoggingEmailSender>();
 
         services.Configure<PayUOptions>(configuration.GetSection("PayU"));
         services.AddHttpClient<IPaymentGateway, PayUPaymentGateway>()

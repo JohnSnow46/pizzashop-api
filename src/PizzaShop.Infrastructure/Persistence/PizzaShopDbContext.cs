@@ -46,6 +46,8 @@ public sealed class PizzaShopDbContext : DbContext
     /// </summary>
     public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
 
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasSequence<long>(OrderNumberSequenceName).StartsAt(1).IncrementsBy(1);

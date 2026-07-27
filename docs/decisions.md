@@ -81,6 +81,41 @@ Szablon wpisu:
 
 ---
 
+### 2026-07-24 — Reset hasła klienta (forgot/reset password)
+
+**Wykorzystane ADR:**
+- ADR-0026 — Tożsamość i uwierzytelnianie (`UserAccount` + BCrypt, JWT)
+  - Nowy `PasswordResetToken` żyje w `Application/Identity` obok `UserAccount`, z tego
+    samego powodu co ADR-0005 (identity poza Domain) — guard clause `Consume`/`Invalidate`
+    jest więc encją Application, nie Domain, mimo że pełni rolę reguły stanowej.
+  - Nowe hasło hashowane przez istniejący `IPasswordHasher`/`BcryptPasswordHasher`
+    (dodano tylko `UserAccount.SetPasswordHash`, bez zmian w samym hasherze).
+- ADR-0005 — Tożsamość (konto) vs. profil domenowy
+  - Potwierdza umiejscowienie `PasswordResetToken` w Application, nie Domain.
+
+**Wpływ na implementację:**
+- Application: `PasswordResetToken` (token 32B losowy base64url, TTL 1h, `Consume`/
+  `Invalidate`), `IPasswordResetTokenRepository`, `IEmailSender` (nowy port,
+  `Abstractions/Email/`), `RequestPasswordResetCommand`/Handler, `ConfirmPasswordResetCommand`/
+  Handler + walidatory. `RequestPasswordReset` zawsze zwraca sukces (brak enumeracji kont);
+  stare aktywne tokeny konta są invalidowane przy nowym żądaniu. `ConfirmPasswordReset`
+  odrzuca token nieznaleziony/wygasły/użyty/dla nieaktywnego konta tym samym komunikatem
+  `ConflictException` (409) — bez ujawniania, który przypadek zaszedł.
+- Infrastructure: `PasswordResetTokenConfiguration`/`PasswordResetTokenRepository`,
+  `LoggingEmailSender` (placeholder — loguje token zamiast realnego SMTP, zgodnie z
+  wymaganiem zadania), nowa tabela `PasswordResetTokens` (migracja addytywna
+  `AddPasswordResetToken`).
+- Api: `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`, oba
+  `[AllowAnonymous]` w `AuthController`.
+
+**Przeczytane, nieużyte:**
+- ADR-0012 — CQRS bez MediatR sprawdzony jako wzorzec dla nowych komend/handlerów, ale nie
+  wniósł nic ponad już istniejący, reużyty wzorzec (`RegisterCustomerCommand` i in.).
+- ADR-0017 — `ForbiddenOperationException` dla reguł zależnych od roli/kontekstu — sprawdzony,
+  niezastosowany: oba endpointy są anonimowe, brak reguły zależnej od roli.
+
+---
+
 ### 2026-07-24 — Przycisk "Anuluj" w kolejce pracownika + widoczność statusu refundu
 
 **Wykorzystane ADR:**

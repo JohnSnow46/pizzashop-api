@@ -51,4 +51,11 @@ public class UserAccount
     public void Deactivate() => IsActive = false;
 
     public void Activate() => IsActive = true;
+
+    public void SetPasswordHash(string passwordHash)
+    {
+        if (string.IsNullOrWhiteSpace(passwordHash))
+            throw new ArgumentException("Password hash is required.", nameof(passwordHash));
+        PasswordHash = passwordHash;
+    }
 }

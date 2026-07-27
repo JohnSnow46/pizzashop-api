@@ -67,4 +67,25 @@ public sealed class AuthController : ControllerBase
     [Authorize]
     public ActionResult<CurrentUserDto> Me() =>
         Ok(new CurrentUserDto(_currentUser.UserAccountId, _currentUser.Role, _currentUser.CustomerId));
+
+    /// <summary>
+    /// Always returns 200 regardless of whether the email belongs to a registered account —
+    /// the handler is deliberately silent for unknown/inactive accounts so this endpoint cannot
+    /// be used to enumerate registered emails.
+    /// </summary>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ForgotPassword(RequestPasswordResetCommand command, CancellationToken cancellationToken)
+    {
+        await _dispatcher.Send(command, cancellationToken);
+        return Ok();
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResetPassword(ConfirmPasswordResetCommand command, CancellationToken cancellationToken)
+    {
+        await _dispatcher.Send(command, cancellationToken);
+        return Ok();
+    }
 }
