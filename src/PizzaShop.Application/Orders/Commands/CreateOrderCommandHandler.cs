@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using PizzaShop.Application.Abstractions.Email;
 using PizzaShop.Application.Abstractions.Geocoding;
 using PizzaShop.Application.Abstractions.Loyalty;
 using PizzaShop.Application.Abstractions.Payments;
@@ -33,9 +35,11 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
     private readonly ILoyaltyPolicy _loyaltyPolicy;
     private readonly IGeocodingService _geocodingService;
     private readonly IPaymentGateway _paymentGateway;
+    private readonly IEmailSender _emailSender;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _currentUser;
     private readonly IClock _clock;
+    private readonly ILogger<CreateOrderCommandHandler> _logger;
 
     public CreateOrderCommandHandler(
         IRestaurantRepository restaurantRepository,
@@ -47,9 +51,11 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
         ILoyaltyPolicy loyaltyPolicy,
         IGeocodingService geocodingService,
         IPaymentGateway paymentGateway,
+        IEmailSender emailSender,
         IUnitOfWork unitOfWork,
         ICurrentUser currentUser,
-        IClock clock)
+        IClock clock,
+        ILogger<CreateOrderCommandHandler> logger)
     {
         _restaurantRepository = restaurantRepository;
         _menuItemRepository = menuItemRepository;
@@ -60,9 +66,11 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
         _loyaltyPolicy = loyaltyPolicy;
         _geocodingService = geocodingService;
         _paymentGateway = paymentGateway;
+        _emailSender = emailSender;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _clock = clock;
+        _logger = logger;
     }
 
     public async Task<CreateOrderResultDto> Handle(CreateOrderCommand command, CancellationToken cancellationToken)
@@ -111,8 +119,24 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
         await _orderRepository.AddAsync(order, guestTrackingToken, paymentInit?.ProviderPaymentReference, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await NotifyCustomerByEmailAsync(order, contact, guestTrackingToken, cancellationToken);
+
         // Step 10.
         return new CreateOrderResultDto(order.Id, order.Number, guestTrackingToken, paymentInit?.RedirectUrl);
+    }
+
+    private async Task NotifyCustomerByEmailAsync(
+        Order order, ContactDetails contact, Guid? guestTrackingToken, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _emailSender.SendOrderConfirmationEmailAsync(
+                contact.Email, order.Number, order.Id, guestTrackingToken, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send order confirmation email for order {OrderId}.", order.Id);
+        }
     }
 
     private async Task<PaymentInitResult?> InitializeOnlinePaymentAsync(Order order, ContactDetails contact, CancellationToken cancellationToken)

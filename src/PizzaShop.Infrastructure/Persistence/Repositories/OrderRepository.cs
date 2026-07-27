@@ -101,4 +101,10 @@ public sealed class OrderRepository : IOrderRepository
             .Where(o => o.Id == orderId)
             .Select(o => EF.Property<string?>(o, ProviderPaymentReferenceProperty))
             .FirstOrDefaultAsync(cancellationToken);
+
+    public Task<Guid?> GetGuestTrackingTokenAsync(Guid orderId, CancellationToken cancellationToken) =>
+        _context.Orders
+            .Where(o => o.Id == orderId)
+            .Select(o => EF.Property<Guid?>(o, GuestTrackingTokenProperty))
+            .FirstOrDefaultAsync(cancellationToken);
 }

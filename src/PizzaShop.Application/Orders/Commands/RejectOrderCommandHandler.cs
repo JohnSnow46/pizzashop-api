@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using PizzaShop.Application.Abstractions.Email;
 using PizzaShop.Application.Abstractions.Persistence;
 using PizzaShop.Application.Abstractions.Realtime;
 using PizzaShop.Application.Common.Abstractions;
@@ -17,21 +19,27 @@ public sealed class RejectOrderCommandHandler : ICommandHandler<RejectOrderComma
     private readonly IOrderRepository _orderRepository;
     private readonly IOrderNotifier _orderNotifier;
     private readonly ILoyaltyAccountRepository _loyaltyAccountRepository;
+    private readonly IEmailSender _emailSender;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
+    private readonly ILogger<RejectOrderCommandHandler> _logger;
 
     public RejectOrderCommandHandler(
         IOrderRepository orderRepository,
         IOrderNotifier orderNotifier,
         ILoyaltyAccountRepository loyaltyAccountRepository,
+        IEmailSender emailSender,
         IUnitOfWork unitOfWork,
-        IClock clock)
+        IClock clock,
+        ILogger<RejectOrderCommandHandler> logger)
     {
         _orderRepository = orderRepository;
         _orderNotifier = orderNotifier;
         _loyaltyAccountRepository = loyaltyAccountRepository;
+        _emailSender = emailSender;
         _unitOfWork = unitOfWork;
         _clock = clock;
+        _logger = logger;
     }
 
     public async Task<Unit> Handle(RejectOrderCommand command, CancellationToken cancellationToken)
@@ -47,6 +55,7 @@ public sealed class RejectOrderCommandHandler : ICommandHandler<RejectOrderComma
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         await _orderNotifier.OrderStatusChangedAsync(order.Id, order.Status, order.EstimatedReadyAt, cancellationToken);
+        await NotifyCustomerByEmailAsync(order, cancellationToken);
 
         return Unit.Value;
     }
@@ -64,5 +73,22 @@ public sealed class RejectOrderCommandHandler : ICommandHandler<RejectOrderComma
         loyaltyAccount.Reverse(order.PointsRedeemed, $"Points refunded — order {order.Number} rejected", _clock.UtcNow, order.Id);
 
         await _loyaltyAccountRepository.UpdateAsync(loyaltyAccount, cancellationToken);
+    }
+
+    private async Task NotifyCustomerByEmailAsync(Order order, CancellationToken cancellationToken)
+    {
+        try
+        {
+            Guid? guestTrackingToken = order.CustomerId is null
+                ? await _orderRepository.GetGuestTrackingTokenAsync(order.Id, cancellationToken)
+                : null;
+
+            await _emailSender.SendOrderStatusChangedEmailAsync(
+                order.Contact.Email, order.Number, order.Id, order.Status, guestTrackingToken, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send status-changed email for order {OrderId}.", order.Id);
+        }
     }
 }

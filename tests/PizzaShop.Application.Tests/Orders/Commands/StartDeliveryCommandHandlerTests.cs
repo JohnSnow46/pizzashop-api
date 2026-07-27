@@ -1,5 +1,7 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
+using PizzaShop.Application.Abstractions.Email;
 using PizzaShop.Application.Abstractions.Persistence;
 using PizzaShop.Application.Abstractions.Realtime;
 using PizzaShop.Application.Common.Abstractions;
@@ -14,10 +16,12 @@ public class StartDeliveryCommandHandlerTests
 {
     private readonly Mock<IOrderRepository> _orderRepository = new();
     private readonly Mock<IOrderNotifier> _orderNotifier = new();
+    private readonly Mock<IEmailSender> _emailSender = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
+    private readonly Mock<ILogger<StartDeliveryCommandHandler>> _logger = new();
 
     private StartDeliveryCommandHandler CreateHandler() =>
-        new(_orderRepository.Object, _orderNotifier.Object, _unitOfWork.Object);
+        new(_orderRepository.Object, _orderNotifier.Object, _emailSender.Object, _unitOfWork.Object, _logger.Object);
 
     [Fact]
     public async Task Handle_ReadyDeliveryOrder_StartsDeliveryAndNotifies()

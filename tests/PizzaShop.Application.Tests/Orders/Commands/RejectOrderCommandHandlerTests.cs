@@ -1,5 +1,7 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
+using PizzaShop.Application.Abstractions.Email;
 using PizzaShop.Application.Abstractions.Persistence;
 using PizzaShop.Application.Abstractions.Realtime;
 using PizzaShop.Application.Common.Abstractions;
@@ -17,8 +19,10 @@ public class RejectOrderCommandHandlerTests
     private readonly Mock<IOrderRepository> _orderRepository = new();
     private readonly Mock<IOrderNotifier> _orderNotifier = new();
     private readonly Mock<ILoyaltyAccountRepository> _loyaltyAccountRepository = new();
+    private readonly Mock<IEmailSender> _emailSender = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<IClock> _clock = new();
+    private readonly Mock<ILogger<RejectOrderCommandHandler>> _logger = new();
 
     public RejectOrderCommandHandlerTests()
     {
@@ -26,7 +30,14 @@ public class RejectOrderCommandHandlerTests
     }
 
     private RejectOrderCommandHandler CreateHandler() =>
-        new(_orderRepository.Object, _orderNotifier.Object, _loyaltyAccountRepository.Object, _unitOfWork.Object, _clock.Object);
+        new(
+            _orderRepository.Object,
+            _orderNotifier.Object,
+            _loyaltyAccountRepository.Object,
+            _emailSender.Object,
+            _unitOfWork.Object,
+            _clock.Object,
+            _logger.Object);
 
     [Fact]
     public async Task Handle_PendingOrder_RejectsAndNotifies()

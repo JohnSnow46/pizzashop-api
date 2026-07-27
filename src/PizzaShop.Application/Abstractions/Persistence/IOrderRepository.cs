@@ -65,4 +65,11 @@ public interface IOrderRepository
     /// recorded (e.g. <see cref="Domain.Enums.PaymentMethod.OnPickup"/> orders).
     /// </summary>
     Task<string?> GetProviderPaymentReferenceAsync(Guid orderId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Reads a guest order's unguessable tracking token — used to include the tracking link in
+    /// lifecycle emails (<c>IEmailSender</c>) for orders without a <see cref="Order.CustomerId"/>.
+    /// Returns <c>null</c> for a registered customer's order, which never has one.
+    /// </summary>
+    Task<Guid?> GetGuestTrackingTokenAsync(Guid orderId, CancellationToken cancellationToken);
 }

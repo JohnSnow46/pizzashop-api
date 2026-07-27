@@ -1,5 +1,7 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
+using PizzaShop.Application.Abstractions.Email;
 using PizzaShop.Application.Abstractions.Geocoding;
 using PizzaShop.Application.Abstractions.Loyalty;
 using PizzaShop.Application.Abstractions.Payments;
@@ -31,9 +33,11 @@ public class CreateOrderCommandHandlerTests
     private readonly Mock<ILoyaltyPolicy> _loyaltyPolicy = new();
     private readonly Mock<IGeocodingService> _geocodingService = new();
     private readonly Mock<IPaymentGateway> _paymentGateway = new();
+    private readonly Mock<IEmailSender> _emailSender = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<ICurrentUser> _currentUser = new();
     private readonly Mock<IClock> _clock = new();
+    private readonly Mock<ILogger<CreateOrderCommandHandler>> _logger = new();
 
     public CreateOrderCommandHandlerTests()
     {
@@ -61,9 +65,11 @@ public class CreateOrderCommandHandlerTests
             _loyaltyPolicy.Object,
             _geocodingService.Object,
             _paymentGateway.Object,
+            _emailSender.Object,
             _unitOfWork.Object,
             _currentUser.Object,
-            _clock.Object);
+            _clock.Object,
+            _logger.Object);
 
     private static ContactDetailsDto SampleContact() => new("Jan Kowalski", "123456789");
 

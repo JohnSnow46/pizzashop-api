@@ -1,5 +1,7 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
+using PizzaShop.Application.Abstractions.Email;
 using PizzaShop.Application.Abstractions.Payments;
 using PizzaShop.Application.Abstractions.Persistence;
 using PizzaShop.Application.Abstractions.Realtime;
@@ -19,9 +21,11 @@ public class CancelOrderCommandHandlerTests
     private readonly Mock<IOrderNotifier> _orderNotifier = new();
     private readonly Mock<IPaymentGateway> _paymentGateway = new();
     private readonly Mock<ILoyaltyAccountRepository> _loyaltyAccountRepository = new();
+    private readonly Mock<IEmailSender> _emailSender = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<ICurrentUser> _currentUser = new();
     private readonly Mock<IClock> _clock = new();
+    private readonly Mock<ILogger<CancelOrderCommandHandler>> _logger = new();
 
     public CancelOrderCommandHandlerTests()
     {
@@ -34,9 +38,11 @@ public class CancelOrderCommandHandlerTests
             _orderNotifier.Object,
             _paymentGateway.Object,
             _loyaltyAccountRepository.Object,
+            _emailSender.Object,
             _unitOfWork.Object,
             _currentUser.Object,
-            _clock.Object);
+            _clock.Object,
+            _logger.Object);
 
     [Fact]
     public async Task Handle_OwningCustomerBeforeAccepted_CancelsAndNotifies()

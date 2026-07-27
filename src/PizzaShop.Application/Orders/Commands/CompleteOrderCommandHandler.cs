@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using PizzaShop.Application.Abstractions.Email;
 using PizzaShop.Application.Abstractions.Loyalty;
 using PizzaShop.Application.Abstractions.Persistence;
 using PizzaShop.Application.Abstractions.Realtime;
@@ -21,23 +23,29 @@ public sealed class CompleteOrderCommandHandler : ICommandHandler<CompleteOrderC
     private readonly IOrderNotifier _orderNotifier;
     private readonly ILoyaltyAccountRepository _loyaltyAccountRepository;
     private readonly ILoyaltyPolicy _loyaltyPolicy;
+    private readonly IEmailSender _emailSender;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IClock _clock;
+    private readonly ILogger<CompleteOrderCommandHandler> _logger;
 
     public CompleteOrderCommandHandler(
         IOrderRepository orderRepository,
         IOrderNotifier orderNotifier,
         ILoyaltyAccountRepository loyaltyAccountRepository,
         ILoyaltyPolicy loyaltyPolicy,
+        IEmailSender emailSender,
         IUnitOfWork unitOfWork,
-        IClock clock)
+        IClock clock,
+        ILogger<CompleteOrderCommandHandler> logger)
     {
         _orderRepository = orderRepository;
         _orderNotifier = orderNotifier;
         _loyaltyAccountRepository = loyaltyAccountRepository;
         _loyaltyPolicy = loyaltyPolicy;
+        _emailSender = emailSender;
         _unitOfWork = unitOfWork;
         _clock = clock;
+        _logger = logger;
     }
 
     public async Task<Unit> Handle(CompleteOrderCommand command, CancellationToken cancellationToken)
@@ -54,8 +62,26 @@ public sealed class CompleteOrderCommandHandler : ICommandHandler<CompleteOrderC
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         await _orderNotifier.OrderStatusChangedAsync(order.Id, order.Status, order.EstimatedReadyAt, cancellationToken);
+        await NotifyCustomerByEmailAsync(order, cancellationToken);
 
         return Unit.Value;
+    }
+
+    private async Task NotifyCustomerByEmailAsync(Order order, CancellationToken cancellationToken)
+    {
+        try
+        {
+            Guid? guestTrackingToken = order.CustomerId is null
+                ? await _orderRepository.GetGuestTrackingTokenAsync(order.Id, cancellationToken)
+                : null;
+
+            await _emailSender.SendOrderStatusChangedEmailAsync(
+                order.Contact.Email, order.Number, order.Id, order.Status, guestTrackingToken, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send status-changed email for order {OrderId}.", order.Id);
+        }
     }
 
     private async Task AwardLoyaltyPointsAsync(Order order, Guid customerId, CancellationToken cancellationToken)

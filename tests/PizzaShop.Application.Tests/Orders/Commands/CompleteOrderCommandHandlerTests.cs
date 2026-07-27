@@ -1,5 +1,7 @@
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
+using PizzaShop.Application.Abstractions.Email;
 using PizzaShop.Application.Abstractions.Loyalty;
 using PizzaShop.Application.Abstractions.Persistence;
 using PizzaShop.Application.Abstractions.Realtime;
@@ -18,8 +20,10 @@ public class CompleteOrderCommandHandlerTests
     private readonly Mock<IOrderNotifier> _orderNotifier = new();
     private readonly Mock<ILoyaltyAccountRepository> _loyaltyAccountRepository = new();
     private readonly Mock<ILoyaltyPolicy> _loyaltyPolicy = new();
+    private readonly Mock<IEmailSender> _emailSender = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<IClock> _clock = new();
+    private readonly Mock<ILogger<CompleteOrderCommandHandler>> _logger = new();
 
     public CompleteOrderCommandHandlerTests()
     {
@@ -32,8 +36,10 @@ public class CompleteOrderCommandHandlerTests
             _orderNotifier.Object,
             _loyaltyAccountRepository.Object,
             _loyaltyPolicy.Object,
+            _emailSender.Object,
             _unitOfWork.Object,
-            _clock.Object);
+            _clock.Object,
+            _logger.Object);
 
     [Fact]
     public async Task Handle_ReadyPickupOrder_CompletesAndNotifies()

@@ -81,4 +81,7 @@ public sealed class InMemoryOrderRepository : IOrderRepository
 
     public Task<string?> GetProviderPaymentReferenceAsync(Guid orderId, CancellationToken cancellationToken) =>
         Task.FromResult(_providerPaymentReferencesByOrderId.TryGetValue(orderId, out var reference) ? reference : null);
+
+    public Task<Guid?> GetGuestTrackingTokenAsync(Guid orderId, CancellationToken cancellationToken) =>
+        Task.FromResult(_guestTrackingTokensByOrderId.TryGetValue(orderId, out var token) ? token : (Guid?)null);
 }

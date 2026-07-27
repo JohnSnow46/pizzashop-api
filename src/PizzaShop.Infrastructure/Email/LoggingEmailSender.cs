@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using PizzaShop.Application.Abstractions.Email;
+using PizzaShop.Domain.Enums;
 
 namespace PizzaShop.Infrastructure.Email;
 
@@ -15,5 +16,31 @@ public sealed class LoggingEmailSender : IEmailSender
     {
         _logger.LogInformation("Password reset requested for {Email}. Token: {Token}", email, token);
         return Task.CompletedTask;
+    }
+
+    public Task SendOrderConfirmationEmailAsync(
+        string email, string orderNumber, Guid orderId, Guid? guestTrackingToken, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Order confirmation for {Email}. Order: {OrderNumber} ({OrderId})", email, orderNumber, orderId);
+        LogTrackingHint(email, guestTrackingToken);
+        return Task.CompletedTask;
+    }
+
+    public Task SendOrderStatusChangedEmailAsync(
+        string email, string orderNumber, Guid orderId, OrderStatus newStatus, Guid? guestTrackingToken, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation(
+            "Order status changed for {Email}. Order: {OrderNumber} ({OrderId}). New status: {NewStatus}",
+            email, orderNumber, orderId, newStatus);
+        LogTrackingHint(email, guestTrackingToken);
+        return Task.CompletedTask;
+    }
+
+    private void LogTrackingHint(string email, Guid? guestTrackingToken)
+    {
+        if (guestTrackingToken is { } token)
+            _logger.LogInformation("Tracking link for {Email}: /track/{GuestTrackingToken}", email, token);
+        else
+            _logger.LogInformation("{Email} can track this order from their customer account.", email);
     }
 }
