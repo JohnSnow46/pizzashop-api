@@ -81,6 +81,34 @@ Szablon wpisu:
 
 ---
 
+### 2026-07-27 — Upload zdjęcia MenuItem (zastąpienie pola URL)
+
+**Wykorzystane ADR:**
+- ADR-0024 — Granice warstw (co żyje w Api vs. Infrastructure)
+  - Potwierdza, że lokalny storage plików (`wwwroot`) to koncept hostingu webowego —
+    `IMenuItemImageStorage` żyje w `Application/Abstractions/Storage`, implementacja
+    (`LocalMenuItemImageStorage`) w `Api`, nie w `Infrastructure` — mirror `ICurrentUser`/
+    `IOrderNotifier`.
+
+**Wpływ na implementację:**
+- Nowy port `IMenuItemImageStorage` + `UploadMenuItemImageCommand`/Handler/Validator w
+  `Application/Catalog`; `MenuItem.UpdateDetails` (istniejący) użyty bez zmian w Domain.
+- `LocalMenuItemImageStorage` w `Api/Storage`, nowy endpoint `POST /api/menu/{id}/image`
+  (Admin), `app.UseStaticFiles()` + rejestracja portu w `Program.cs`.
+- Utworzono `src/PizzaShop.Api/wwwroot/uploads/menu-items/.gitkeep` — bez tego katalogu
+  ASP.NET Core rozwiązuje `WebRootFileProvider` jako `NullFileProvider` przy starcie (folder
+  musi istnieć na dysku przed `app.Build()`, sam runtime-owy `Directory.CreateDirectory` w
+  storage nie wystarczy). `.gitignore` ignoruje realne uploady w tym katalogu.
+- Frontend: `postForm` w `client.ts`, `uploadMenuItemImage` w `menuApi.ts`, proxy `/uploads`
+  w `vite.config.ts`; `MenuItemForm.tsx` — usunięto tekstowe pole URL, dodano podgląd/upload/
+  usuwanie zdjęcia w trybie edycji (upload niezależny od głównego submit; `imageUrl` nadal
+  wysyłany w `UpdateMenuItemCommand` z aktualnej wartości, żeby zwykły zapis formularza nie
+  kasował zdjęcia — PUT/replace semantics).
+
+**Przeczytane, nieużyte:** brak.
+
+---
+
 ### 2026-07-24 — Reset hasła klienta (forgot/reset password)
 
 **Wykorzystane ADR:**

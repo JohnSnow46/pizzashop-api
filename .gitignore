@@ -28,3 +28,8 @@ USAGE-TIPS.md
 # OS
 .DS_Store
 Thumbs.db
+
+# Uploaded MenuItem images (local disk storage, LocalMenuItemImageStorage) — keep the
+# directory itself (.gitkeep) but don't commit real uploaded files.
+src/PizzaShop.Api/wwwroot/uploads/menu-items/*
+!src/PizzaShop.Api/wwwroot/uploads/menu-items/.gitkeep

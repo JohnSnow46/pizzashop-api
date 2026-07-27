@@ -26,3 +26,13 @@ export function updateMenuItem(id: string, command: Omit<UpdateMenuItemCommand, 
 export function setMenuItemAvailability(id: string, isAvailable: boolean): Promise<void> {
   return apiClient.patch<void>(`/menu/${id}/availability`, { menuItemId: id, isAvailable })
 }
+
+/**
+ * POST /api/menu/{id}/image — uploads a new image for an existing menu item (Admin role).
+ * Returns the new relative image URL (MenuItem.ImageUrl).
+ */
+export function uploadMenuItemImage(id: string, file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+  return apiClient.postForm<string>(`/menu/${id}/image`, formData)
+}

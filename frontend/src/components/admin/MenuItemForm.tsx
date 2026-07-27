@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { ApiError } from '../../api/client'
-import { createMenuItem, updateMenuItem } from '../../api/menuApi'
+import { createMenuItem, updateMenuItem, uploadMenuItemImage } from '../../api/menuApi'
 import type { Ingredient, MenuCategory, MenuItem, MenuItemVariantInput, UpdateMenuItemCommand } from '../../api/types'
 import { MenuItemVariantsEditor } from './MenuItemVariantsEditor'
 
@@ -42,6 +42,53 @@ export function MenuItemForm({ mode, item, ingredients, onSaved, onCancel }: Men
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | null>(null)
 
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+
+  /**
+   * Runs immediately on file selection, independent of the main form submit — upload requires
+   * an existing MenuItem.Id, so it's only wired up in edit mode (see JSX below).
+   */
+  async function handleImageSelected(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !item) return
+
+    setUploadingImage(true)
+    setUploadError(null)
+    try {
+      const newImageUrl = await uploadMenuItemImage(item.id, file)
+      setImageUrl(newImageUrl)
+    } catch (err) {
+      setUploadError(err instanceof ApiError ? err.detail ?? err.title ?? err.message : 'Nie udało się wgrać zdjęcia.')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
+  async function handleRemoveImage() {
+    if (!item) return
+
+    setUploadingImage(true)
+    setUploadError(null)
+    try {
+      await updateMenuItem(item.id, {
+        name,
+        description: description || null,
+        imageUrl: null,
+        basePrice: { amount: basePriceAmount, currency },
+        baseIngredientIds,
+        allowedExtraIds,
+        variants,
+      })
+      setImageUrl('')
+    } catch (err) {
+      setUploadError(err instanceof ApiError ? err.detail ?? err.title ?? err.message : 'Nie udało się usunąć zdjęcia.')
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setSubmitting(true)
@@ -52,12 +99,14 @@ export function MenuItemForm({ mode, item, ingredients, onSaved, onCancel }: Men
 
     try {
       if (mode === 'create') {
+        // No image upload in create mode (it needs an existing MenuItem.Id) — imageUrl is
+        // always null here, added afterwards in edit mode.
         await createMenuItem({
           name,
           category,
           basePrice,
           description: description || null,
-          imageUrl: imageUrl || null,
+          imageUrl: null,
           baseIngredientIds,
           allowedExtraIds,
           variants,
@@ -66,6 +115,10 @@ export function MenuItemForm({ mode, item, ingredients, onSaved, onCancel }: Men
         const command: Omit<UpdateMenuItemCommand, 'id'> = {
           name,
           description: description || null,
+          // Preserve the current image — this form no longer has a text input for it, it's
+          // only changed via uploadMenuItemImage/handleRemoveImage (immediate, not part of
+          // this submit). Sending anything else here would silently clear it (PUT/replace
+          // semantics, see UpdateMenuItemCommand doc comment).
           imageUrl: imageUrl || null,
           basePrice,
           baseIngredientIds,
@@ -116,11 +169,6 @@ export function MenuItemForm({ mode, item, ingredients, onSaved, onCancel }: Men
         </label>
 
         <label className="checkout-field">
-          URL zdjęcia (opcjonalnie)
-          <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
-        </label>
-
-        <label className="checkout-field">
           Cena bazowa
           <input
             type="number"
@@ -131,6 +179,35 @@ export function MenuItemForm({ mode, item, ingredients, onSaved, onCancel }: Men
           />
         </label>
       </div>
+
+      <fieldset className="admin-fieldset">
+        <legend>Zdjęcie</legend>
+        {mode === 'create' ? (
+          <p>Zdjęcie będzie można dodać po zapisaniu, w trybie edycji.</p>
+        ) : (
+          <>
+            {imageUrl && <img src={imageUrl} alt={item?.name} className="admin-menu-item-image-preview" />}
+            <div className="checkout-actions">
+              <label className="add-to-cart-btn admin-file-input-label">
+                {uploadingImage ? 'Wgrywanie...' : 'Wgraj zdjęcie'}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleImageSelected}
+                  disabled={uploadingImage}
+                  hidden
+                />
+              </label>
+              {imageUrl && (
+                <button type="button" onClick={handleRemoveImage} disabled={uploadingImage}>
+                  Usuń zdjęcie
+                </button>
+              )}
+            </div>
+            {uploadError && <p className="checkout-error">{uploadError}</p>}
+          </>
+        )}
+      </fieldset>
 
       <fieldset className="admin-fieldset">
         <legend>Składniki bazowe</legend>

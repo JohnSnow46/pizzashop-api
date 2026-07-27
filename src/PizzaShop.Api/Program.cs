@@ -13,8 +13,10 @@ using PizzaShop.Api;
 using PizzaShop.Api.Auth;
 using PizzaShop.Api.Middleware;
 using PizzaShop.Api.Realtime;
+using PizzaShop.Api.Storage;
 using PizzaShop.Application;
 using PizzaShop.Application.Abstractions.Realtime;
+using PizzaShop.Application.Abstractions.Storage;
 using PizzaShop.Application.Common.Abstractions;
 using PizzaShop.Application.Identity.Abstractions;
 using PizzaShop.Infrastructure;
@@ -35,6 +37,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
 builder.Services.AddScoped<IOrderNotifier, SignalROrderNotifier>();
+builder.Services.AddScoped<IMenuItemImageStorage, LocalMenuItemImageStorage>();
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 
@@ -163,6 +166,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Serves MenuItem images uploaded to wwwroot/uploads/menu-items (LocalMenuItemImageStorage,
+// ADR-0024) at /uploads/menu-items/{file}.
+app.UseStaticFiles();
 
 app.UseCors("frontend");
 

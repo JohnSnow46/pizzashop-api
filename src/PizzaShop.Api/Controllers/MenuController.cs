@@ -62,4 +62,21 @@ public sealed class MenuController : ControllerBase
         await _dispatcher.Send(command with { MenuItemId = id }, cancellationToken);
         return NoContent();
     }
+
+    [HttpPost("{id:guid}/image")]
+    [Authorize(Roles = AuthRoles.Admin)]
+    public async Task<ActionResult<string>> UploadImage(Guid id, IFormFile file, CancellationToken cancellationToken)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest("A non-empty file is required.");
+
+        using var memoryStream = new MemoryStream();
+        await file.CopyToAsync(memoryStream, cancellationToken);
+
+        var command = new UploadMenuItemImageCommand(
+            id, memoryStream.ToArray(), file.ContentType, Path.GetExtension(file.FileName));
+
+        var imageUrl = await _dispatcher.Send(command, cancellationToken);
+        return Ok(imageUrl);
+    }
 }

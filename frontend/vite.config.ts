@@ -23,6 +23,12 @@ export default defineConfig({
         changeOrigin: true,
         ws: true,
       },
+      // Forwards /uploads/* (MenuItem images served via app.UseStaticFiles(), see
+      // LocalMenuItemImageStorage) to the same dev server as /api.
+      '/uploads': {
+        target: 'http://localhost:5105',
+        changeOrigin: true,
+      },
     },
   },
 })

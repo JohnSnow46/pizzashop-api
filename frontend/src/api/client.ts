@@ -96,6 +96,29 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return (await response.json()) as T
 }
 
+/**
+ * POST with a multipart/form-data body (file uploads, e.g. uploadMenuItemImage). Deliberately
+ * omits a manual "Content-Type" header — the browser sets the multipart boundary itself when
+ * the fetch body is a FormData instance.
+ */
+async function postForm<T>(path: string, formData: FormData): Promise<T> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { ...authHeaders() },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    throw await toApiError(path, response)
+  }
+
+  if (response.status === 204) {
+    return undefined as T
+  }
+
+  return (await response.json()) as T
+}
+
 async function put<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
     method: 'PUT',
@@ -152,4 +175,4 @@ async function del<T>(path: string): Promise<T> {
   return (await response.json()) as T
 }
 
-export const apiClient = { get, post, put, patch, delete: del }
+export const apiClient = { get, post, postForm, put, patch, delete: del }
