@@ -1,4 +1,50 @@
+import type { SalesReport } from '../api/types'
 import { useSalesReport } from '../hooks/useSalesReport'
+
+function escapeCsvField(value: string | number): string {
+  let text = String(value)
+  if (/^[=+\-@]/.test(text)) {
+    text = `'${text}`
+  }
+  if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+    return `"${text.replace(/"/g, '""')}"`
+  }
+  return text
+}
+
+function buildReportCsv(report: SalesReport): string {
+  const lines: string[] = []
+
+  lines.push(['Liczba zamówień', report.orderCount].map(escapeCsvField).join(','))
+  lines.push(['Przychód', `${report.revenue.amount.toFixed(2)} ${report.revenue.currency}`].map(escapeCsvField).join(','))
+  lines.push(['Zakres dat', `${report.from} - ${report.to}`].map(escapeCsvField).join(','))
+  lines.push('')
+  lines.push(['Pozycja menu', 'Sprzedana ilość', 'Przychód (kwota)', 'Waluta'].map(escapeCsvField).join(','))
+
+  for (const item of report.topMenuItems) {
+    lines.push(
+      [item.menuItemName, item.quantitySold, item.revenue.amount.toFixed(2), item.revenue.currency]
+        .map(escapeCsvField)
+        .join(','),
+    )
+  }
+
+  return lines.join('\n')
+}
+
+function downloadReportCsv(report: SalesReport, fromDate: string, toDate: string) {
+  const csv = buildReportCsv(report)
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `raport-sprzedazy_${fromDate}_${toDate}.csv`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
 
 /**
  * `/admin/reports` (RequireAuth roles=RestaurantAdmin/SuperAdmin, mirrors AuthRoles.Admin) —
@@ -47,6 +93,9 @@ export function AdminReportsPage() {
             <p>
               Przychód: {report.revenue.amount.toFixed(2)} {report.revenue.currency}
             </p>
+            <button type="button" onClick={() => downloadReportCsv(report, fromDate, toDate)}>
+              Eksportuj CSV
+            </button>
           </section>
 
           <section className="admin-section">
