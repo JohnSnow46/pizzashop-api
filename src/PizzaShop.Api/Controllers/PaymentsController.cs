@@ -32,6 +32,19 @@ public sealed class PaymentsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Guest counterpart of <see cref="Initialize"/> (ADR-0041): possession of the unguessable
+    /// tracking token is the access control, so this is intentionally <see cref="AllowAnonymousAttribute"/> —
+    /// no JWT is issued to guests (mirrors <c>OrdersController.GetByTrackingToken</c>).
+    /// </summary>
+    [HttpPost("orders/track/{trackingToken:guid}/initialize")]
+    [AllowAnonymous]
+    public async Task<ActionResult<InitializePaymentResultDto>> InitializeGuest(Guid trackingToken, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new InitializeGuestPaymentCommand(trackingToken), cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("orders/{id:guid}/status")]
     [Authorize]
     public async Task<ActionResult<PaymentStatusDto>> GetStatus(Guid id, CancellationToken cancellationToken)

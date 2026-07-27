@@ -400,6 +400,15 @@ export interface OrderSummary {
 }
 
 /**
+ * Mirror of PizzaShop.Application.Payments.Dtos.InitializePaymentResultDto — the retry-payment
+ * response (owner/staff via `POST /payments/orders/{id}/initialize`, guest via
+ * `POST /payments/orders/track/{trackingToken}/initialize`, ADR-0041).
+ */
+export interface InitializePaymentResult {
+  redirectUrl: string
+}
+
+/**
  * Mirror of PizzaShop.Domain.Enums.LoyaltyTransactionType. Serialized as a string
  * (JsonStringEnumConverter, ADR-0035), not a number. 'Reversed' added by ADR-0040 — an
  * automatic refund of points when an order with redeemed points is cancelled/rejected.

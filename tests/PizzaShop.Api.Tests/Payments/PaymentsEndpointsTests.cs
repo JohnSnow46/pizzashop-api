@@ -115,6 +115,65 @@ public sealed class PaymentsEndpointsTests : IClassFixture<ApiTestFactory>
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
+    // ---- POST /orders/track/{trackingToken}/initialize ----
+
+    /// <summary>
+    /// ADR-0041: retrying payment as a guest must not require a JWT — possession of the
+    /// tracking token is the access control (mirrors <c>GetByTrackingToken</c>).
+    /// </summary>
+    [Fact]
+    public async Task InitializeGuest_ValidToken_NoAuthorizationHeader_ReturnsRedirectUrl()
+    {
+        var menuItemId = await CreateDrinkMenuItemAsync("Pizza-InitGuest");
+        var anonymousClient = _factory.CreateClient();
+        var created = await CreateOrderAsync(anonymousClient, menuItemId, PaymentMethod.Online);
+
+        var response = await anonymousClient.PostAsync(
+            $"/api/payments/orders/track/{created.GuestTrackingToken}/initialize", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<InitializePaymentResultDto>(JsonOptions);
+        result!.RedirectUrl.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task InitializeGuest_UnknownToken_ReturnsNotFound()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsync($"/api/payments/orders/track/{Guid.NewGuid()}/initialize", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task InitializeGuest_OnPickupOrder_ReturnsConflict()
+    {
+        var menuItemId = await CreateDrinkMenuItemAsync("Pizza-InitGuestOnPickup");
+        var anonymousClient = _factory.CreateClient();
+        var created = await CreateOrderAsync(anonymousClient, menuItemId, PaymentMethod.OnPickup);
+
+        var response = await anonymousClient.PostAsync(
+            $"/api/payments/orders/track/{created.GuestTrackingToken}/initialize", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task InitializeGuest_AlreadyPaidOrder_ReturnsConflict()
+    {
+        var menuItemId = await CreateDrinkMenuItemAsync("Pizza-InitGuestPaid");
+        var anonymousClient = _factory.CreateClient();
+        var created = await CreateOrderAsync(anonymousClient, menuItemId, PaymentMethod.Online);
+
+        await PostWebhookAsync(anonymousClient, created.OrderId, FakePaymentGateway.ValidSignature);
+
+        var response = await anonymousClient.PostAsync(
+            $"/api/payments/orders/track/{created.GuestTrackingToken}/initialize", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
     // ---- GET /orders/{id}/status ----
 
     [Fact]

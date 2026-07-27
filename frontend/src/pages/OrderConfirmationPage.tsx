@@ -1,6 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom'
 import { loadOrderResult } from '../checkout/orderResultStorage'
 import { OrderTrackingStatus } from '../components/orders/OrderTrackingStatus'
+import { RetryPaymentButton } from '../components/orders/RetryPaymentButton'
 import { useOrderTracking, type OrderTrackingSource } from '../hooks/useOrderTracking'
 
 /**
@@ -46,11 +47,14 @@ export function OrderConfirmationPage() {
         Numer zamówienia: <strong>{result.number}</strong>
       </p>
 
-      {paymentError && (
-        <p className="checkout-banner checkout-banner--error">
-          Płatność nie została jeszcze potwierdzona (lub została anulowana). Zamówienie zostało zarejestrowane i
-          poczeka na potwierdzenie płatności — możesz spróbować zapłacić ponownie lub skontaktować się z restauracją.
-        </p>
+      {paymentError && trackingSource && (
+        <>
+          <p className="checkout-banner checkout-banner--error">
+            Płatność nie została jeszcze potwierdzona (lub została anulowana). Zamówienie zostało zarejestrowane i
+            poczeka na potwierdzenie płatności — możesz spróbować zapłacić ponownie lub skontaktować się z restauracją.
+          </p>
+          <RetryPaymentButton source={trackingSource} />
+        </>
       )}
 
       {trackingPath && (

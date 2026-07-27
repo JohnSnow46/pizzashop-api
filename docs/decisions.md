@@ -51,6 +51,7 @@ utwórz `docs/adr/ADR-NNNN.md`**, nie dopisuj treści bezpośrednio tutaj.
 - [ADR-0038](adr/ADR-0038.md): Frontend — live-tracking statusu zamówienia (SignalR), hook `useOrderTracking`, nowa trasa `/orders/track/:trackingToken`, świadome odłożenie Vitest
 - [ADR-0039](adr/ADR-0039.md): Panel "Moje konto" — nowy `GET /api/orders/mine` (historia zamówień klienta), sortowanie historii punktów w istniejącym `GET /api/loyalty/balance` (bez nowego endpointu), `PointsRedeemed` w checkoucie świadomie odłożone
 - [ADR-0040](adr/ADR-0040.md): Wykorzystanie punktów lojalnościowych w checkoucie (`PointsToRedeem`) — UI dla zalogowanego klienta, guard clause w Domain przeciw rabatowi ponad wartość zamówienia, optymistyczna współbieżność (`xmin`) na `LoyaltyAccount`, zwrot punktów przy anulowaniu/odrzuceniu zamówienia
+- [ADR-0041](adr/ADR-0041.md): Retry płatności PayU dla gościa — `InitializeGuestPaymentCommand` kluczowany `GuestTrackingToken`, domknięcie przeglądu bezpieczeństwa odłożonego w ADR-0018 (bez rate-limitingu/jednorazowości tokenu w tej iteracji)
 
 ---
 
@@ -78,6 +79,41 @@ Szablon wpisu:
 **Przeczytane, nieużyte:**
 - ADR-000Y — <dlaczego sprawdzony, ale ostatecznie nieistotny dla tego zadania>
 ```
+
+---
+
+### 2026-07-27 — Retry płatności PayU po porzuconej/nieudanej sesji (gość + zalogowany)
+
+**Wykorzystane ADR:**
+- ADR-0018 — Integracja PayU, decyzja 3
+  - Kształt `InitializeGuestPaymentCommand` (klucz: `GuestTrackingToken`) był już w pełni
+    ustalony w ostatnim akapicie decyzji 3 — zaimplementowany bez odstępstw.
+- ADR-0021 — Wzorzec `GuestTrackingToken` (losowy `Guid`, unikalny indeks)
+  - Reużyty bez zmian jako klucz lookupu, analogicznie do `GetOrderByTrackingTokenQueryHandler`.
+- ADR-0013 / ADR-0027 — Granice warstwy Api, `[AllowAnonymous]` vs `[Authorize]`, hierarchia ról
+  - Nowy endpoint `[AllowAnonymous]` dodany jawnie na poziomie akcji (kontroler bez
+    atrybutu klasowego), bez kolizji z istniejącym `[Authorize]` na `Initialize`/`GetStatus`.
+
+**Nowa decyzja — ADR-0041:**
+- `GuestTrackingToken` rozszerza rolę z autoryzacji odczytu (tracking, SignalR) na
+  autoryzację akcji inicjującej sesję PayU — świadomie BEZ rate-limitingu/jednorazowości
+  tokenu w tej iteracji (brak infrastruktury rate-limitingu w projekcie; najgorszy
+  scenariusz nadużycia to nieużyte sesje PayU, nie utrata danych/pieniędzy). Follow-up
+  przy realnym sygnale nadużycia: globalny rate-limiting Api.
+
+**Wpływ na implementację:**
+- Backend: `PaymentInitializationGuard` (wydzielony z `InitializePaymentCommandHandler`,
+  reużyty przez oba handlery), `InitializeGuestPaymentCommand`/`Handler`/`Validator`, nowy
+  endpoint `POST /api/payments/orders/track/{trackingToken}/initialize` w `PaymentsController`.
+- Frontend: `paymentsApi.ts`, `RetryPaymentButton` (współdzielony), podpięty w
+  `OrderConfirmationPage.tsx` (blok `?error=`) i `TrackOrderPage.tsx`.
+- Reviewer (pełny, deep mode): brak blokujących problemów; potwierdzone, że `Guid?` vs
+  `Guid` w lookupie wyklucza dopasowanie zamówień bez tokenu (zalogowani klienci), brak
+  open-redirectu, guard przeniesiony bez zmian logiki. Rekomendacja niewiążąca: dopisać
+  1-2 testy Vitest dla `RetryPaymentButton` (pominięte w tej iteracji).
+
+**Przeczytane, nieużyte:**
+- ADR-0022 — Refund przy anulowaniu/webhook PayU — poza zakresem tego zadania (bez zmian).
 
 ---
 

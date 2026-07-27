@@ -351,11 +351,14 @@ Kolumna „Use case" = Command/Query wołany przez `IDispatcher`.
 > go bezpośrednio z route — bez id w body do uzgadniania).
 
 ### 6.7 `PaymentsController` (`/api/payments`) — Iteracja 3
-| POST | `/orders/{id}/initialize` | `InitializePaymentCommand` | Authorize (właściciel/obsługa — scoping w handlerze; gość odłożony, ADR-0018) |
+| POST | `/orders/{id}/initialize` | `InitializePaymentCommand` | Authorize (właściciel/obsługa — scoping w handlerze) |
+| POST | `/orders/track/{trackingToken}/initialize` | `InitializeGuestPaymentCommand` | **AllowAnonymous** (retry płatności dla gościa — posiadanie tokenu = autoryzacja, ADR-0041) |
 | GET | `/orders/{id}/status` | `GetPaymentStatusQuery` | Authorize (właściciel/obsługa) |
 | POST | `/payu/webhook` | `ConfirmPaymentFromNotificationCommand` | **AllowAnonymous** (raw body — sekcja 7) |
 > `POST /orders/{id}/initialize`: `OrderId` pochodzi z route; jeśli Command niesie `OrderId`,
-> nadpisać z trasy (1.1). Webhook nie ma `{id}` — poza regułą 1.1.
+> nadpisać z trasy (1.1). `POST /orders/track/{trackingToken}/initialize` analogicznie z
+> `GuestTrackingToken` (mirror `OrdersController.GetByTrackingToken`, ADR-0041) — świadomie bez
+> rate-limitingu/jednorazowości w tej iteracji. Webhook nie ma `{id}` — poza regułą 1.1.
 
 ### 6.8 `LoyaltyController` (`/api/loyalty`) — Iteracja 4
 | GET | `/balance` | `GetLoyaltyBalanceQuery` | `Customer` (saldo własne — scoping po `ICurrentUser.CustomerId`) |

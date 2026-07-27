@@ -14,11 +14,9 @@ namespace PizzaShop.Application.Payments.Commands;
 /// <see cref="Orders.Queries.GetOrderByIdQueryHandler"/>/<see cref="Orders.Commands.CancelOrderCommandHandler"/>:
 /// staff can act on any order, a customer only their own; a non-owning customer gets the
 /// same <see cref="NotFoundException"/> as a non-existent order id. Guest orders (no
-/// <c>CustomerId</c>) are not reachable through this ownership check — retrying payment as a
-/// guest would need a tracking-token-scoped variant analogous to
-/// <see cref="Orders.Queries.GetOrderByTrackingTokenQueryHandler"/>, which is out of scope for
-/// this iteration (flagged for a follow-up, not needed for the inline path inside
-/// <c>CreateOrderCommand</c>, which does not go through this command).
+/// <c>CustomerId</c>) are not reachable through this ownership check — the tracking-token-scoped
+/// equivalent for guests is <see cref="InitializeGuestPaymentCommandHandler"/> (ADR-0041), which
+/// shares <see cref="PaymentInitializationGuard"/> with this handler.
 /// </summary>
 public sealed class InitializePaymentCommandHandler : ICommandHandler<InitializePaymentCommand, InitializePaymentResultDto>
 {
@@ -45,7 +43,7 @@ public sealed class InitializePaymentCommandHandler : ICommandHandler<Initialize
             ?? throw new NotFoundException(nameof(Order), command.OrderId);
 
         EnsureAccessAllowed(order);
-        EnsureCanInitializePayment(order);
+        PaymentInitializationGuard.EnsureCanInitializePayment(order);
 
         var result = await _paymentGateway.InitializePaymentAsync(
             new PaymentInitRequest(order.Id, order.Number, order.Total, order.Contact.Email, $"PizzaShop order {order.Number}"),
@@ -65,21 +63,5 @@ public sealed class InitializePaymentCommandHandler : ICommandHandler<Initialize
 
         if (order.CustomerId is null || order.CustomerId != _currentUser.CustomerId)
             throw new NotFoundException(nameof(Order), order.Id);
-    }
-
-    /// <summary>
-    /// Guards a case Domain itself has no method for (initializing a gateway session isn't an
-    /// <c>Order</c> state transition) and is universal rather than role-dependent — a state
-    /// conflict illegal for every caller, signalled with <see cref="ConflictException"/> (409,
-    /// ADR-0018), not <see cref="ForbiddenOperationException"/> (which is reserved for
-    /// role-dependent denials, ADR-0017).
-    /// </summary>
-    private static void EnsureCanInitializePayment(Order order)
-    {
-        if (order.PaymentMethod != PaymentMethod.Online)
-            throw new ConflictException("Payment can only be initialized for orders placed with online payment.");
-
-        if (order.PaymentStatus == PaymentStatus.Paid)
-            throw new ConflictException("This order has already been paid.");
     }
 }

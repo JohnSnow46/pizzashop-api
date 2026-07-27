@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { OrderTrackingStatus } from '../components/orders/OrderTrackingStatus'
+import { RetryPaymentButton } from '../components/orders/RetryPaymentButton'
 import { useOrderTracking } from '../hooks/useOrderTracking'
 
 /**
@@ -27,6 +28,9 @@ export function TrackOrderPage() {
             </p>
           )}
           <OrderTrackingStatus {...tracking} />
+          {trackingToken && tracking.order?.paymentMethod === 'Online' && tracking.order.paymentStatus !== 'Paid' && (
+            <RetryPaymentButton source={{ trackingToken }} />
+          )}
         </>
       )}
     </div>
