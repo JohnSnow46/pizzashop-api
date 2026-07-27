@@ -81,6 +81,25 @@ Szablon wpisu:
 
 ---
 
+### 2026-07-27 — Konfiguracja Vitest + pierwsze testy frontendu
+
+**Wykorzystane ADR:**
+- ADR-0038 — Live-tracking statusu zamówienia (SignalR), decyzja 8
+  - Potwierdza świadome odłożenie Vitest jako osobnej decyzji o strategii testów
+    frontendu (nie przeoczenie) — to zadanie jest tą osobną decyzją. Zakres CI
+    (`.github/workflows/ci.yml`) pozostawiony bez zmian, zgodnie z tym samym punktem.
+
+**Wpływ na implementację:**
+- `vitest`/`jsdom`/`@testing-library/react` jako devDependencies; `vite.config.ts` →
+  `defineConfig` z `vitest/config` + blok `test` (`environment: jsdom`); skrypty
+  `test`/`test:watch` w `package.json`. Bez `globals: true` (explicit importy w
+  testach, spójnie z `verbatimModuleSyntax`).
+- Pierwsze testy: `checkoutState.test.ts`, `validation.test.ts`, `CartContext.test.tsx`,
+  `useOrderTracking.test.tsx` (mock `@microsoft/signalr` + `ordersApi` + `AuthContext`).
+  48/48 zielonych, `npm run build` bez regresji.
+
+---
+
 ### 2026-07-27 — Upload zdjęcia MenuItem (zastąpienie pola URL)
 
 **Wykorzystane ADR:**
