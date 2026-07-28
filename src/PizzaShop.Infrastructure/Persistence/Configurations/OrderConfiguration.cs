@@ -23,6 +23,9 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.HasIndex(o => o.Number).IsUnique();
         builder.Property(o => o.Number).HasMaxLength(50).IsRequired();
 
+        builder.HasIndex(o => o.CustomerId);
+        builder.Property(o => o.CustomerId);
+
         builder.Property(o => o.FulfillmentType).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(o => o.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
         builder.Property(o => o.PaymentMethod).HasConversion<string>().HasMaxLength(20).IsRequired();

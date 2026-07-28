@@ -90,14 +90,14 @@ internal static class DomainTestFactory
     /// <c>OwnedDeliveryAddress</c> (distinguishing "no DeliveryAddress" from "an instance
     /// whose nested columns all happen to be null").
     /// </summary>
-    public static Order CreatePickupOrder(DomainRestaurant restaurant, string orderNumber = "20260720-0002")
+    public static Order CreatePickupOrder(DomainRestaurant restaurant, string orderNumber = "20260720-0002", Guid? customerId = null)
     {
         var pizza = MenuItem.Create("Margherita", MenuCategory.Pizza, new Money(25));
         var item = OrderItem.Create(pizza.Id, pizza.Name, pizza.BasePrice, quantity: 1);
 
         return Order.Create(
             orderNumber,
-            customerId: null,
+            customerId,
             SampleContact(),
             FulfillmentType.Pickup,
             deliveryAddress: null,

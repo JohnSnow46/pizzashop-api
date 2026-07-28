@@ -120,6 +120,35 @@ public sealed class OrderRepositoryTests : PostgresRepositoryTestBase
     }
 
     [Fact]
+    public async Task GetByCustomerIdAsync_ReturnsOnlyOrdersBelongingToThatCustomer()
+    {
+        var restaurant = DomainTestFactory.CreateRestaurant();
+        var customerId = Guid.NewGuid();
+        var customerOrder = DomainTestFactory.CreatePickupOrder(restaurant, "20260720-0003", customerId);
+        var otherOrder = DomainTestFactory.CreatePickupOrder(restaurant, "20260720-0004", customerId: null);
+
+        await using (var writeContext = Fixture.CreateContext())
+        {
+            await writeContext.Restaurants.AddAsync(restaurant);
+
+            var repository = new OrderRepository(writeContext, new SystemClock());
+            await repository.AddAsync(customerOrder, guestTrackingToken: null, providerPaymentReference: null, CancellationToken.None);
+            await repository.AddAsync(otherOrder, guestTrackingToken: null, providerPaymentReference: null, CancellationToken.None);
+
+            await writeContext.SaveChangesAsync();
+        }
+
+        await using var readContext = Fixture.CreateContext();
+        var readRepository = new OrderRepository(readContext, new SystemClock());
+
+        var result = await readRepository.GetByCustomerIdAsync(customerId, CancellationToken.None);
+
+        result.Should().ContainSingle();
+        result.Single().Id.Should().Be(customerOrder.Id);
+        result.Single().CustomerId.Should().Be(customerId);
+    }
+
+    [Fact]
     public async Task NextOrderNumberAsync_ProducesIncreasingSequenceValues()
     {
         await using var context = Fixture.CreateContext();
