@@ -535,6 +535,37 @@
   color: #2e7d32;
 }
 
+/*
+ * Order confirmation page: the live tracking widget (OrderTrackingStatus) should be the
+ * most prominent element on the page, above the fold — the welcome heading is de-emphasized
+ * in comparison. See OrderConfirmationPage.tsx.
+ */
+.order-confirmation-intro .order-confirmation-title {
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--space-1);
+}
+
+.order-confirmation-tracking {
+  background: var(--accent-muted);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-6);
+}
+
+.order-confirmation-tracking .checkout-step {
+  gap: var(--space-2);
+}
+
+.order-confirmation-tracking p {
+  margin: 0;
+  font-size: var(--font-size-lg);
+}
+
+.order-confirmation-tracking .checkout-hint {
+  font-size: var(--font-size-sm);
+}
+
 .checkout-summary-list {
   padding-left: 20px;
 }

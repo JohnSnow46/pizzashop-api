@@ -42,10 +42,16 @@ export function OrderConfirmationPage() {
 
   return (
     <div className="checkout-step">
-      <h2>Dziękujemy za zamówienie!</h2>
-      <p>
-        Numer zamówienia: <strong>{result.number}</strong>
-      </p>
+      <div className="order-confirmation-intro">
+        <h2 className="order-confirmation-title">Dziękujemy za zamówienie!</h2>
+        <p>
+          Numer zamówienia: <strong>{result.number}</strong>
+        </p>
+      </div>
+
+      <div className="order-confirmation-tracking">
+        <OrderTrackingStatus {...tracking} />
+      </div>
 
       {paymentError && trackingSource && (
         <>
@@ -64,8 +70,6 @@ export function OrderConfirmationPage() {
           — pozwala sprawdzić status zamówienia z dowolnej karty lub urządzenia.
         </p>
       )}
-
-      <OrderTrackingStatus {...tracking} />
 
       <Link to="/">Wróć do menu</Link>
     </div>
