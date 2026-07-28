@@ -82,6 +82,44 @@ Szablon wpisu:
 
 ---
 
+### 2026-07-28 — Broadcast "nowe zamówienie" dla staff w OrderTrackingHub (rozszerzenie ADR-0038)
+
+**Wykorzystane ADR:**
+- ADR-0038 — Frontend live-tracking statusu zamówienia (SignalR)
+  - Rozszerzono `IOrderNotifier`/`SignalROrderNotifier`/`OrderTrackingHub` o ścieżkę dla staff,
+    zamiast wprowadzać nowy port czy huba — te same konwencje (grupa SignalR, cichy brak
+    subskrypcji przy braku uprawnień) co istniejące `SubscribeToOrder`/`SubscribeToGuestOrder`.
+- ADR-0027 — Warstwa Api: hierarchia ról jawna przez stałe `AuthRoles` (nie token/Domain)
+  - `OrderTrackingHub.SubscribeToStaffQueue` weryfikuje rolę ręcznie przez
+    `AuthRoles.Staff.Split(',')` + `ClaimsPrincipal.IsInRole`, bo klasa Huba zostaje
+    `[AllowAnonymous]` (goście muszą łączyć się bez JWT) — nie ma odpowiednika `[Authorize]`
+    per-metoda Huba, więc autoryzacja żyje w kodzie metody, nie w atrybucie.
+
+**Wpływ na implementację:**
+- `IOrderNotifier.NewOrderPlacedAsync(orderId, ct)` — nowa metoda portu (Application).
+- `CreateOrderCommandHandler` wywołuje `NewOrderPlacedAsync` po `SaveChangesAsync` (bez
+  try/catch — ten wzorzec, w odróżnieniu od maila do klienta, nie jest owinięty nigdzie indziej
+  w istniejących handlerach zmiany statusu, więc zachowano spójność).
+- `SignalROrderNotifier.NewOrderPlacedAsync` — broadcast eventu `"NewOrderPlaced"` z minimalnym
+  payloadem `{ orderId }` do grupy `"staff"`.
+- `OrderTrackingHub.SubscribeToStaffQueue()` — ręczna weryfikacja
+  `Context.User?.Identity?.IsAuthenticated == true && rola w Employee/RestaurantAdmin/SuperAdmin`
+  przed `Groups.AddToGroupAsync(..., "staff")`; brak roli → cicho nic (bez wyjątku), zgodnie z
+  resztą Huba. JWT w tym Hubie już trafia do `Context.User` przez istniejącą konfigurację
+  `OnMessageReceived`/`access_token` w `Program.cs` (scoped do całej ścieżki
+  `/hubs/order-tracking`, nie per-metoda) — nie wymagało zmian.
+- Test bezpieczeństwa: `OrderTrackingHubTests.SubscribeToStaffQueue_*` (Employee/RestaurantAdmin/
+  SuperAdmin → dołączają do grupy `"staff"`; Customer/nieuwierzytelniony/brak `User` → NIE
+  dołączają — asercja `Groups.AddToGroupAsync` `Times.Never`).
+- Frontend: `useEmployeeOrderQueueLive` (nowy hook, ten sam hub co `useOrderTracking`),
+  `EmployeeOrdersPage` dopisuje nowe zamówienie do kolejki bez duplikatów, licznik/badge "N
+  nowych zamówień" (reset po kliknięciu), beep przez `<audio>` z inline data-URI (brak nowego
+  zasobu binarnego w repo) i `.play().catch(() => {})`.
+
+**Przeczytane, nieużyte:** brak.
+
+---
+
 ### 2026-07-27 — Rate-limiting InitializeGuest: rozpoznanie follow-upu z ADR-0041 (bez implementacji)
 
 **Wykorzystane ADR:**

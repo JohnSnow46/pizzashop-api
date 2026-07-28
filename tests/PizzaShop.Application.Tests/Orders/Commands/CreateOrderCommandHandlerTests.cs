@@ -6,6 +6,7 @@ using PizzaShop.Application.Abstractions.Geocoding;
 using PizzaShop.Application.Abstractions.Loyalty;
 using PizzaShop.Application.Abstractions.Payments;
 using PizzaShop.Application.Abstractions.Persistence;
+using PizzaShop.Application.Abstractions.Realtime;
 using PizzaShop.Application.Common.Abstractions;
 using PizzaShop.Application.Common.Dtos;
 using PizzaShop.Application.Common.Exceptions;
@@ -34,6 +35,7 @@ public class CreateOrderCommandHandlerTests
     private readonly Mock<IGeocodingService> _geocodingService = new();
     private readonly Mock<IPaymentGateway> _paymentGateway = new();
     private readonly Mock<IEmailSender> _emailSender = new();
+    private readonly Mock<IOrderNotifier> _orderNotifier = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
     private readonly Mock<ICurrentUser> _currentUser = new();
     private readonly Mock<IClock> _clock = new();
@@ -66,6 +68,7 @@ public class CreateOrderCommandHandlerTests
             _geocodingService.Object,
             _paymentGateway.Object,
             _emailSender.Object,
+            _orderNotifier.Object,
             _unitOfWork.Object,
             _currentUser.Object,
             _clock.Object,

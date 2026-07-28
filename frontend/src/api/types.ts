@@ -385,6 +385,15 @@ export interface OrderStatusChangedEvent {
 }
 
 /**
+ * Mirror of the "NewOrderPlaced" SignalR push payload (SignalROrderNotifier, ADR-0038
+ * extension). Sent to the "staff" group only (OrderTrackingHub.SubscribeToStaffQueue) —
+ * intentionally minimal, the front end re-fetches order details via the queue/order queries.
+ */
+export interface NewOrderPlacedEvent {
+  orderId: string
+}
+
+/**
  * Mirror of PizzaShop.Application.Orders.Dtos.OrderSummaryDto (ADR-0039) — the row shape
  * for the logged-in customer's own order history (`GET /api/orders/mine`).
  */

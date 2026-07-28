@@ -29,4 +29,16 @@ public sealed class SignalROrderNotifier : IOrderNotifier
         var payload = new { orderId, status, estimatedReadyAt };
         return _hub.Clients.Group(orderId.ToString()).SendAsync("OrderStatusChanged", payload, cancellationToken);
     }
+
+    /// <summary>
+    /// Broadcasts to the <c>"staff"</c> group only (membership gated by role in
+    /// <see cref="OrderTrackingHub.SubscribeToStaffQueue"/>). Minimal payload — the front end
+    /// re-fetches order details through the existing queue/order queries instead of duplicating
+    /// that lookup here.
+    /// </summary>
+    public Task NewOrderPlacedAsync(Guid orderId, CancellationToken cancellationToken)
+    {
+        var payload = new { orderId };
+        return _hub.Clients.Group("staff").SendAsync("NewOrderPlaced", payload, cancellationToken);
+    }
 }

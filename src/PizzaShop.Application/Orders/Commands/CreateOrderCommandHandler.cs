@@ -4,6 +4,7 @@ using PizzaShop.Application.Abstractions.Geocoding;
 using PizzaShop.Application.Abstractions.Loyalty;
 using PizzaShop.Application.Abstractions.Payments;
 using PizzaShop.Application.Abstractions.Persistence;
+using PizzaShop.Application.Abstractions.Realtime;
 using PizzaShop.Application.Common.Abstractions;
 using PizzaShop.Application.Common.Exceptions;
 using PizzaShop.Application.Common.Messaging;
@@ -36,6 +37,7 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
     private readonly IGeocodingService _geocodingService;
     private readonly IPaymentGateway _paymentGateway;
     private readonly IEmailSender _emailSender;
+    private readonly IOrderNotifier _orderNotifier;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUser _currentUser;
     private readonly IClock _clock;
@@ -52,6 +54,7 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
         IGeocodingService geocodingService,
         IPaymentGateway paymentGateway,
         IEmailSender emailSender,
+        IOrderNotifier orderNotifier,
         IUnitOfWork unitOfWork,
         ICurrentUser currentUser,
         IClock clock,
@@ -67,6 +70,7 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
         _geocodingService = geocodingService;
         _paymentGateway = paymentGateway;
         _emailSender = emailSender;
+        _orderNotifier = orderNotifier;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _clock = clock;
@@ -119,6 +123,7 @@ public sealed class CreateOrderCommandHandler : ICommandHandler<CreateOrderComma
         await _orderRepository.AddAsync(order, guestTrackingToken, paymentInit?.ProviderPaymentReference, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await _orderNotifier.NewOrderPlacedAsync(order.Id, cancellationToken);
         await NotifyCustomerByEmailAsync(order, contact, guestTrackingToken, cancellationToken);
 
         // Step 10.

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using PizzaShop.Api.Auth;
 using PizzaShop.Application.Common.Exceptions;
 using PizzaShop.Application.Common.Messaging;
 using PizzaShop.Application.Orders.Queries;
@@ -18,10 +19,20 @@ namespace PizzaShop.Api.Realtime;
 /// (<see cref="GetOrderByTrackingTokenQuery"/>/<see cref="GetOrderByIdQuery"/>), and only joins
 /// the group on success. A failed lookup (bad/unknown token, not-owned order) silently subscribes
 /// nobody — the hub never reveals whether an order or token exists.
+///
+/// <see cref="SubscribeToStaffQueue"/> (ADR-0038 extension) follows the same "gate at
+/// subscription time, stay silent on failure" shape, but the check is a role check instead of a
+/// query: the class stays <see cref="AllowAnonymousAttribute"/> (guests must still be able to
+/// connect for the other two methods), so this method verifies <c>Context.User</c>'s role by
+/// hand before joining the <c>"staff"</c> group — there is no attribute equivalent to
+/// <c>[Authorize]</c> for a single hub method.
 /// </summary>
 [AllowAnonymous]
 public sealed class OrderTrackingHub : Hub
 {
+    private const string StaffGroup = "staff";
+    private static readonly string[] StaffRoles = AuthRoles.Staff.Split(',');
+
     private readonly IDispatcher _dispatcher;
 
     public OrderTrackingHub(IDispatcher dispatcher)
@@ -75,5 +86,22 @@ public sealed class OrderTrackingHub : Hub
         {
             // Malformed query (e.g. empty orderId) — stay silent, same reasoning as above.
         }
+    }
+
+    /// <summary>
+    /// Staff order-queue path (ADR-0038 extension): joins the <c>"staff"</c> broadcast group so
+    /// <see cref="SignalROrderNotifier.NewOrderPlacedAsync"/> can reach every connected
+    /// employee/admin. The hub class is <see cref="AllowAnonymousAttribute"/>, so the role check
+    /// happens by hand here, against the same <see cref="AuthRoles.Staff"/> role set (with
+    /// hierarchy) other endpoints enforce via <c>[Authorize(Roles = AuthRoles.Staff)]</c>. An
+    /// unauthenticated caller or a non-staff role (e.g. Customer) is silently not subscribed — no
+    /// exception is thrown to the client, matching the other subscribe methods on this hub.
+    /// </summary>
+    public Task SubscribeToStaffQueue()
+    {
+        var user = Context.User;
+        var isStaff = user?.Identity?.IsAuthenticated == true && StaffRoles.Any(user.IsInRole);
+
+        return isStaff ? Groups.AddToGroupAsync(Context.ConnectionId, StaffGroup) : Task.CompletedTask;
     }
 }

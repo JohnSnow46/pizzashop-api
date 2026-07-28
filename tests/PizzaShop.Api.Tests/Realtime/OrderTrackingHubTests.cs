@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.AspNetCore.SignalR;
 using Moq;
@@ -123,5 +124,67 @@ public sealed class OrderTrackingHubTests
         await _hub.SubscribeToOrder(orderId);
 
         _groups.Verify(g => g.AddToGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ---- SubscribeToStaffQueue (security-critical: manual role check, hub class stays
+    // [AllowAnonymous] — see OrderTrackingHub XML doc) ----
+
+    [Theory]
+    [InlineData("Employee")]
+    [InlineData("RestaurantAdmin")]
+    [InlineData("SuperAdmin")]
+    public async Task SubscribeToStaffQueue_StaffRole_AddsConnectionToStaffGroup(string role)
+    {
+        SetUser(CreateAuthenticatedUser(role));
+
+        await _hub.SubscribeToStaffQueue();
+
+        _groups.Verify(g => g.AddToGroupAsync(ConnectionId, "staff", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SubscribeToStaffQueue_CustomerRole_DoesNotSubscribe()
+    {
+        SetUser(CreateAuthenticatedUser("Customer"));
+
+        await _hub.SubscribeToStaffQueue();
+
+        _groups.Verify(g => g.AddToGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SubscribeToStaffQueue_Unauthenticated_DoesNotSubscribe()
+    {
+        SetUser(new ClaimsPrincipal(new ClaimsIdentity()));
+
+        await _hub.SubscribeToStaffQueue();
+
+        _groups.Verify(g => g.AddToGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SubscribeToStaffQueue_NoUser_DoesNotSubscribe()
+    {
+        SetUser(null);
+
+        await _hub.SubscribeToStaffQueue();
+
+        _groups.Verify(g => g.AddToGroupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    private static ClaimsPrincipal CreateAuthenticatedUser(string role)
+    {
+        var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, role) }, "TestAuthType");
+        return new ClaimsPrincipal(identity);
+    }
+
+    private void SetUser(ClaimsPrincipal? user)
+    {
+        var context = new Mock<HubCallerContext>();
+        context.Setup(c => c.ConnectionId).Returns(ConnectionId);
+        context.Setup(c => c.ConnectionAborted).Returns(CancellationToken.None);
+        context.Setup(c => c.User).Returns(user);
+
+        _hub.Context = context.Object;
     }
 }

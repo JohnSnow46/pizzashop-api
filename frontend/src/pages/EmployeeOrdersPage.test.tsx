@@ -15,6 +15,15 @@ vi.mock('../components/orders/EmployeeOrderRow', () => ({
   ),
 }))
 
+// The live "new order" push (ADR-0038 extension) needs an AuthProvider/SignalR connection —
+// out of scope for these tests, which only cover the queue's own state/UI reaction to a push.
+// The hook's own connect/subscribe/event-wiring behavior is covered by
+// useEmployeeOrderQueueLive.test.tsx.
+const useEmployeeOrderQueueLiveMock = vi.fn()
+vi.mock('../hooks/useEmployeeOrderQueueLive', () => ({
+  useEmployeeOrderQueueLive: (onNewOrder: (orderId: string) => void) => useEmployeeOrderQueueLiveMock(onNewOrder),
+}))
+
 import { getOrderQueue } from '../api/ordersApi'
 import { EmployeeOrdersPage } from './EmployeeOrdersPage'
 
@@ -26,6 +35,10 @@ function makeOrders(ids: string[]): Order[] {
 
 beforeEach(() => {
   getOrderQueueMock.mockReset()
+  useEmployeeOrderQueueLiveMock.mockReset()
+  // jsdom doesn't implement HTMLMediaElement.play(); EmployeeOrdersPage calls it (with .catch)
+  // on every new-order push.
+  window.HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined)
 })
 
 afterEach(() => {
@@ -71,5 +84,34 @@ describe('EmployeeOrdersPage', () => {
     await screen.findByText('c')
     expect(screen.getByText('b')).toBeDefined()
     expect(getOrderQueueMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('adds a live-pushed new order to the queue, shows a badge and plays the beep', async () => {
+    getOrderQueueMock.mockResolvedValue(makeOrders(['a']))
+
+    render(<EmployeeOrdersPage />)
+    await screen.findByText('a')
+
+    expect(useEmployeeOrderQueueLiveMock).toHaveBeenCalled()
+    const onNewOrder = useEmployeeOrderQueueLiveMock.mock.calls.at(-1)![0] as (orderId: string) => void
+
+    onNewOrder('z')
+
+    expect(await screen.findByText('z')).toBeDefined()
+    await waitFor(() => expect(screen.getByText('1 nowe zamówienie')).toBeDefined())
+    expect(window.HTMLMediaElement.prototype.play).toHaveBeenCalled()
+  })
+
+  it('does not duplicate an order that is pushed live but already in the queue', async () => {
+    getOrderQueueMock.mockResolvedValue(makeOrders(['a']))
+
+    render(<EmployeeOrdersPage />)
+    await screen.findByText('a')
+
+    const onNewOrder = useEmployeeOrderQueueLiveMock.mock.calls.at(-1)![0] as (orderId: string) => void
+    onNewOrder('a')
+
+    await waitFor(() => expect(screen.getByText('1 nowe zamówienie')).toBeDefined())
+    expect(screen.getAllByText('a')).toHaveLength(1)
   })
 })

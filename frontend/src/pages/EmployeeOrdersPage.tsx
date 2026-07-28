@@ -1,18 +1,23 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getOrderQueue } from '../api/ordersApi'
+import { NEW_ORDER_BEEP_SRC } from '../assets/newOrderBeep'
 import { EmployeeOrderRow } from '../components/orders/EmployeeOrderRow'
+import { useEmployeeOrderQueueLive } from '../hooks/useEmployeeOrderQueueLive'
 
 /**
  * `/employee/orders` (RequireAuth roles=Staff) — live order queue for staff. Each row tracks
  * its own order via `useOrderTracking`/SignalR; this page only owns the *set* of order ids in
- * the queue. The Hub has no "new order arrived" broadcast (ADR-0038), so new orders are only
- * discovered by refetching the queue — triggered here whenever a row leaves it (accepted →
- * ... → completed/rejected), which is also the moment a newly placed order is likely to show up.
+ * the queue. New orders arrive live via `useEmployeeOrderQueueLive` ("NewOrderPlaced" push,
+ * ADR-0038 extension) and are appended to the queue immediately; the queue is also refetched
+ * whenever a row leaves it (accepted → ... → completed/rejected) as a fallback in case a push
+ * was missed while disconnected.
  */
 export function EmployeeOrdersPage() {
   const [orderIds, setOrderIds] = useState<string[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [newOrderCount, setNewOrderCount] = useState(0)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -59,9 +64,36 @@ export function EmployeeOrdersPage() {
     void refetchQueue()
   }
 
+  function handleNewOrder(orderId: string) {
+    setOrderIds((prev) => {
+      if (prev && prev.includes(orderId)) return prev
+      return [...(prev ?? []), orderId]
+    })
+    setNewOrderCount((count) => count + 1)
+    audioRef.current?.play().catch(() => {
+      // Autoplay can be blocked until the user interacts with the page — silently skip the beep.
+    })
+  }
+
+  useEmployeeOrderQueueLive(handleNewOrder)
+
   return (
     <div className="checkout-step">
-      <h2>Kolejka zamówień</h2>
+      <audio ref={audioRef} src={NEW_ORDER_BEEP_SRC} preload="auto" />
+
+      <div className="employee-orders-header">
+        <h2>Kolejka zamówień</h2>
+        {newOrderCount > 0 && (
+          <button
+            type="button"
+            className="employee-orders-new-badge"
+            onClick={() => setNewOrderCount(0)}
+            title="Kliknij, aby wyzerować licznik"
+          >
+            {newOrderCount} {newOrderCount === 1 ? 'nowe zamówienie' : 'nowych zamówień'}
+          </button>
+        )}
+      </div>
 
       {isLoading && <p>Ładowanie kolejki...</p>}
       {error && <p className="empty-state">{error}</p>}

@@ -46,4 +46,34 @@ public sealed class SignalROrderNotifierTests
 
         return actualOrderId == orderId && actualStatus == status && actualEstimatedReadyAt == estimatedReadyAt;
     }
+
+    [Fact]
+    public async Task NewOrderPlacedAsync_SendsMinimalPayloadToStaffGroup()
+    {
+        var orderId = Guid.NewGuid();
+
+        var clientProxy = new Mock<IClientProxy>();
+        var clients = new Mock<IHubClients>();
+        clients.Setup(c => c.Group("staff")).Returns(clientProxy.Object);
+
+        var hubContext = new Mock<IHubContext<OrderTrackingHub>>();
+        hubContext.Setup(h => h.Clients).Returns(clients.Object);
+
+        var notifier = new SignalROrderNotifier(hubContext.Object);
+
+        await notifier.NewOrderPlacedAsync(orderId, CancellationToken.None);
+
+        clientProxy.Verify(
+            p => p.SendCoreAsync(
+                "NewOrderPlaced",
+                It.Is<object?[]>(args => args.Length == 1 && OrderIdMatches(args[0]!, orderId)),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    private static bool OrderIdMatches(object payload, Guid orderId)
+    {
+        var actualOrderId = (Guid)payload.GetType().GetProperty("orderId")!.GetValue(payload)!;
+        return actualOrderId == orderId;
+    }
 }
