@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { createOrder } from '../api/ordersApi'
@@ -25,6 +25,14 @@ export function CheckoutPage() {
   const { items, totalAmount, clear } = useCart()
   const navigate = useNavigate()
   const [state, dispatch] = useCheckoutState()
+
+  // Set synchronously (not via setState) right before `clear()` in handleSubmit, so it's
+  // visible to the very next render no matter how React schedules/batches the cart-empty
+  // and location updates that come out of that same submit. Without this, clearing the cart
+  // makes the guard below fire with a stale location and win the race against the
+  // navigate('/checkout/confirmation') call, bouncing the customer back to /cart right after
+  // they placed the order.
+  const justSubmittedRef = useRef(false)
 
   // Purely presentational (not part of useCheckoutState/checkoutState.ts): drives the
   // fade/slide direction of the step transition below. Does not affect validation,
@@ -66,7 +74,7 @@ export function CheckoutPage() {
     }
   }, [])
 
-  if (items.length === 0) {
+  if (items.length === 0 && !justSubmittedRef.current) {
     return <Navigate to="/cart" replace />
   }
 
@@ -103,6 +111,7 @@ export function CheckoutPage() {
     try {
       const result = await createOrder(command)
       saveOrderResult(result)
+      justSubmittedRef.current = true
       clear()
 
       if (state.paymentMethod === 'Online' && result.paymentRedirectUrl) {

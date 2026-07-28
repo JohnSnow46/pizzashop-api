@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { getMyOrders } from '../api/ordersApi'
 import { getLoyaltyBalance } from '../api/loyaltyApi'
 import { addAddress, getMyAddresses, removeAddress, setDefaultAddress } from '../api/customersApi'
@@ -51,9 +52,8 @@ const EMPTY_NEW_ADDRESS: Address = {
 
 /**
  * `/account` (ADR-0039, RequireAuth-gated) — logged-in customer's order history + loyalty
- * points balance/history. Deliberately no link to a per-order detail view: the app has no
- * logged-in-customer order detail route yet (only the guest `/orders/track/:token` route and
- * the live-tracking view reachable right after checkout), so adding one is out of scope here.
+ * points balance/history. Each order history row links to `/account/orders/:orderId`, the
+ * logged-in analog of the guest live-tracking route (ADR-0038), for that order's live status.
  */
 export function MyAccountPage() {
   const [orders, setOrders] = useState<OrderSummary[] | null>(null)
@@ -163,18 +163,20 @@ export function MyAccountPage() {
         {orders && orders.length > 0 ? (
           <ul className="account-order-list">
             {orders.map((order) => (
-              <li key={order.id} className="account-order-list__item">
-                <div className="account-order-list__details">
-                  <strong>{order.number}</strong>
-                  <span className="cart-item__meta">
-                    {formatDateTime(order.placedAt)} · {FULFILLMENT_LABELS[order.fulfillmentType]} · {order.itemsCount}{' '}
-                    poz.
-                  </span>
-                  <span className="cart-item__meta">
-                    {STATUS_LABELS[order.status]} · Płatność: {PAYMENT_STATUS_LABELS[order.paymentStatus]}
-                  </span>
-                </div>
-                <div>{formatMoney(order.total.amount, order.total.currency)}</div>
+              <li key={order.id}>
+                <Link to={`/account/orders/${order.id}`} className="account-order-list__item">
+                  <div className="account-order-list__details">
+                    <strong>{order.number}</strong>
+                    <span className="cart-item__meta">
+                      {formatDateTime(order.placedAt)} · {FULFILLMENT_LABELS[order.fulfillmentType]} · {order.itemsCount}{' '}
+                      poz.
+                    </span>
+                    <span className="cart-item__meta">
+                      {STATUS_LABELS[order.status]} · Płatność: {PAYMENT_STATUS_LABELS[order.paymentStatus]}
+                    </span>
+                  </div>
+                  <div>{formatMoney(order.total.amount, order.total.currency)}</div>
+                </Link>
               </li>
             ))}
           </ul>

@@ -15,6 +15,7 @@ import { LoginPage } from './pages/LoginPage'
 import { MenuPage } from './pages/MenuPage'
 import { MyAccountPage } from './pages/MyAccountPage'
 import { OrderConfirmationPage } from './pages/OrderConfirmationPage'
+import { OrderStatusPage } from './pages/OrderStatusPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { TrackOrderPage } from './pages/TrackOrderPage'
 
@@ -23,8 +24,10 @@ import { TrackOrderPage } from './pages/TrackOrderPage'
  * kept separate from the wizard because it must survive a full page reload on return from
  * PayU); ADR-0037 adds customer login/register; ADR-0038 adds SignalR live order tracking and
  * the public `/orders/track/:trackingToken` route below; ADR-0039 adds the `/account` panel
- * (order history + loyalty points), gated behind `RequireAuth`. `/admin/menu` is the admin
- * catalog management page (menu items + ingredients), gated to `AuthRoles.Admin` equivalents.
+ * (order history + loyalty points), gated behind `RequireAuth`, plus `/account/orders/:orderId`
+ * — the logged-in analog of `/orders/track/:trackingToken`, linked from each order history row.
+ * `/admin/menu` is the admin catalog management page (menu items + ingredients), gated to
+ * `AuthRoles.Admin` equivalents.
  * `/admin/promotions` is the admin promotion management page (list + create/edit, ADR-0019),
  * gated the same way. `/admin/restaurant` is the admin restaurant configuration page (opening
  * hours, delivery area, ordering/free-delivery thresholds), gated the same way. `/admin/staff`
@@ -63,6 +66,14 @@ export function AppRoutes() {
           element={
             <RequireAuth>
               <MyAccountPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/account/orders/:orderId"
+          element={
+            <RequireAuth>
+              <OrderStatusPage />
             </RequireAuth>
           }
         />

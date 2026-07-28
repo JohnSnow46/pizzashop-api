@@ -58,6 +58,15 @@ export function useOrderTracking(source: OrderTrackingSource | null): UseOrderTr
       return
     }
 
+    // Under React StrictMode (dev only), React mounts this effect, synchronously runs its
+    // cleanup, then mounts it again — all before either `initialFetch` promise can settle
+    // (promise callbacks are microtasks, scheduled after that synchronous mount/cleanup/mount
+    // cycle). So the *first* invocation's `cancelled` is already `true` by the time its
+    // `.then`/`.catch` below runs, for either outcome — a duplicate dev-only request can never
+    // clobber state set by the current (second) invocation, in either direction. Verified in
+    // OrderStatusPage.test.tsx (including a forced out-of-order-resolution case). In a
+    // production build this double-invoke doesn't happen at all — there's only ever one
+    // request per mount, so this is a StrictMode/dev-only wrinkle, not a real bug.
     let cancelled = false
     let connection: HubConnection | null = null
 

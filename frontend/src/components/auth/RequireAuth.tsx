@@ -11,7 +11,11 @@ interface RequireAuthProps {
 
 /** Wraps /account (ADR-0039) and /employee/orders — a guest has no account panel to see. */
 export function RequireAuth({ children, roles }: RequireAuthProps) {
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, isLoading, user } = useAuth()
+
+  if (isLoading) {
+    return null
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />

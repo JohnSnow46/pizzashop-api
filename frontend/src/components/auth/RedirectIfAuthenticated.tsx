@@ -8,7 +8,11 @@ interface RedirectIfAuthenticatedProps {
 
 /** Wraps /login and /register (ADR-0037) — an already signed-in user has nothing to do there. */
 export function RedirectIfAuthenticated({ children }: RedirectIfAuthenticatedProps) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return null
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/" replace />

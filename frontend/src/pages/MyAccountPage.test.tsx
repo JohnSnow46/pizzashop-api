@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import type { CustomerAddress, LoyaltyBalance, OrderSummary } from '../api/types'
 import { ApiError } from '../api/client'
 
@@ -86,9 +87,17 @@ afterEach(() => {
   cleanup()
 })
 
+function renderPage() {
+  render(
+    <MemoryRouter>
+      <MyAccountPage />
+    </MemoryRouter>,
+  )
+}
+
 describe('MyAccountPage', () => {
   it('renders order history, loyalty balance and addresses after loading', async () => {
-    render(<MyAccountPage />)
+    renderPage()
 
     expect(await screen.findByText('ORD-1')).toBeDefined()
     expect(screen.getByText('120 pkt')).toBeDefined()
@@ -100,7 +109,7 @@ describe('MyAccountPage', () => {
     getLoyaltyBalanceMock.mockResolvedValue(makeLoyalty({ pointsBalance: 0, transactions: [] }))
     getMyAddressesMock.mockResolvedValue([])
 
-    render(<MyAccountPage />)
+    renderPage()
 
     expect(await screen.findByText('Nie masz jeszcze żadnych zamówień.')).toBeDefined()
     expect(screen.getByText('Brak historii punktów.')).toBeDefined()
@@ -110,13 +119,13 @@ describe('MyAccountPage', () => {
   it('shows an error message when the initial fetch fails', async () => {
     getMyOrdersMock.mockRejectedValue(new Error('Nie udało się połączyć z serwerem.'))
 
-    render(<MyAccountPage />)
+    renderPage()
 
     expect(await screen.findByText('Nie udało się połączyć z serwerem.')).toBeDefined()
   })
 
   it('validates the new address form and does not call addAddress when fields are empty', async () => {
-    render(<MyAccountPage />)
+    renderPage()
     await screen.findByText('Dom')
 
     fireEvent.click(screen.getByRole('button', { name: 'Dodaj adres' }))
@@ -130,7 +139,7 @@ describe('MyAccountPage', () => {
     const created = makeAddress({ id: 'addr-2', label: 'Praca', isDefault: false })
     addAddressMock.mockResolvedValue(created)
 
-    render(<MyAccountPage />)
+    renderPage()
     await screen.findByText('Dom')
 
     fireEvent.change(screen.getByLabelText('Nazwa adresu (np. Dom, Praca)'), { target: { value: 'Praca' } })
@@ -160,7 +169,7 @@ describe('MyAccountPage', () => {
   it('shows an API error and keeps the entry when removing an address fails', async () => {
     removeAddressMock.mockRejectedValue(new ApiError(409, 'Conflict', { detail: 'Nie można usunąć adresu domyślnego.' }))
 
-    render(<MyAccountPage />)
+    renderPage()
     await screen.findByText('Dom')
 
     fireEvent.click(screen.getByRole('button', { name: 'Usuń' }))
