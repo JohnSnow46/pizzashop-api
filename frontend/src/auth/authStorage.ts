@@ -30,7 +30,17 @@ export function loadAuth(): StoredAuth | null {
       return null
     }
     const parsed: unknown = JSON.parse(raw)
-    return parsed && typeof parsed === 'object' ? (parsed as StoredAuth) : null
+    if (!parsed || typeof parsed !== 'object') {
+      return null
+    }
+    const candidate = parsed as StoredAuth
+    if (typeof candidate.token !== 'string' || !candidate.token) {
+      return null
+    }
+    if (typeof candidate.user?.role !== 'string' || !candidate.user.role) {
+      return null
+    }
+    return candidate
   } catch {
     // Corrupt/unavailable localStorage should never break the app — start signed out.
     return null

@@ -18,7 +18,14 @@ export function loadOrderResult(): CreateOrderResult | null {
   }
 
   try {
-    return JSON.parse(raw) as CreateOrderResult
+    const parsed = JSON.parse(raw) as CreateOrderResult
+    if (typeof parsed.orderId !== 'string' || !parsed.orderId) {
+      return null
+    }
+    if (typeof parsed.number !== 'string' || !parsed.number) {
+      return null
+    }
+    return parsed
   } catch {
     return null
   }
