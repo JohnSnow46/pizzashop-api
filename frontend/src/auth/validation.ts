@@ -1,7 +1,8 @@
+import { EMAIL_PATTERN } from '../shared/validation'
+
 // Loose client-side mirror of backend validators (ADR-0037), same pattern as
 // checkout/validation.ts. Domain rules (e.g. "email already registered") stay server-side —
 // this only checks shape, so the user gets fast feedback before a round-trip.
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function validateEmail(email: string): string | null {
   if (email.trim().length === 0) {

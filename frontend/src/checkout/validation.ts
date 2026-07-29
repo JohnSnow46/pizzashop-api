@@ -1,4 +1,5 @@
 import type { Address, ContactDetails } from '../api/types'
+import { EMAIL_PATTERN } from '../shared/validation'
 
 /**
  * Same pattern as PizzaShop.Application.Orders.Validators.CreateOrderCommandValidator
@@ -9,8 +10,6 @@ const PHONE_NUMBER_PATTERN = /^(\+48[\s-]?)?\d{3}([\s-]?\d{3}){2}$/
 
 /** Loose PL postal code check (NN-NNN) — soft, UI-only; the backend does not enforce this format. */
 const POSTAL_CODE_PATTERN = /^\d{2}-\d{3}$/
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function validateFullName(fullName: string): string | null {
   return fullName.trim().length === 0 ? 'Podaj imię i nazwisko.' : null
