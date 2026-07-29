@@ -138,7 +138,12 @@ builder.Services.AddAuthorization(options =>
 
 // 7. SignalR (OrderTrackingHub, api-layer.md 8, ADR-0028). HubHttpContextFilter fixes a
 // real IHttpContextAccessor/ICurrentUser gap inside hub methods — see its doc comment.
-builder.Services.AddSignalR(options => options.AddFilter<HubHttpContextFilter>());
+// The hub's JSON protocol is a separate serializer from MVC's, so it needs the same
+// JsonStringEnumConverter registered explicitly, otherwise enums (e.g. OrderStatus) go
+// over the wire as raw integers instead of strings.
+builder.Services
+    .AddSignalR(options => options.AddFilter<HubHttpContextFilter>())
+    .AddJsonProtocol(options => options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // 8. CORS (api-layer.md 9, ADR-0035) — named "frontend" policy for the React/Vite dev
 // frontend. AllowAnyHeader() already covers the "Authorization: Bearer <token>" header the
