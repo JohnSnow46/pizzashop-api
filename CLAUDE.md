@@ -80,9 +80,11 @@ repo "przy okazji".
    wyłącznie streszczenie. Wyjątek: plik, który za chwilę edytujesz.
 5. Szukanie przed czytaniem: `rg -n "wzorzec" docs/` → `Read` z offset/limit. Nigdy
    `Read` bez limitu na pliku o nieznanym rozmiarze.
-6. Po zadaniu w **normal/deep mode**: dopisz wpis na górze `## ADR Notes` w
-   `docs/decisions.md` (szablon w pliku) — użyte ADR-y i ich wpływ na implementację, oraz
-   przeczytane-nieużyte. W **fast mode** pomiń ten krok, jeśli nic z ADR nie było użyte.
+6. Po zadaniu w **normal/deep mode**: główny/orkiestrujący wątek (nie żaden z subagentów)
+   dopisuje, PO zakończeniu całego łańcucha agentów (architekt/architect-lite → builder →
+   reviewer/reviewer-lite), wpis na górze `## ADR Notes` w `docs/decisions.md` (szablon w
+   pliku) — użyte ADR-y i ich wpływ na implementację, oraz przeczytane-nieużyte. W **fast
+   mode** pomiń ten krok, jeśli nic z ADR nie było użyte.
 7. Nie pytaj, jeśli można sprawdzić: `git log --oneline -20`, `git status`, pliki repo.
    `AskUserQuestion` tylko o decyzje produktowe niewywnioskowalne z repo, max. 1 runda
    pytań na sesję.

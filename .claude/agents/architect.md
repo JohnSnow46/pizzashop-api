@@ -1,7 +1,7 @@
 ---
 name: architect
 description: Używaj WYŁĄCZNIE w deep mode — duże refaktory, zmiany architektury, decyzje krytyczne wpływające na wiele obszarów/ADR. Do nowego modułu czy integracji (normal mode) użyj `architect-lite`; do prostych zadań jednowarstwowych (fast mode) pomiń architekta i idź od razu do `builder`. NIE używaj do samego pisania kodu produkcyjnego.
-tools: Read, Grep, Glob, Write
+tools: Read, Grep, Glob, Write, Edit
 model: sonnet
 ---
 

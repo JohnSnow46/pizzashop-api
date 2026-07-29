@@ -18,6 +18,8 @@ dostałeś — nie dorzucaj rzeczy niezleconych.
 - Implementacja Commands/Queries + handlerów w `Application`
 - Implementacja repozytoriów, konfiguracji EF Core, migracji w `Infrastructure`
 - Implementacja kontrolerów, middleware, hubów SignalR w `Api`
+- Implementacja komponentów/stron React + TypeScript w `frontend/` (czyste zadania UI idą
+  przez buildera bez architekta, wg tabeli trybów w `CLAUDE.md`)
 - Pisanie testów jednostkowych (xUnit + Moq) do własnego kodu — każdy nowy use case ma test
 - Poprawianie kodu po uwagach od `reviewer`
 
