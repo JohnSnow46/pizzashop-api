@@ -41,6 +41,28 @@ public class CreatePromotionCommandValidatorTests
     }
 
     [Fact]
+    public void Validate_NameTooLong_HasErrorForName()
+    {
+        var command = ValidCommand() with { Name = new string('a', 201) };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreatePromotionCommand.Name));
+    }
+
+    [Fact]
+    public void Validate_CodeTooLong_HasErrorForCode()
+    {
+        var command = ValidCommand() with { Code = new string('a', 51) };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreatePromotionCommand.Code));
+    }
+
+    [Fact]
     public void Validate_BuyXGetYWithValidRule_HasNoErrors()
     {
         var command = ValidCommand() with

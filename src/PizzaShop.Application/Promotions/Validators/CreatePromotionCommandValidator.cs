@@ -8,7 +8,8 @@ public sealed class CreatePromotionCommandValidator : AbstractValidator<CreatePr
 {
     public CreatePromotionCommandValidator()
     {
-        RuleFor(c => c.Name).NotEmpty();
+        RuleFor(c => c.Name).NotEmpty().MaximumLength(200);
+        RuleFor(c => c.Code).MaximumLength(50);
 
         RuleFor(c => c.Type).IsInEnum();
 
