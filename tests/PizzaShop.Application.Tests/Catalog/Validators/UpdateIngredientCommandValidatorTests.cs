@@ -40,4 +40,15 @@ public class UpdateIngredientCommandValidatorTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "ExtraPrice.Amount");
     }
+
+    [Fact]
+    public void Validate_NameTooLong_HasErrorForName()
+    {
+        var command = ValidCommand() with { Name = new string('a', 201) };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(UpdateIngredientCommand.Name));
+    }
 }

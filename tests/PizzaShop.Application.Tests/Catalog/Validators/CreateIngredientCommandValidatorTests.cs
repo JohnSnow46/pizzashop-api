@@ -40,4 +40,26 @@ public class CreateIngredientCommandValidatorTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "ExtraPrice.Amount");
     }
+
+    [Fact]
+    public void Validate_NameTooLong_HasErrorForName()
+    {
+        var command = ValidCommand() with { Name = new string('a', 201) };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateIngredientCommand.Name));
+    }
+
+    [Fact]
+    public void Validate_CategoryTooLong_HasErrorForCategory()
+    {
+        var command = ValidCommand() with { Category = new string('a', 101) };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateIngredientCommand.Category));
+    }
 }

@@ -8,7 +8,7 @@ public sealed class UpdateIngredientCommandValidator : AbstractValidator<UpdateI
     public UpdateIngredientCommandValidator()
     {
         RuleFor(c => c.Id).NotEmpty();
-        RuleFor(c => c.Name).NotEmpty();
+        RuleFor(c => c.Name).NotEmpty().MaximumLength(200);
         RuleFor(c => c.ExtraPrice).NotNull();
 
         When(c => c.ExtraPrice is not null, () =>
