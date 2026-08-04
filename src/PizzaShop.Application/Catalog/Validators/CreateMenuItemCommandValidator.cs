@@ -7,7 +7,7 @@ public sealed class CreateMenuItemCommandValidator : AbstractValidator<CreateMen
 {
     public CreateMenuItemCommandValidator()
     {
-        RuleFor(c => c.Name).NotEmpty();
+        RuleFor(c => c.Name).NotEmpty().MaximumLength(200);
         RuleFor(c => c.BasePrice).NotNull();
 
         When(c => c.BasePrice is not null, () =>
@@ -18,7 +18,7 @@ public sealed class CreateMenuItemCommandValidator : AbstractValidator<CreateMen
 
         RuleForEach(c => c.Variants).ChildRules(variant =>
         {
-            variant.RuleFor(v => v.Name).NotEmpty();
+            variant.RuleFor(v => v.Name).NotEmpty().MaximumLength(100);
             variant.RuleFor(v => v.Price).NotNull();
             variant.When(v => v.Price is not null, () =>
                 variant.RuleFor(v => v.Price.Amount).GreaterThanOrEqualTo(0));

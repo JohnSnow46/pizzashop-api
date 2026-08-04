@@ -64,4 +64,29 @@ public class CreateMenuItemCommandValidatorTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName.EndsWith("Name"));
     }
+
+    [Fact]
+    public void Validate_NameTooLong_HasErrorForName()
+    {
+        var command = ValidCommand() with { Name = new string('a', 201) };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateMenuItemCommand.Name));
+    }
+
+    [Fact]
+    public void Validate_VariantNameTooLong_HasErrorForVariantName()
+    {
+        var command = ValidCommand() with
+        {
+            Variants = new[] { new MenuItemVariantInputDto(null, new string('a', 101), new MoneyDto(10m, "PLN"), true) },
+        };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName.EndsWith("Name"));
+    }
 }
