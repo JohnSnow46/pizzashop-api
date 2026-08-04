@@ -111,7 +111,7 @@ public class OrderTests
         act.Should().NotThrow();
     }
 
-    // ---- Rule 4: minimum order value ----
+    // ---- Rule 4: minimum & maximum order value ----
 
     [Fact]
     public void Create_SubtotalBelowMinimumOrderValue_ThrowsBelowMinimumOrderValueException()
@@ -129,6 +129,26 @@ public class OrderTests
         var restaurant = OrderTestFixtures.CreateOpenAllWeekRestaurant(minimumOrderValue: new Money(20m));
 
         var act = () => CreatePickupOrder(restaurant, items: new[] { SampleItem(price: 25m) });
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Create_TooManyItems_ThrowsTooManyOrderItemsException()
+    {
+        var items = Enumerable.Range(0, 51).Select(_ => SampleItem()).ToArray();
+
+        var act = () => CreatePickupOrder(items: items);
+
+        act.Should().Throw<TooManyOrderItemsException>();
+    }
+
+    [Fact]
+    public void Create_AtMaxItemLimit_DoesNotThrow()
+    {
+        var items = Enumerable.Range(0, 50).Select(_ => SampleItem()).ToArray();
+
+        var act = () => CreatePickupOrder(items: items);
 
         act.Should().NotThrow();
     }

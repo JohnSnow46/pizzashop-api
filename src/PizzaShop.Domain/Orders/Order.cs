@@ -108,6 +108,9 @@ public class Order
         if (restaurant.MinimumOrderValue is { } minimum && subtotal < minimum)
             throw new BelowMinimumOrderValueException(subtotal, minimum);
 
+        if (itemList.Count > 50)
+            throw new TooManyOrderItemsException(itemList.Count);
+
         var deliveryFee = CalculateDeliveryFee(fulfillmentType, subtotal, restaurant);
 
         var order = new Order(
