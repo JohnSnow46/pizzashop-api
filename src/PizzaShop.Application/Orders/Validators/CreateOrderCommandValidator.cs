@@ -17,7 +17,7 @@ public sealed class CreateOrderCommandValidator : AbstractValidator<CreateOrderC
         RuleFor(c => c.Contact).NotNull();
         When(c => c.Contact is not null, () =>
         {
-            RuleFor(c => c.Contact.FullName).NotEmpty();
+            RuleFor(c => c.Contact.FullName).NotEmpty().MaximumLength(200);
             RuleFor(c => c.Contact.PhoneNumber)
                 .NotEmpty()
                 .Matches(PhoneNumberPattern)

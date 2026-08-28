@@ -53,6 +53,20 @@ public class CreateOrderCommandValidatorTests
     }
 
     [Fact]
+    public void Validate_ContactFullNameTooLong_HasErrorForFullName()
+    {
+        var command = ValidPickupCommand() with
+        {
+            Contact = ValidPickupCommand().Contact with { FullName = new string('a', 201) },
+        };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "Contact.FullName");
+    }
+
+    [Fact]
     public void Validate_EmptyItems_HasErrorForItems()
     {
         var command = ValidPickupCommand() with { Items = Array.Empty<CreateOrderItemDto>() };
