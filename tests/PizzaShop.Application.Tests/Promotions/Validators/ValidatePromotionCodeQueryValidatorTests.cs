@@ -32,6 +32,17 @@ public class ValidatePromotionCodeQueryValidatorTests
     }
 
     [Fact]
+    public void Validate_CodeTooLong_HasErrorForCode()
+    {
+        var query = ValidQuery() with { Code = new string('a', 51) };
+
+        var result = _validator.Validate(query);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(ValidatePromotionCodeQuery.Code));
+    }
+
+    [Fact]
     public void Validate_NegativeSubtotal_HasErrorForSubtotalAmount()
     {
         var query = ValidQuery() with { Subtotal = new MoneyDto(-1m, "PLN") };

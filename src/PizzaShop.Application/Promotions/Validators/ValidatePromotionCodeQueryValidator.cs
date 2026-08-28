@@ -7,7 +7,7 @@ public sealed class ValidatePromotionCodeQueryValidator : AbstractValidator<Vali
 {
     public ValidatePromotionCodeQueryValidator()
     {
-        RuleFor(q => q.Code).NotEmpty();
+        RuleFor(q => q.Code).NotEmpty().MaximumLength(50);
 
         RuleFor(q => q.Subtotal).NotNull();
         When(q => q.Subtotal is not null, () => RuleFor(q => q.Subtotal.Amount).GreaterThanOrEqualTo(0));
