@@ -176,6 +176,20 @@ public class CreateOrderCommandValidatorTests
     }
 
     [Fact]
+    public void Validate_EmailTooLong_HasErrorForEmail()
+    {
+        var command = ValidPickupCommand() with
+        {
+            Contact = ValidPickupCommand().Contact with { Email = $"{new string('a', 190)}@example.com" },
+        };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "Contact.Email");
+    }
+
+    [Fact]
     public void Validate_NoPointsToRedeem_HasNoErrors()
     {
         var command = ValidPickupCommand();

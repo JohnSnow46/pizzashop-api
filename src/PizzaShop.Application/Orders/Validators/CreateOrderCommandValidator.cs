@@ -24,6 +24,7 @@ public sealed class CreateOrderCommandValidator : AbstractValidator<CreateOrderC
                 .WithMessage("Phone number must be a valid PL phone number (e.g. '123456789' or '+48 123-456-789').");
             RuleFor(c => c.Contact.Email)
                 .EmailAddress()
+                .MaximumLength(200)
                 .When(c => !string.IsNullOrEmpty(c.Contact.Email));
         });
 
