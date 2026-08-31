@@ -63,4 +63,15 @@ public class RegisterStaffAccountCommandValidatorTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == nameof(RegisterStaffAccountCommand.Password));
     }
+
+    [Fact]
+    public void Validate_EmailOver200Characters_HasErrorForEmail()
+    {
+        var command = ValidCommand() with { Email = new string('a', 200) + "@example.com" };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(RegisterStaffAccountCommand.Email));
+    }
 }

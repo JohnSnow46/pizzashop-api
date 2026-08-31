@@ -65,4 +65,15 @@ public class RegisterCustomerCommandValidatorTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == nameof(RegisterCustomerCommand.Password));
     }
+
+    [Fact]
+    public void Validate_EmailOver200Characters_HasErrorForEmail()
+    {
+        var command = ValidCommand() with { Email = new string('a', 200) + "@example.com" };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(RegisterCustomerCommand.Email));
+    }
 }

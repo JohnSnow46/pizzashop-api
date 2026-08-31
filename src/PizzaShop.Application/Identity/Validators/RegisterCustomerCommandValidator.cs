@@ -8,7 +8,7 @@ public sealed class RegisterCustomerCommandValidator : AbstractValidator<Registe
 {
     public RegisterCustomerCommandValidator()
     {
-        RuleFor(c => c.Email).NotEmpty().EmailAddress();
+        RuleFor(c => c.Email).NotEmpty().EmailAddress().MaximumLength(200);
 
         RuleFor(c => c.Password)
             .NotEmpty()
