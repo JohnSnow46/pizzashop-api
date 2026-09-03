@@ -98,6 +98,28 @@ public class UpdateMenuItemCommandValidatorTests
     }
 
     [Fact]
+    public void Validate_DescriptionTooLong_HasErrorForDescription()
+    {
+        var command = ValidCommand() with { Description = new string('a', 1001) };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(UpdateMenuItemCommand.Description));
+    }
+
+    [Fact]
+    public void Validate_ImageUrlTooLong_HasErrorForImageUrl()
+    {
+        var command = ValidCommand() with { ImageUrl = new string('a', 501) };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(UpdateMenuItemCommand.ImageUrl));
+    }
+
+    [Fact]
     public void Validate_MoreThanOneDefaultVariant_HasErrorForVariants()
     {
         var command = ValidCommand() with

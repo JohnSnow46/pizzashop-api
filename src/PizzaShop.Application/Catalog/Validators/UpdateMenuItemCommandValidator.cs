@@ -9,6 +9,8 @@ public sealed class UpdateMenuItemCommandValidator : AbstractValidator<UpdateMen
     {
         RuleFor(c => c.Id).NotEmpty();
         RuleFor(c => c.Name).NotEmpty().MaximumLength(200);
+        RuleFor(c => c.Description).MaximumLength(1000);
+        RuleFor(c => c.ImageUrl).MaximumLength(500);
         RuleFor(c => c.BasePrice).NotNull();
 
         When(c => c.BasePrice is not null, () =>
