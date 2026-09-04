@@ -46,6 +46,8 @@ public class LoyaltyTransaction
     {
         if (string.IsNullOrWhiteSpace(reason))
             throw new ArgumentException("Reason is required.", nameof(reason));
+        if (reason.Length > 500)
+            throw new ArgumentException("Reason must not exceed 500 characters.", nameof(reason));
         if (points == 0)
             throw new ArgumentException("Points must not be zero.", nameof(points));
 

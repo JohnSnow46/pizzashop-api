@@ -23,6 +23,17 @@ public class LoyaltyTransactionTests
     }
 
     [Fact]
+    public void Earn_ReasonExceedsMaxLength_ThrowsArgumentException()
+    {
+        var account = LoyaltyAccount.Create(Guid.NewGuid());
+        var reason = new string('a', 501);
+
+        var act = () => account.Earn(10, reason, Now);
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
     public void Earn_WithOrderId_RecordsOrderIdOnTransaction()
     {
         var account = LoyaltyAccount.Create(Guid.NewGuid());
