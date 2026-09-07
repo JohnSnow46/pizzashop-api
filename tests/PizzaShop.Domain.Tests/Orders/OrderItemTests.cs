@@ -15,6 +15,14 @@ public class OrderItemTests
     }
 
     [Fact]
+    public void Create_QuantityAboveMax_ThrowsArgumentOutOfRangeException()
+    {
+        var act = () => OrderItem.Create(Guid.NewGuid(), "Margherita", new Money(25m), quantity: 101);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
     public void Create_EmptyMenuItemId_ThrowsArgumentException()
     {
         var act = () => OrderItem.Create(Guid.Empty, "Margherita", new Money(25m), quantity: 1);

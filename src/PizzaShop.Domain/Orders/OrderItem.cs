@@ -69,6 +69,8 @@ public class OrderItem
         ArgumentNullException.ThrowIfNull(unitPrice);
         if (quantity < 1)
             throw new ArgumentOutOfRangeException(nameof(quantity), "Quantity must be at least 1.");
+        if (quantity > 100)
+            throw new ArgumentOutOfRangeException(nameof(quantity), "Quantity must be at most 100.");
 
         return new OrderItem(
             Guid.NewGuid(),
