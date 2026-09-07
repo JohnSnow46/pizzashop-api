@@ -45,6 +45,19 @@ public sealed class CreateOrderCommandValidator : AbstractValidator<CreateOrderC
                 .WithMessage("A delivery address is required when the fulfillment type is delivery.");
         });
 
+        // Length limits mirror the DB mapping for the owned Address value object
+        // (infrastructure-layer.md 2.3, Shared/OwnedAddress) — same limits as
+        // AddCustomerAddressCommandValidator, which validates the same AddressDto shape.
+        When(c => c.DeliveryAddress is not null, () =>
+        {
+            RuleFor(c => c.DeliveryAddress!.Street).NotEmpty().MaximumLength(200);
+            RuleFor(c => c.DeliveryAddress!.BuildingNumber).NotEmpty().MaximumLength(20);
+            RuleFor(c => c.DeliveryAddress!.ApartmentNumber).MaximumLength(20);
+            RuleFor(c => c.DeliveryAddress!.City).NotEmpty().MaximumLength(100);
+            RuleFor(c => c.DeliveryAddress!.PostalCode).NotEmpty().MaximumLength(10);
+            RuleFor(c => c.DeliveryAddress!.Notes).MaximumLength(500);
+        });
+
         RuleFor(c => c.PointsToRedeem)
             .GreaterThanOrEqualTo(0)
             .When(c => c.PointsToRedeem.HasValue);

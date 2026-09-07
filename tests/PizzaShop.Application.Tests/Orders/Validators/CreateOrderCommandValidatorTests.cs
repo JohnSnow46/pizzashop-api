@@ -102,6 +102,21 @@ public class CreateOrderCommandValidatorTests
         result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateOrderCommand.DeliveryAddress));
     }
 
+    [Fact]
+    public void Validate_DeliveryAddressStreetTooLong_HasErrorForDeliveryAddressStreet()
+    {
+        var command = ValidPickupCommand() with
+        {
+            FulfillmentType = FulfillmentType.Delivery,
+            DeliveryAddress = new AddressDto(new string('a', 201), "2", "Warsaw", "00-002"),
+        };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "DeliveryAddress.Street");
+    }
+
     [Theory]
     [InlineData("123456789")]
     [InlineData("+48123456789")]
