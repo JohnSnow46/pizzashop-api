@@ -24,7 +24,19 @@ public static class PayUSignatureVerifier
         var algorithm = fields.TryGetValue("algorithm", out var value) ? value : "MD5";
         var computedSignature = ComputeHash(rawBody + secondKey, algorithm);
 
-        return string.Equals(computedSignature, expectedSignature, StringComparison.OrdinalIgnoreCase);
+        return SignaturesMatch(computedSignature, expectedSignature);
+    }
+
+    // Constant-time comparison: this header is the only authentication on the webhook
+    // (see class summary), so the comparison itself should not leak timing information
+    // about how many leading characters of the signature matched.
+    private static bool SignaturesMatch(string computedSignature, string expectedSignature)
+    {
+        var computedBytes = Encoding.UTF8.GetBytes(computedSignature.ToLowerInvariant());
+        var expectedBytes = Encoding.UTF8.GetBytes(expectedSignature.ToLowerInvariant());
+
+        return computedBytes.Length == expectedBytes.Length
+            && CryptographicOperations.FixedTimeEquals(computedBytes, expectedBytes);
     }
 
     private static Dictionary<string, string> ParseHeader(string headerValue) =>
