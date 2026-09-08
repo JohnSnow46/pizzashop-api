@@ -11,6 +11,9 @@ namespace PizzaShop.Domain.Orders;
 /// </summary>
 public class Order
 {
+    /// <summary>Maximum number of distinct line items a single order may contain (domain-model.md 5.4).</summary>
+    public const int MaxItemCount = 50;
+
     private readonly List<OrderItem> _items = new();
 
     public Guid Id { get; }
@@ -108,8 +111,8 @@ public class Order
         if (restaurant.MinimumOrderValue is { } minimum && subtotal < minimum)
             throw new BelowMinimumOrderValueException(subtotal, minimum);
 
-        if (itemList.Count > 50)
-            throw new TooManyOrderItemsException(itemList.Count);
+        if (itemList.Count > MaxItemCount)
+            throw new TooManyOrderItemsException(itemList.Count, MaxItemCount);
 
         var deliveryFee = CalculateDeliveryFee(fulfillmentType, subtotal, restaurant);
 

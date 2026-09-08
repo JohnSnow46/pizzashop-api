@@ -136,7 +136,7 @@ public class OrderTests
     [Fact]
     public void Create_TooManyItems_ThrowsTooManyOrderItemsException()
     {
-        var items = Enumerable.Range(0, 51).Select(_ => SampleItem()).ToArray();
+        var items = Enumerable.Range(0, Order.MaxItemCount + 1).Select(_ => SampleItem()).ToArray();
 
         var act = () => CreatePickupOrder(items: items);
 
@@ -146,7 +146,7 @@ public class OrderTests
     [Fact]
     public void Create_AtMaxItemLimit_DoesNotThrow()
     {
-        var items = Enumerable.Range(0, 50).Select(_ => SampleItem()).ToArray();
+        var items = Enumerable.Range(0, Order.MaxItemCount).Select(_ => SampleItem()).ToArray();
 
         var act = () => CreatePickupOrder(items: items);
 
