@@ -70,6 +70,14 @@ public class MoneyTests
     }
 
     [Fact]
+    public void Multiply_ZeroQuantity_ReturnsZeroAmount()
+    {
+        var result = new Money(3m).Multiply(0);
+
+        result.Amount.Should().Be(0m);
+    }
+
+    [Fact]
     public void Equals_SameAmountAndCurrency_ReturnsTrue()
     {
         var a = new Money(10m);
