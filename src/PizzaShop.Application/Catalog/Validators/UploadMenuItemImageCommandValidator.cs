@@ -25,7 +25,7 @@ public sealed class UploadMenuItemImageCommandValidator : AbstractValidator<Uplo
             .WithMessage($"Image must be at most {MaxContentBytes} bytes.");
 
         RuleFor(c => c.ContentType)
-            .Must(contentType => AllowedContentTypes.Contains(contentType))
+            .Must(contentType => AllowedContentTypes.Contains(contentType.ToLowerInvariant()))
             .WithMessage($"ContentType must be one of: {string.Join(", ", AllowedContentTypes)}.");
 
         RuleFor(c => c.FileExtension)

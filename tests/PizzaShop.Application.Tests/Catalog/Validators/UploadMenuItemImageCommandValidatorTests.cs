@@ -60,6 +60,16 @@ public class UploadMenuItemImageCommandValidatorTests
     }
 
     [Theory]
+    [InlineData("IMAGE/PNG")]
+    [InlineData("Image/Jpeg")]
+    public void Validate_SupportedContentTypeWithDifferentCasing_HasNoErrors(string contentType)
+    {
+        var result = _validator.Validate(ValidCommand() with { ContentType = contentType });
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Theory]
     [InlineData(".gif")]
     [InlineData(".bmp")]
     public void Validate_UnsupportedFileExtension_HasErrorForFileExtension(string extension)
