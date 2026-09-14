@@ -25,6 +25,16 @@ public class GeoCoordinateTests
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
+    [Theory]
+    [InlineData(double.NaN, 0)]
+    [InlineData(0, double.NaN)]
+    public void Constructor_NaNCoordinate_ThrowsArgumentOutOfRangeException(double lat, double lon)
+    {
+        var act = () => new GeoCoordinate(lat, lon);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
     [Fact]
     public void Constructor_BoundaryValues_DoesNotThrow()
     {
