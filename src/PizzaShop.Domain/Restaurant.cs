@@ -65,7 +65,7 @@ public class Restaurant
             throw new ArgumentException("Name is required.", nameof(name));
         ArgumentNullException.ThrowIfNull(address);
         ArgumentNullException.ThrowIfNull(location);
-        if (deliveryRadiusKm <= 0)
+        if (!double.IsFinite(deliveryRadiusKm) || deliveryRadiusKm <= 0)
             throw new ArgumentOutOfRangeException(nameof(deliveryRadiusKm), "Delivery radius must be greater than zero.");
         if (string.IsNullOrWhiteSpace(timeZoneId))
             throw new ArgumentException("Time zone id is required.", nameof(timeZoneId));
@@ -111,7 +111,7 @@ public class Restaurant
     public void UpdateDeliveryArea(GeoCoordinate location, double deliveryRadiusKm)
     {
         ArgumentNullException.ThrowIfNull(location);
-        if (deliveryRadiusKm <= 0)
+        if (!double.IsFinite(deliveryRadiusKm) || deliveryRadiusKm <= 0)
             throw new ArgumentOutOfRangeException(nameof(deliveryRadiusKm), "Delivery radius must be greater than zero.");
 
         Location = location;

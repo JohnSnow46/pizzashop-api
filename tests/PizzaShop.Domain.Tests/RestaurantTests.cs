@@ -37,6 +37,16 @@ public class RestaurantTests
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void Create_DeliveryRadiusNonFinite_ThrowsArgumentOutOfRangeException(double deliveryRadiusKm)
+    {
+        var act = () => CreateRestaurant(deliveryRadiusKm: deliveryRadiusKm);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
     [Fact]
     public void IsWithinDeliveryArea_PointWithinRadius_ReturnsTrue()
     {
@@ -88,6 +98,18 @@ public class RestaurantTests
         var restaurant = CreateRestaurant();
 
         var act = () => restaurant.UpdateDeliveryArea(WarsawCenter, 0);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void UpdateDeliveryArea_RadiusNonFinite_ThrowsArgumentOutOfRangeException(double deliveryRadiusKm)
+    {
+        var restaurant = CreateRestaurant();
+
+        var act = () => restaurant.UpdateDeliveryArea(WarsawCenter, deliveryRadiusKm);
 
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
