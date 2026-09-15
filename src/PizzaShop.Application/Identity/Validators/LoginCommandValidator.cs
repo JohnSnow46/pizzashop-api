@@ -8,7 +8,7 @@ public sealed class LoginCommandValidator : AbstractValidator<LoginCommand>
 {
     public LoginCommandValidator()
     {
-        RuleFor(c => c.Email).NotEmpty().EmailAddress();
+        RuleFor(c => c.Email).NotEmpty().EmailAddress().MaximumLength(200);
 
         // No MinimumLength here on purpose: login must keep accepting shorter passwords set
         // before any minimum-length policy existed. MaximumLength is only an upper bound to

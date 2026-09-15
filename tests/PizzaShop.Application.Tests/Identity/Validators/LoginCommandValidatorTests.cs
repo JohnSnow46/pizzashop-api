@@ -52,4 +52,14 @@ public class LoginCommandValidatorTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == nameof(LoginCommand.Password));
     }
+
+    [Fact]
+    public void Validate_EmailOver200Characters_HasErrorForEmail()
+    {
+        var email = new string('a', 190) + "@example.com";
+        var result = _validator.Validate(new LoginCommand(email, "whatever-password"));
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(LoginCommand.Email));
+    }
 }
