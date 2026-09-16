@@ -11,10 +11,10 @@ public sealed class CheckDeliveryAvailabilityQueryValidator : AbstractValidator<
 
         When(q => q.Address is not null, () =>
         {
-            RuleFor(q => q.Address.Street).NotEmpty();
-            RuleFor(q => q.Address.BuildingNumber).NotEmpty();
-            RuleFor(q => q.Address.City).NotEmpty();
-            RuleFor(q => q.Address.PostalCode).NotEmpty();
+            RuleFor(q => q.Address.Street).NotEmpty().MaximumLength(200);
+            RuleFor(q => q.Address.BuildingNumber).NotEmpty().MaximumLength(20);
+            RuleFor(q => q.Address.City).NotEmpty().MaximumLength(100);
+            RuleFor(q => q.Address.PostalCode).NotEmpty().MaximumLength(10);
         });
     }
 }

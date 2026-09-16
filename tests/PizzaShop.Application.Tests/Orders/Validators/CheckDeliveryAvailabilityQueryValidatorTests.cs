@@ -40,4 +40,26 @@ public class CheckDeliveryAvailabilityQueryValidatorTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName.EndsWith("Street"));
     }
+
+    [Fact]
+    public void Validate_StreetOverMaxLength_HasErrorForStreet()
+    {
+        var query = new CheckDeliveryAvailabilityQuery(new AddressDto(new string('a', 201), "2", "Warsaw", "00-002"));
+
+        var result = _validator.Validate(query);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName.EndsWith("Street"));
+    }
+
+    [Fact]
+    public void Validate_PostalCodeOverMaxLength_HasErrorForPostalCode()
+    {
+        var query = new CheckDeliveryAvailabilityQuery(new AddressDto("Client St", "2", "Warsaw", new string('1', 11)));
+
+        var result = _validator.Validate(query);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName.EndsWith("PostalCode"));
+    }
 }
