@@ -64,6 +64,14 @@ describe('validateFullName', () => {
   it('returns null for a non-empty name', () => {
     expect(validateFullName('Jan Kowalski')).toBeNull()
   })
+
+  it('returns an error for a name over 200 characters', () => {
+    expect(validateFullName('a'.repeat(201))).not.toBeNull()
+  })
+
+  it('returns null for a name at exactly 200 characters', () => {
+    expect(validateFullName('a'.repeat(200))).toBeNull()
+  })
 })
 
 describe('validateContact', () => {

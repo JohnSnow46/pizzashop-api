@@ -11,8 +11,12 @@ const PHONE_NUMBER_PATTERN = /^(\+48[\s-]?)?\d{3}([\s-]?\d{3}){2}$/
 /** Loose PL postal code check (NN-NNN) — soft, UI-only; the backend does not enforce this format. */
 const POSTAL_CODE_PATTERN = /^\d{2}-\d{3}$/
 
+/** Mirrors CreateOrderCommandValidator: required, max 200 chars. */
 export function validateFullName(fullName: string): string | null {
-  return fullName.trim().length === 0 ? 'Podaj imię i nazwisko.' : null
+  if (fullName.trim().length === 0) {
+    return 'Podaj imię i nazwisko.'
+  }
+  return fullName.trim().length > 200 ? 'Imię i nazwisko może mieć maksymalnie 200 znaków.' : null
 }
 
 export function validatePhoneNumber(phoneNumber: string): string | null {
