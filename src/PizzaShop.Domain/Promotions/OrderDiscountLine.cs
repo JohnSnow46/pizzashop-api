@@ -16,7 +16,10 @@ public sealed record OrderDiscountLine(Guid MenuItemId, Money UnitPrice, int Qua
 
     public Money UnitPrice { get; init; } = UnitPrice ?? throw new ArgumentNullException(nameof(UnitPrice));
 
-    public int Quantity { get; init; } = Quantity < 1
-        ? throw new ArgumentOutOfRangeException(nameof(Quantity), "Quantity must be at least 1.")
-        : Quantity;
+    public int Quantity { get; init; } = Quantity switch
+    {
+        < 1 => throw new ArgumentOutOfRangeException(nameof(Quantity), "Quantity must be at least 1."),
+        > 100 => throw new ArgumentOutOfRangeException(nameof(Quantity), "Quantity must be at most 100."),
+        _ => Quantity,
+    };
 }

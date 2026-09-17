@@ -52,4 +52,22 @@ public class OrderDiscountLineTests
 
         act.Should().NotThrow();
     }
+
+    [Theory]
+    [InlineData(101)]
+    [InlineData(int.MaxValue)]
+    public void Constructor_QuantityGreaterThanOneHundred_ThrowsArgumentOutOfRangeException(int quantity)
+    {
+        var act = () => new OrderDiscountLine(Guid.NewGuid(), new Money(10m), quantity);
+
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void Constructor_QuantityAtOneHundred_DoesNotThrow()
+    {
+        var act = () => new OrderDiscountLine(Guid.NewGuid(), new Money(10m), 100);
+
+        act.Should().NotThrow();
+    }
 }
