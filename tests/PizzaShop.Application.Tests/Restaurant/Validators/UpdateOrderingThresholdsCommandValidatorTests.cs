@@ -53,4 +53,26 @@ public class UpdateOrderingThresholdsCommandValidatorTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == "MinimumOrderValue.Amount");
     }
+
+    [Fact]
+    public void Validate_EmptyDeliveryFeeCurrency_HasErrorForDeliveryFeeCurrency()
+    {
+        var command = ValidCommand() with { DeliveryFee = new MoneyDto(5m, "") };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "DeliveryFee.Currency");
+    }
+
+    [Fact]
+    public void Validate_EmptyFreeDeliveryThresholdCurrency_HasErrorForFreeDeliveryThresholdCurrency()
+    {
+        var command = ValidCommand() with { FreeDeliveryThreshold = new MoneyDto(50m, " ") };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == "FreeDeliveryThreshold.Currency");
+    }
 }

@@ -9,12 +9,21 @@ public sealed class UpdateOrderingThresholdsCommandValidator : AbstractValidator
     {
         RuleFor(c => c.DeliveryFee).NotNull();
         When(c => c.DeliveryFee is not null, () =>
-            RuleFor(c => c.DeliveryFee!.Amount).GreaterThanOrEqualTo(0));
+        {
+            RuleFor(c => c.DeliveryFee!.Amount).GreaterThanOrEqualTo(0);
+            RuleFor(c => c.DeliveryFee!.Currency).NotEmpty();
+        });
 
         When(c => c.MinimumOrderValue is not null, () =>
-            RuleFor(c => c.MinimumOrderValue!.Amount).GreaterThanOrEqualTo(0));
+        {
+            RuleFor(c => c.MinimumOrderValue!.Amount).GreaterThanOrEqualTo(0);
+            RuleFor(c => c.MinimumOrderValue!.Currency).NotEmpty();
+        });
 
         When(c => c.FreeDeliveryThreshold is not null, () =>
-            RuleFor(c => c.FreeDeliveryThreshold!.Amount).GreaterThanOrEqualTo(0));
+        {
+            RuleFor(c => c.FreeDeliveryThreshold!.Amount).GreaterThanOrEqualTo(0);
+            RuleFor(c => c.FreeDeliveryThreshold!.Currency).NotEmpty();
+        });
     }
 }
