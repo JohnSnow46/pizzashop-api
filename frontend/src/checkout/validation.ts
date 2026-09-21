@@ -50,17 +50,43 @@ export function validateContact(contact: ContactDetails): Record<string, string>
   return errors
 }
 
+/**
+ * Length limits mirror CreateOrderCommandValidator's DeliveryAddress rules: same
+ * DB-mapped Address value object, so the same maximums apply here.
+ */
 export function validateAddress(address: Address): Record<string, string> {
   const errors: Record<string, string> = {}
 
-  if (address.street.trim().length === 0) errors.street = 'Podaj ulicę.'
-  if (address.buildingNumber.trim().length === 0) errors.buildingNumber = 'Podaj numer budynku.'
-  if (address.city.trim().length === 0) errors.city = 'Podaj miasto.'
+  if (address.street.trim().length === 0) {
+    errors.street = 'Podaj ulicę.'
+  } else if (address.street.trim().length > 200) {
+    errors.street = 'Ulica może mieć maksymalnie 200 znaków.'
+  }
+
+  if (address.buildingNumber.trim().length === 0) {
+    errors.buildingNumber = 'Podaj numer budynku.'
+  } else if (address.buildingNumber.trim().length > 20) {
+    errors.buildingNumber = 'Numer budynku może mieć maksymalnie 20 znaków.'
+  }
+
+  if (address.city.trim().length === 0) {
+    errors.city = 'Podaj miasto.'
+  } else if (address.city.trim().length > 100) {
+    errors.city = 'Miasto może mieć maksymalnie 100 znaków.'
+  }
 
   if (address.postalCode.trim().length === 0) {
     errors.postalCode = 'Podaj kod pocztowy.'
   } else if (!POSTAL_CODE_PATTERN.test(address.postalCode.trim())) {
     errors.postalCode = 'Kod pocztowy powinien mieć format NN-NNN (np. 00-001).'
+  }
+
+  if ((address.apartmentNumber ?? '').trim().length > 20) {
+    errors.apartmentNumber = 'Numer lokalu może mieć maksymalnie 20 znaków.'
+  }
+
+  if ((address.notes ?? '').trim().length > 500) {
+    errors.notes = 'Notatka może mieć maksymalnie 500 znaków.'
   }
 
   return errors

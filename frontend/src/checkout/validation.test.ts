@@ -132,4 +132,29 @@ describe('validateAddress', () => {
     expect(emptyErrors.postalCode).toBeDefined()
     expect(wrongFormatErrors.postalCode).not.toEqual(emptyErrors.postalCode)
   })
+
+  it('returns an error for a street over 200 characters', () => {
+    const errors = validateAddress({ ...validAddress, street: 'a'.repeat(201) })
+    expect(errors.street).toBeDefined()
+  })
+
+  it('returns an error for a building number over 20 characters', () => {
+    const errors = validateAddress({ ...validAddress, buildingNumber: 'a'.repeat(21) })
+    expect(errors.buildingNumber).toBeDefined()
+  })
+
+  it('returns an error for a city over 100 characters', () => {
+    const errors = validateAddress({ ...validAddress, city: 'a'.repeat(101) })
+    expect(errors.city).toBeDefined()
+  })
+
+  it('returns an error for notes over 500 characters', () => {
+    const errors = validateAddress({ ...validAddress, notes: 'a'.repeat(501) })
+    expect(errors.notes).toBeDefined()
+  })
+
+  it('accepts notes at exactly 500 characters', () => {
+    const errors = validateAddress({ ...validAddress, notes: 'a'.repeat(500) })
+    expect(errors.notes).toBeUndefined()
+  })
 })
