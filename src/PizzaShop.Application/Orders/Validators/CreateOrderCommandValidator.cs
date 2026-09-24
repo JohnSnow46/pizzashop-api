@@ -35,7 +35,7 @@ public sealed class CreateOrderCommandValidator : AbstractValidator<CreateOrderC
         RuleForEach(c => c.Items).ChildRules(item =>
         {
             item.RuleFor(i => i.MenuItemId).NotEmpty();
-            item.RuleFor(i => i.Quantity).GreaterThanOrEqualTo(1);
+            item.RuleFor(i => i.Quantity).InclusiveBetween(1, 100);
         });
 
         When(c => c.FulfillmentType == FulfillmentType.Delivery, () =>

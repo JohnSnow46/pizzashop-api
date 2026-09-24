@@ -92,6 +92,33 @@ public class CreateOrderCommandValidatorTests
     }
 
     [Fact]
+    public void Validate_ItemQuantityAboveMax_HasErrorForQuantity()
+    {
+        var command = ValidPickupCommand() with
+        {
+            Items = new[] { new CreateOrderItemDto(Guid.NewGuid(), null, 101, Array.Empty<Guid>()) },
+        };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName.EndsWith("Quantity"));
+    }
+
+    [Fact]
+    public void Validate_ItemQuantityAtMax_HasNoErrors()
+    {
+        var command = ValidPickupCommand() with
+        {
+            Items = new[] { new CreateOrderItemDto(Guid.NewGuid(), null, 100, Array.Empty<Guid>()) },
+        };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
     public void Validate_DeliveryWithoutAddress_HasErrorForDeliveryAddress()
     {
         var command = ValidPickupCommand() with { FulfillmentType = FulfillmentType.Delivery, DeliveryAddress = null };
