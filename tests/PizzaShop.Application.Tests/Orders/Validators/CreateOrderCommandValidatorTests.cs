@@ -119,6 +119,20 @@ public class CreateOrderCommandValidatorTests
     }
 
     [Fact]
+    public void Validate_ItemNotesTooLong_HasErrorForNotes()
+    {
+        var command = ValidPickupCommand() with
+        {
+            Items = new[] { new CreateOrderItemDto(Guid.NewGuid(), null, 1, Array.Empty<Guid>(), new string('a', 501)) },
+        };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName.EndsWith("Notes"));
+    }
+
+    [Fact]
     public void Validate_DeliveryWithoutAddress_HasErrorForDeliveryAddress()
     {
         var command = ValidPickupCommand() with { FulfillmentType = FulfillmentType.Delivery, DeliveryAddress = null };

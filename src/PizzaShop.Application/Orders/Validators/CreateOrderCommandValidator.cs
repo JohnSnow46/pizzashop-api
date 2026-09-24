@@ -36,6 +36,7 @@ public sealed class CreateOrderCommandValidator : AbstractValidator<CreateOrderC
         {
             item.RuleFor(i => i.MenuItemId).NotEmpty();
             item.RuleFor(i => i.Quantity).InclusiveBetween(1, 100);
+            item.RuleFor(i => i.Notes).MaximumLength(500);
         });
 
         When(c => c.FulfillmentType == FulfillmentType.Delivery, () =>
