@@ -15,6 +15,7 @@ Frontend: React + TypeScript (Vite) w `frontend/`.
 | Warstwa Application: CQRS, walidacja, porty | `docs/application-layer.md` (ma `## Indeks`) |
 | Warstwa Infrastructure: EF Core, PayU, geokodowanie | `docs/infrastructure-layer.md` (ma `## Indeks`) |
 | Decyzje architektoniczne | `docs/decisions.md` = indeks → `docs/adr/ADR-NNNN.md` = treść; `## ADR Notes` = log użycia per zadanie |
+| Kierunki dalszego rozwoju (MVP już gotowy) | `docs/roadmap.md` |
 
 ## Tryby pracy i workflow agentów (`.claude/agents/`)
 Domyślny tryb to **fast**. Tryb wybiera główny wątek sam, na podstawie tabeli poniżej —
