@@ -59,6 +59,10 @@ public sealed class CreateOrderCommandValidator : AbstractValidator<CreateOrderC
             RuleFor(c => c.DeliveryAddress!.Notes).MaximumLength(500);
         });
 
+        RuleFor(c => c.PromotionCode)
+            .MaximumLength(50)
+            .When(c => !string.IsNullOrEmpty(c.PromotionCode));
+
         RuleFor(c => c.PointsToRedeem)
             .GreaterThanOrEqualTo(0)
             .When(c => c.PointsToRedeem.HasValue);

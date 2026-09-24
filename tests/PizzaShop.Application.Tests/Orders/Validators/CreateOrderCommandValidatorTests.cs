@@ -246,6 +246,37 @@ public class CreateOrderCommandValidatorTests
     }
 
     [Fact]
+    public void Validate_NoPromotionCode_HasNoErrors()
+    {
+        var command = ValidPickupCommand();
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validate_PromotionCodeTooLong_HasErrorForPromotionCode()
+    {
+        var command = ValidPickupCommand() with { PromotionCode = new string('a', 51) };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateOrderCommand.PromotionCode));
+    }
+
+    [Fact]
+    public void Validate_PromotionCodeAtMaxLength_HasNoErrors()
+    {
+        var command = ValidPickupCommand() with { PromotionCode = new string('a', 50) };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
     public void Validate_NoPointsToRedeem_HasNoErrors()
     {
         var command = ValidPickupCommand();
