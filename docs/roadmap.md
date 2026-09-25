@@ -44,13 +44,11 @@ z rzeczy świadomie odłożonych w istniejących ADR-ach i notatkach projektowyc
    portfolio — pokazuje projektowanie nowego modelu domenowego od zera w istniejącej
    architekturze. Zakres: **średni**. **Wymaga nowego ADR**.
 
-6. **Panel raportowy dla RestaurantAdmin** — logika raportowania sprzedaży (walidator
-   `GetSalesReportQueryValidator`) już istnieje po stronie backendu; sprawdzić czy ma
-   odpowiednik w `frontend/` i jeśli nie — dodać prosty dashboard (sprzedaż w czasie,
-   popularne produkty, wykorzystanie promocji) na już istniejącym query. Niskie ryzyko,
-   wysoka wartość demo dla rekrutera. Zakres: **mały-średni** (głównie frontend na
-   istniejącym API). Prawdopodobnie **nie wymaga** nowego ADR, chyba że dojdzie nowe
-   query.
+6. ~~**Panel raportowy dla RestaurantAdmin**~~ — **już zrobione.** `frontend/src/pages/AdminReportsPage.tsx`
+   już implementuje pełny dashboard na `GetSalesReportQuery` (filtry zakresu dat i top-N,
+   liczba zamówień, przychód, tabela najlepiej sprzedających się pozycji, eksport CSV
+   z escapowaniem przed CSV injection). Ta pozycja była nieaktualna w chwili spisania
+   tego pliku — zweryfikowano 2026-09-25.
 
 7. **Asynchroniczne powiadomienia dla gościa** (e-mail przy kluczowych przejściach
    statusu: potwierdzone / gotowe / dostarczone) — dziś status widoczny wyłącznie przez
