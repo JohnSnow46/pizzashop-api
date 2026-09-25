@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ApiError } from '../../api/client'
 import { validatePromotion } from '../../api/promotionsApi'
+import { validatePromotionCode } from '../../checkout/validation'
 import type { Money, PromotionDiscountLine, PromotionDiscountPreview } from '../../api/types'
 
 interface PromotionFieldProps {
@@ -33,6 +34,13 @@ export function PromotionField({ code, preview, subtotal, deliveryFee, lines, on
       return
     }
 
+    const lengthError = validatePromotionCode(input)
+    if (lengthError) {
+      setError(lengthError)
+      onApply(input.trim(), null)
+      return
+    }
+
     setChecking(true)
     setError(null)
     try {
@@ -53,7 +61,7 @@ export function PromotionField({ code, preview, subtotal, deliveryFee, lines, on
       <div className="checkout-form-grid">
         <label className="checkout-field">
           Kod (opcjonalnie)
-          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="np. PIZZA10" />
+          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="np. PIZZA10" maxLength={50} />
         </label>
       </div>
 

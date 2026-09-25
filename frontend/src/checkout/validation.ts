@@ -50,6 +50,11 @@ export function validateContact(contact: ContactDetails): Record<string, string>
   return errors
 }
 
+/** Mirrors ValidatePromotionCodeQueryValidator/CreateOrderCommandValidator: max 50 chars. */
+export function validatePromotionCode(code: string): string | null {
+  return code.trim().length > 50 ? 'Kod promocyjny może mieć maksymalnie 50 znaków.' : null
+}
+
 /**
  * Length limits mirror CreateOrderCommandValidator's DeliveryAddress rules: same
  * DB-mapped Address value object, so the same maximums apply here.

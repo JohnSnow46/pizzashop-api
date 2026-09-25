@@ -5,6 +5,7 @@ import {
   validateFullName,
   validateContact,
   validateAddress,
+  validatePromotionCode,
 } from './validation'
 import type { Address, ContactDetails } from '../api/types'
 
@@ -71,6 +72,20 @@ describe('validateFullName', () => {
 
   it('returns null for a name at exactly 200 characters', () => {
     expect(validateFullName('a'.repeat(200))).toBeNull()
+  })
+})
+
+describe('validatePromotionCode', () => {
+  it('returns null for an empty string', () => {
+    expect(validatePromotionCode('')).toBeNull()
+  })
+
+  it('returns null for a code at exactly 50 characters', () => {
+    expect(validatePromotionCode('a'.repeat(50))).toBeNull()
+  })
+
+  it('returns an error for a code over 50 characters', () => {
+    expect(validatePromotionCode('a'.repeat(51))).not.toBeNull()
   })
 })
 
