@@ -25,5 +25,9 @@ public sealed class CreateMenuItemCommandValidator : AbstractValidator<CreateMen
             variant.When(v => v.Price is not null, () =>
                 variant.RuleFor(v => v.Price.Amount).GreaterThanOrEqualTo(0));
         });
+
+        RuleFor(c => c.Variants)
+            .Must(vs => vs.Count(v => v.IsDefault) <= 1)
+            .WithMessage("At most one variant can be marked as default.");
     }
 }

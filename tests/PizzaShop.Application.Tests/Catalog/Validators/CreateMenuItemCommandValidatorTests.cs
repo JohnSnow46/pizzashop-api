@@ -111,4 +111,41 @@ public class CreateMenuItemCommandValidatorTests
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateMenuItemCommand.ImageUrl));
     }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    public void Validate_ZeroOrOneDefaultVariant_HasNoErrors(bool firstIsDefault, bool secondIsDefault)
+    {
+        var command = ValidCommand() with
+        {
+            Variants = new[]
+            {
+                new MenuItemVariantInputDto(null, "Small", new MoneyDto(20m, "PLN"), firstIsDefault),
+                new MenuItemVariantInputDto(null, "Large", new MoneyDto(30m, "PLN"), secondIsDefault),
+            },
+        };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validate_MoreThanOneDefaultVariant_HasErrorForVariants()
+    {
+        var command = ValidCommand() with
+        {
+            Variants = new[]
+            {
+                new MenuItemVariantInputDto(null, "Small", new MoneyDto(20m, "PLN"), true),
+                new MenuItemVariantInputDto(null, "Large", new MoneyDto(30m, "PLN"), true),
+            },
+        };
+
+        var result = _validator.Validate(command);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.PropertyName == nameof(CreateMenuItemCommand.Variants));
+    }
 }
