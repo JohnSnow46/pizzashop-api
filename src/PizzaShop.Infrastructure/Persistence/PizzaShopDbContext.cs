@@ -5,6 +5,7 @@ using PizzaShop.Domain.Customers;
 using PizzaShop.Domain.Loyalty;
 using PizzaShop.Domain.Orders;
 using PizzaShop.Domain.Promotions;
+using PizzaShop.Domain.Reviews;
 using PizzaShop.Domain.ValueObjects;
 using PizzaShop.Infrastructure.Persistence.Converters;
 using DomainRestaurant = PizzaShop.Domain.Restaurant;
@@ -39,6 +40,8 @@ public sealed class PizzaShopDbContext : DbContext
     public DbSet<LoyaltyAccount> LoyaltyAccounts => Set<LoyaltyAccount>();
 
     public DbSet<Promotion> Promotions => Set<Promotion>();
+
+    public DbSet<Review> Reviews => Set<Review>();
 
     /// <summary>
     /// The only non-Domain entity in this context — identity deliberately lives outside
