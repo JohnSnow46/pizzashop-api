@@ -52,6 +52,7 @@ utwórz `docs/adr/ADR-NNNN.md`**, nie dopisuj treści bezpośrednio tutaj.
 - [ADR-0039](adr/ADR-0039.md): Panel "Moje konto" — nowy `GET /api/orders/mine` (historia zamówień klienta), sortowanie historii punktów w istniejącym `GET /api/loyalty/balance` (bez nowego endpointu), `PointsRedeemed` w checkoucie świadomie odłożone
 - [ADR-0040](adr/ADR-0040.md): Wykorzystanie punktów lojalnościowych w checkoucie (`PointsToRedeem`) — UI dla zalogowanego klienta, guard clause w Domain przeciw rabatowi ponad wartość zamówienia, optymistyczna współbieżność (`xmin`) na `LoyaltyAccount`, zwrot punktów przy anulowaniu/odrzuceniu zamówienia
 - [ADR-0041](adr/ADR-0041.md): Retry płatności PayU dla gościa — `InitializeGuestPaymentCommand` kluczowany `GuestTrackingToken`, domknięcie przeglądu bezpieczeństwa odłożonego w ADR-0018 (bez rate-limitingu/jednorazowości tokenu w tej iteracji)
+- [ADR-0042](adr/ADR-0042.md): Oceny i recenzje pozycji menu — nowy agregat `Review` (tylko zarejestrowani klienci, jedna recenzja per Order+MenuItem, uprawnienie sprawdzane w Application nie Domain)
 
 ---
 
