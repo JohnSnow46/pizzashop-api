@@ -37,12 +37,12 @@ z rzeczy świadomie odłożonych w istniejących ADR-ach i notatkach projektowyc
    wzorzec strategii na żywym przykładzie. Zakres: **średni**. **Wymaga nowego ADR**
    (wybór dostawcy, routing wyboru metody w checkout).
 
-5. **Oceny i recenzje zamówień/produktów** — po dostarczeniu zamówienia klient mógłby
-   ocenić pozycje menu; typowa funkcja e-commerce, której repo dziś w ogóle nie ma.
-   Nowy, mały agregat `Review` powiązany z `Order`/`MenuItem` (z guardem: tylko dla
-   zamówień w statusie Delivered, jedna recenzja na pozycję). Dobra pozycja pod
-   portfolio — pokazuje projektowanie nowego modelu domenowego od zera w istniejącej
-   architekturze. Zakres: **średni**. **Wymaga nowego ADR**.
+5. ~~**Oceny i recenzje zamówień/produktów**~~ — **zrobione (ADR-0042, 2026-09-28).** Nowy
+   agregat `Review`: rejestrowany klient ocenia (1-5, opcjonalny komentarz) pozycję menu z
+   własnego, `Completed` zamówienia; jedna recenzja per (Order, MenuItem). Backend
+   kompletny (Domain+Application+Infrastructure+Api+33 testy) — `POST /api/reviews`,
+   `GET /api/reviews/mine`, `GET /api/menu-items/{id}/reviews`. Frontend świadomie poza
+   zakresem tego ADR (backend-first, jak ADR-0039).
 
 6. ~~**Panel raportowy dla RestaurantAdmin**~~ — **już zrobione.** `frontend/src/pages/AdminReportsPage.tsx`
    już implementuje pełny dashboard na `GetSalesReportQuery` (filtry zakresu dat i top-N,
@@ -56,6 +56,20 @@ z rzeczy świadomie odłożonych w istniejących ADR-ach i notatkach projektowyc
    fallback adresuje realny UX gap gościa offline. Zakres: **średni** (nowy port
    `INotificationSender`, implementacja np. SMTP/SendGrid w Infrastructure). **Wymaga
    nowego ADR** (wybór dostawcy, momenty wysyłki, szablon).
+
+## Notatka 2026-09-28
+
+User zatwierdził realizację pozycji wcześniej oznaczonych "wymaga nowego ADR". Dziś
+zrealizowano wyłącznie poz. 5 (Reviews, ADR-0042) — solidnie, z pełnym testem. Poz. 1
+(rozszerzenie BuyXGetY) świadomie NIE ruszona dziś: po ponownej analizie w trakcie pisania
+ADR okazało się, że część żądanego zakresu ("edycja reguły") wprost koliduje z istniejącą,
+świadomą decyzją `domain-model.md` §8.1 ("Reguła BuyXGetY... jest niemutowalna po
+utworzeniu... zmiana = nowa promocja") — wymaga to osobnej decyzji (czy odwracać tamtą
+decyzję), nie mieści się w prostym "rozszerz o kategorię". Poz. 2 (trwały koszyk) i 4
+(druga metoda płatności) pozostają nietknięte — największy zakres/ryzyko z zatwierdzonej
+listy, celowo zostawione na osobne dni. Poz. 3 (hardening retry płatności) i 7
+(powiadomienia e-mail) też jeszcze nie zrobione — kolejność z braku czasu, nie z powodu
+problemów.
 
 ## Świadomie pominięte
 
