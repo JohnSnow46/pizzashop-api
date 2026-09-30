@@ -84,6 +84,47 @@ Szablon wpisu:
 
 ---
 
+### 2026-09-30 — Trwały koszyk (Cart) dla zalogowanych klientów
+
+**Wykorzystane ADR:**
+- ADR-0043 — Trwały koszyk (`Cart`) dla zalogowanych klientów
+  - Pełna implementacja Slice 1: agregat `Cart`/`CartItem` (Domain), `ICartRepository` +
+    EF (Infrastructure, `OwnsMany` + value-converter/comparer dla `ExtraIds`), CQRS
+    (`AddCartItem`/`UpdateCartItemQuantity`/`RemoveCartItem`/`ClearCart`/`GetMyCart`,
+    Application), `CartController` (Api, `[Authorize(Roles=Customer)]`). TTL/auto-czyszczenie
+    i integracja frontendu świadomie poza zakresem (patrz ADR "Nie w zakresie").
+- ADR-0020 — Strategia mapowania EF Core (konstruktory perystencyjne, owned collections)
+  - `CartConfiguration` mirroruje `OrderConfiguration`'s `OwnsMany` dla `Items`; `ExtraIds`
+    jako CSV string + `ValueComparer<IReadOnlyList<Guid>>` zamiast trzeciej tabeli (brak
+    dodatkowych danych per extra, w przeciwieństwie do `OrderItemExtra`).
+- ADR-0042 — Oceny i recenzje (wzorzec dla nowego, małego agregatu)
+  - Struktura plików/warstw (Domain→Application CQRS→Infrastructure→Api, testy per
+    warstwa) skopiowana 1:1 jako szablon dla `Cart`.
+
+**Wpływ na implementację:**
+- Nowe: `src/PizzaShop.Domain/Carts/{Cart,CartItem}.cs`, `Application/Abstractions/
+  Persistence/ICartRepository.cs`, `Application/Carts/**` (Commands×4, Queries×1, Dtos,
+  Validators×2), `Infrastructure/Persistence/Repositories/CartRepository.cs`,
+  `Infrastructure/Persistence/Configurations/CartConfiguration.cs`, migracja `AddCarts`,
+  `Api/Controllers/CartController.cs`.
+- `docs/roadmap.md` poz. 7 (powiadomienia e-mail) skorygowana jako już zaimplementowana —
+  `IEmailSender` już istniał i był wywoływany z każdego handlera zmiany statusu; roadmapa
+  była nieaktualna, nie brakującą funkcją.
+- Testy: 19 nowych (Domain: `CartTests`/`CartItemTests`) + testy Application (handlery ×5,
+  walidatory ×2) — pełny zestaw poza Docker-zależnymi testami Infrastructure zielony.
+- Świadomie POZA zakresem dzisiejszego zadania: pozycje 3/4 roadmapy (hardening retry
+  płatności, druga metoda płatności) — próba ich zlecenia zablokowana przez klasyfikator
+  bezpieczeństwa sesji, wymagają bezpośredniej decyzji usera. Pozycja 1 (rozszerzenie
+  BuyXGetY) koliduje z istniejącą decyzją o niemutowalności reguły (patrz notatka
+  2026-09-28 w `docs/roadmap.md`) — nietknięta.
+
+**Przeczytane, nieużyte:**
+- ADR-0018/ADR-0021 (sidecar shadow properties na `Orders`) — rozważone jako wzorzec dla
+  `ExtraIds`, ostatecznie niepotrzebne: `Cart`/`CartItem` nie mają odpowiednika
+  `GuestTrackingToken` (koszyk nie dotyczy gości), zwykła kolumna wystarczyła.
+
+---
+
 ### 2026-07-28 — Broadcast "nowe zamówienie" dla staff w OrderTrackingHub (rozszerzenie ADR-0038)
 
 **Wykorzystane ADR:**

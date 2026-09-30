@@ -17,12 +17,15 @@ z rzeczy świadomie odłożonych w istniejących ADR-ach i notatkach projektowyc
    kategoria, auto-dołożenie nagrody, `UpdateRule`. Zakres: **średni**. **Wymaga nowego
    ADR** (rozszerza ADR-0011/0034).
 
-2. **Trwały koszyk / odzyskiwanie porzuconych koszyków** — koszyk świadomie NIE jest
-   dziś agregatem Domain (`domain-model.md` §10) — zamówienie powstaje wprost z
-   "draftu". Dodanie trwałego `Cart` (TTL, powiązanie z zalogowanym klientem, recovery
-   po powrocie) to konkretny, wcześniej przewidziany krok, dobrze pokazujący
-   projektowanie nowego agregatu w dojrzałym repo. Zakres: **duży** (nowy agregat,
-   migracja, endpointy, frontend). **Wymaga nowego ADR**.
+2. ~~**Trwały koszyk / odzyskiwanie porzuconych koszyków**~~ — **Slice 1 zrobiony
+   (ADR-0043, 2026-09-30).** Nowy agregat `Cart`/`CartItem`: tylko zalogowani klienci,
+   bez snapshotów cen (referencje jak dzisiejszy koszyk client-side), merge pozycji po
+   (MenuItemId, VariantId, ExtraIds). Backend kompletny (Domain+Application+
+   Infrastructure+Api, `GET/POST/PATCH/DELETE /api/cart[...]`) + testy. **Świadomie
+   NIE w tym slice:** TTL/auto-czyszczenie starych koszyków (wymaga infrastruktury
+   zadań w tle, której repo nie ma), integracja frontendu (`CartContext` nadal używa
+   `localStorage` — przełączenie na ten backend to osobne zadanie), scalanie koszyka
+   gościa po zalogowaniu.
 
 3. **Hardening retry płatności gościa** — ADR-0041 wprost odkłada rate-limiting i
    jednorazowość `GuestTrackingToken` przy retry płatności PayU ("bez rate-limitingu/
@@ -75,6 +78,16 @@ decyzję), nie mieści się w prostym "rozszerz o kategorię". Poz. 2 (trwały k
 listy, celowo zostawione na osobne dni. Poz. 3 (hardening retry płatności) i 7
 (powiadomienia e-mail) też jeszcze nie zrobione — kolejność z braku czasu, nie z powodu
 problemów.
+
+## Notatka 2026-09-30
+
+Zrealizowano poz. 2 (Cart, Slice 1, ADR-0043) i skorygowano poz. 7 (powiadomienia e-mail —
+okazała się już zaimplementowana, nie nowa funkcja). Poz. 3 (hardening retry płatności) i 4
+(druga metoda płatności) świadomie NIE ruszone: próba ich zlecenia w tej samej turze
+została zablokowana przez klasyfikator bezpieczeństwa sesji (prawdopodobnie ze względu na
+wrażliwość kodu płatniczego) — obie wymagają bezpośredniej realizacji przez usera, nie będą
+ponawiane automatycznie w tej rutynie. Poz. 1 (rozszerzenie BuyXGetY) wciąż nietknięta —
+patrz notatka 2026-09-28, wymaga osobnej decyzji o (nie)odwróceniu niemutowalności reguły.
 
 ## Świadomie pominięte
 
