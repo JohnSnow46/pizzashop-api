@@ -37,16 +37,18 @@ public sealed class Cart
 
     /// <summary>Adds a new line, or — if a line with the same (menuItemId, variantId,
     /// extraIds) already exists (ADR-0043 §B) — increases that line's quantity instead of
-    /// creating a duplicate.</summary>
-    public void AddItem(
+    /// creating a duplicate. Returns the id of the resulting (new or merged) line.</summary>
+    public Guid AddItem(
         Guid menuItemId, Guid? variantId, IEnumerable<Guid> extraIds, int quantity, string? notes, DateTimeOffset updatedAt)
     {
         var extraIdList = extraIds as IReadOnlyList<Guid> ?? extraIds.ToArray();
         var existing = _items.FirstOrDefault(i => i.HasSameSelection(menuItemId, variantId, extraIdList));
 
+        CartItem result;
         if (existing is null)
         {
-            _items.Add(CartItem.Create(menuItemId, variantId, extraIdList, quantity, notes));
+            result = CartItem.Create(menuItemId, variantId, extraIdList, quantity, notes);
+            _items.Add(result);
         }
         else
         {
@@ -54,11 +56,13 @@ public sealed class Cart
             if (mergedQuantity > 100)
                 throw new ArgumentOutOfRangeException(nameof(quantity), "Combined quantity must not exceed 100.");
 
+            result = existing.WithQuantity(mergedQuantity);
             _items.Remove(existing);
-            _items.Add(existing.WithQuantity(mergedQuantity));
+            _items.Add(result);
         }
 
         UpdatedAt = updatedAt;
+        return result.Id;
     }
 
     public void UpdateItemQuantity(Guid cartItemId, int quantity, DateTimeOffset updatedAt)

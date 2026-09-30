@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PizzaShop.Application.Identity;
+using PizzaShop.Domain.Carts;
 using PizzaShop.Domain.Catalog;
 using PizzaShop.Domain.Customers;
 using PizzaShop.Domain.Loyalty;
@@ -42,6 +43,8 @@ public sealed class PizzaShopDbContext : DbContext
     public DbSet<Promotion> Promotions => Set<Promotion>();
 
     public DbSet<Review> Reviews => Set<Review>();
+
+    public DbSet<Cart> Carts => Set<Cart>();
 
     /// <summary>
     /// The only non-Domain entity in this context — identity deliberately lives outside
