@@ -50,12 +50,17 @@ z rzeczy świadomie odłożonych w istniejących ADR-ach i notatkach projektowyc
    z escapowaniem przed CSV injection). Ta pozycja była nieaktualna w chwili spisania
    tego pliku — zweryfikowano 2026-09-25.
 
-7. **Asynchroniczne powiadomienia dla gościa** (e-mail przy kluczowych przejściach
-   statusu: potwierdzone / gotowe / dostarczone) — dziś status widoczny wyłącznie przez
-   live-tracking SignalR, czyli tylko gdy klient ma aktywne połączenie. E-mail jako
-   fallback adresuje realny UX gap gościa offline. Zakres: **średni** (nowy port
-   `INotificationSender`, implementacja np. SMTP/SendGrid w Infrastructure). **Wymaga
-   nowego ADR** (wybór dostawcy, momenty wysyłki, szablon).
+7. ~~**Asynchroniczne powiadomienia dla gościa**~~ — **już zrobione.** `IEmailSender`
+   (Application/Abstractions/Email, `LoggingEmailSender` w Infrastructure) już istnieje
+   i jest wywoływany z każdego handlera zmieniającego status zamówienia
+   (`CreateOrderCommandHandler` → `SendOrderConfirmationEmailAsync`;
+   `AcceptOrderCommandHandler`/`RejectOrderCommandHandler`/`MarkReadyCommandHandler`/
+   `StartDeliveryCommandHandler`/`CompleteOrderCommandHandler`/`CancelOrderCommandHandler`
+   → `SendOrderStatusChangedEmailAsync`), każde wywołanie opakowane w try/catch żeby
+   błąd wysyłki nie psuł transakcji. Ta pozycja była nieaktualna w chwili spisania tego
+   pliku — zweryfikowano 2026-09-30. Realny dostawca SMTP/SendGrid zamiast
+   `LoggingEmailSender` to osobna, mniejsza decyzja (podmiana jednej implementacji
+   portu), nie warta nowego ADR sama w sobie.
 
 ## Notatka 2026-09-28
 
