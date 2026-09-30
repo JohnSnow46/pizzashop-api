@@ -89,6 +89,47 @@ wrażliwość kodu płatniczego) — obie wymagają bezpośredniej realizacji pr
 ponawiane automatycznie w tej rutynie. Poz. 1 (rozszerzenie BuyXGetY) wciąż nietknięta —
 patrz notatka 2026-09-28, wymaga osobnej decyzji o (nie)odwróceniu niemutowalności reguły.
 
+## Kolejne kroki (2026-09-30)
+
+Wszystkie pozycje 1-7 powyżej są już zrobione, zablokowane (klasyfikator/potrzebna
+decyzja usera) albo okazały się nieaktualne. Poniższe to naturalne kontynuacje już
+podjętych decyzji (ADR-0042/ADR-0043) plus jedna nowa, uzasadniona luka — nie wymagają
+nowego ADR, chyba że zaznaczono inaczej.
+
+8. **Integracja frontendu z koszykiem serwerowym** — `ADR-0043` dostarczył pełny backend
+   (`Cart`/`CartItem`, `GET/POST/PATCH/DELETE /api/cart[...]`), ale `frontend/src/cart/`
+   nadal używa wyłącznie `localStorage`/`CartContext`. Przełączenie źródła prawdy na
+   backend dla zalogowanych klientów (klucz merge pozycji już 1:1 zgodny, patrz ADR-0043
+   §B) — goście zostają przy dzisiejszym koszyku client-side. Zakres: **mały-średni**,
+   decyzja już zapadła w ADR-0043, nie wymaga nowego.
+
+9. **Scalanie koszyka gościa po zalogowaniu** — jawnie odłożone w ADR-0043 ("Nie w
+   zakresie"). Wymaga małej, osobnej decyzji: co się dzieje przy konflikcie (gość ma
+   pizza Margherita w koszyku, zalogowany klient ma już inny koszyk na serwerze —
+   sumować ilości czy nadpisywać?). Zakres: **mały**, ale rekomendowane rozstrzygnięcie
+   tej jednej decyzji przed implementacją (nie pełny ADR, wystarczy notatka w
+   `## ADR Notes`).
+
+10. **TTL/auto-czyszczenie starych koszyków** — jawnie odłożone w ADR-0043 z powodu braku
+    infrastruktury zadań w tle (Hangfire/scheduled job) w tym repo. Realny dopiero gdy
+    pojawi się pierwszy inny powód do wprowadzenia takiej infrastruktury (np. czyszczenie
+    wygasłych `GuestTrackingToken` — patrz poz. 3) — nie warto dodawać jej wyłącznie dla
+    tego. Zakres: **średni**, wymaga nowej decyzji infrastrukturalnej, nie tylko ADR.
+
+11. **UI recenzji na froncie** — `ADR-0042` dostarczył pełny backend (`POST /api/reviews`,
+    `GET /api/reviews/mine`, `GET /api/menu-items/{id}/reviews`), ale frontend świadomie
+    poza zakresem tego ADR (backend-first, jak ADR-0043 dla koszyka). Formularz dodania
+    recenzji na stronie zamówienia (`Completed`) + lista recenzji na stronie pozycji menu.
+    Zakres: **mały-średni**, decyzja już zapadła w ADR-0042.
+
+12. **Średnia ocena na liście/karcie pozycji menu** — dziś `GET /api/menu-items/{id}/reviews`
+    zwraca surową listę recenzji, ale nic w katalogu (`MenuItem`/`MenuItemDto`) nie pokazuje
+    zagregowanej średniej oceny ani liczby recenzji — sprawdzone w
+    `Application/Reviews/` (brak jakiejkolwiek agregacji `Average`/`Rating`). Naturalne,
+    tanie domknięcie ADR-0042: dopisać `AverageRating`/`ReviewCount` do `MenuItemDto`
+    (zapytanie z agregacją po stronie query, bez zmian w Domain). Zakres: **mały**, nie
+    wymaga nowego ADR (czysto addytywne rozszerzenie query).
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,
