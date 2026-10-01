@@ -122,13 +122,15 @@ nowego ADR, chyba że zaznaczono inaczej.
     recenzji na stronie zamówienia (`Completed`) + lista recenzji na stronie pozycji menu.
     Zakres: **mały-średni**, decyzja już zapadła w ADR-0042.
 
-12. **Średnia ocena na liście/karcie pozycji menu** — dziś `GET /api/menu-items/{id}/reviews`
-    zwraca surową listę recenzji, ale nic w katalogu (`MenuItem`/`MenuItemDto`) nie pokazuje
-    zagregowanej średniej oceny ani liczby recenzji — sprawdzone w
-    `Application/Reviews/` (brak jakiejkolwiek agregacji `Average`/`Rating`). Naturalne,
-    tanie domknięcie ADR-0042: dopisać `AverageRating`/`ReviewCount` do `MenuItemDto`
-    (zapytanie z agregacją po stronie query, bez zmian w Domain). Zakres: **mały**, nie
-    wymaga nowego ADR (czysto addytywne rozszerzenie query).
+12. ~~**Średnia ocena na liście/karcie pozycji menu**~~ — **zrobione (2026-10-01).**
+    `IReviewRepository.GetRatingSummariesAsync` agreguje `Average`/`Count` po stronie
+    bazy (EF `GroupBy`), `MenuItemDto` ma teraz `AverageRating`/`ReviewCount`, oba
+    handlery katalogu (`GetMenuQueryHandler`/`GetMenuItemByIdQueryHandler`) go
+    wypełniają. Po drodze wykryto i naprawiono brakujący `InMemoryReviewRepository` w
+    `PizzaShop.Api.Tests` — oba handlery zyskały nową zależność od `IReviewRepository`,
+    której `ApiTestFactory` dotąd nie podmieniał, więc testy katalogu próbowały łączyć
+    się z prawdziwym Postgresem. 4 nowe testy jednostkowe (Application), 130/130 Api
+    testów zielonych po poprawce.
 
 ## Świadomie pominięte
 

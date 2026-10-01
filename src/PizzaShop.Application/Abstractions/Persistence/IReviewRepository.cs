@@ -16,5 +16,13 @@ public interface IReviewRepository
     /// <summary>A customer's own reviews.</summary>
     Task<IReadOnlyList<Review>> GetByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Average rating and review count per menu item, for the ones that have at least one review.
+    /// Used to show an aggregate rating on the catalog (<c>MenuItemDto</c>) without loading every
+    /// <see cref="Review"/> row.
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, (double Average, int Count)>> GetRatingSummariesAsync(
+        IEnumerable<Guid> menuItemIds, CancellationToken cancellationToken);
+
     Task AddAsync(Review review, CancellationToken cancellationToken);
 }

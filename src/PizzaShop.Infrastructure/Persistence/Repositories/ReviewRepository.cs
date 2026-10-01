@@ -31,6 +31,24 @@ public sealed class ReviewRepository : IReviewRepository
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyDictionary<Guid, (double Average, int Count)>> GetRatingSummariesAsync(
+        IEnumerable<Guid> menuItemIds, CancellationToken cancellationToken)
+    {
+        var ids = menuItemIds.ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, (double Average, int Count)>();
+        }
+
+        var summaries = await _context.Reviews
+            .Where(r => ids.Contains(r.MenuItemId))
+            .GroupBy(r => r.MenuItemId)
+            .Select(g => new { MenuItemId = g.Key, Average = g.Average(r => (double)r.Rating), Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        return summaries.ToDictionary(s => s.MenuItemId, s => (s.Average, s.Count));
+    }
+
     public Task AddAsync(Review review, CancellationToken cancellationToken)
     {
         _context.Reviews.Add(review);

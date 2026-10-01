@@ -5,7 +5,7 @@ namespace PizzaShop.Application.Catalog.Dtos;
 
 internal static class MenuItemMapper
 {
-    public static MenuItemDto ToDto(MenuItem item) =>
+    public static MenuItemDto ToDto(MenuItem item, (double Average, int Count)? ratingSummary = null) =>
         new(
             item.Id,
             item.Name,
@@ -16,7 +16,9 @@ internal static class MenuItemMapper
             item.ImageUrl,
             item.Variants.Select(ToDto).ToList(),
             item.BaseIngredients.Select(ToDto).ToList(),
-            item.AllowedExtras.Select(ToDto).ToList());
+            item.AllowedExtras.Select(ToDto).ToList(),
+            ratingSummary?.Average,
+            ratingSummary?.Count ?? 0);
 
     public static MenuItemVariantDto ToDto(MenuItemVariant variant) =>
         new(variant.Id, variant.Name, new MoneyDto(variant.Price.Amount, variant.Price.Currency), variant.IsDefault);

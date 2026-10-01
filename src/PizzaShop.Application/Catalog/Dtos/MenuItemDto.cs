@@ -13,4 +13,6 @@ public sealed record MenuItemDto(
     string? ImageUrl,
     IReadOnlyList<MenuItemVariantDto> Variants,
     IReadOnlyList<IngredientDto> BaseIngredients,
-    IReadOnlyList<IngredientDto> AllowedExtras);
+    IReadOnlyList<IngredientDto> AllowedExtras,
+    double? AverageRating,
+    int ReviewCount);

@@ -81,6 +81,9 @@ public sealed class ApiTestFactory : WebApplicationFactory<Program>
             services.RemoveAll<IOrderRepository>();
             services.AddSingleton<IOrderRepository, InMemoryOrderRepository>();
 
+            services.RemoveAll<IReviewRepository>();
+            services.AddSingleton<IReviewRepository, InMemoryReviewRepository>();
+
             // Real Infrastructure implementations call external HTTP services (Nominatim,
             // PayU Sandbox) — replaced with deterministic fakes so Api tests never depend on
             // network access (Iteration 3, api-layer.md 6.6/6.7).
