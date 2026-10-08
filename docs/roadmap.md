@@ -116,11 +116,14 @@ nowego ADR, chyba że zaznaczono inaczej.
     wygasłych `GuestTrackingToken` — patrz poz. 3) — nie warto dodawać jej wyłącznie dla
     tego. Zakres: **średni**, wymaga nowej decyzji infrastrukturalnej, nie tylko ADR.
 
-11. **UI recenzji na froncie** — `ADR-0042` dostarczył pełny backend (`POST /api/reviews`,
-    `GET /api/reviews/mine`, `GET /api/menu-items/{id}/reviews`), ale frontend świadomie
-    poza zakresem tego ADR (backend-first, jak ADR-0043 dla koszyka). Formularz dodania
-    recenzji na stronie zamówienia (`Completed`) + lista recenzji na stronie pozycji menu.
-    Zakres: **mały-średni**, decyzja już zapadła w ADR-0042.
+11. ~~**UI recenzji na froncie**~~ — **zrobione (2026-10-08).** `MenuItemCard` pokazuje
+    średnią ocenę/liczbę recenzji (`MenuItem.averageRating`/`reviewCount`, dotąd
+    nieobecne w `frontend/src/api/types.ts` mimo że backend je zwracał od #12) i rozwijaną
+    listę recenzji (`GET /api/menu-items/{id}/reviews`, leniwie ładowaną przez
+    `useMenuItemReviews`). `OrderStatusPage` renderuje `OrderReviewForm` dla zamówień
+    `Completed` — formularz ocen per pozycja zamówienia, pomija pozycje już ocenione
+    (`GET /api/reviews/mine`), wysyła `POST /api/reviews`. Zakres: mały-średni, zgodnie z
+    szacunkiem; decyzja z ADR-0042, bez zmian backendowych.
 
 12. ~~**Średnia ocena na liście/karcie pozycji menu**~~ — **zrobione (2026-10-01).**
     `IReviewRepository.GetRatingSummariesAsync` agreguje `Average`/`Count` po stronie

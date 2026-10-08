@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { MenuItem } from '../api/types'
 import { buildCartItemKey } from '../cart/types'
 import { useCart } from '../hooks/useCart'
+import { useMenuItemReviews } from '../hooks/useMenuItemReviews'
 import { ExtrasPicker } from './ExtrasPicker'
 import { VariantPicker } from './VariantPicker'
 
@@ -24,6 +25,8 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
   // confirmation animation (Faza 2 accent) — no effect on cart state/business logic.
   const [justAdded, setJustAdded] = useState(false)
   const justAddedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [reviewsOpen, setReviewsOpen] = useState(false)
+  const reviews = useMenuItemReviews(item.id, reviewsOpen)
 
   useEffect(() => {
     return () => {
@@ -67,6 +70,34 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
       <h3>{item.name}</h3>
       {!item.isAvailable && <span className="menu-card__unavailable-badge">Niedostępne</span>}
       {item.description && <p className="menu-card__description">{item.description}</p>}
+
+      <div className="menu-card__rating">
+        {item.averageRating !== null ? (
+          <button type="button" className="menu-card__rating-toggle" onClick={() => setReviewsOpen((open) => !open)}>
+            ★ {item.averageRating.toFixed(1)} ({item.reviewCount})
+          </button>
+        ) : (
+          <span className="menu-card__rating-empty">Brak ocen</span>
+        )}
+      </div>
+
+      {reviewsOpen && (
+        <div className="menu-card__reviews">
+          {reviews.loading && <p className="checkout-hint">Ładowanie recenzji…</p>}
+          {reviews.error && <p className="checkout-error">{reviews.error}</p>}
+          {reviews.data && reviews.data.reviews.length === 0 && <p className="checkout-hint">Brak recenzji.</p>}
+          {reviews.data && reviews.data.reviews.length > 0 && (
+            <ul className="menu-card__reviews-list">
+              {reviews.data.reviews.map((review) => (
+                <li key={review.id}>
+                  <strong>★ {review.rating}</strong>
+                  {review.comment && <span> — {review.comment}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {item.variants.length > 0 && (
         <VariantPicker

@@ -86,6 +86,8 @@ export interface MenuItem {
   variants: MenuItemVariant[]
   baseIngredients: Ingredient[]
   allowedExtras: Ingredient[]
+  averageRating: number | null
+  reviewCount: number
 }
 
 /**
@@ -556,4 +558,30 @@ export interface SalesReport {
   orderCount: number
   revenue: Money
   topMenuItems: TopMenuItem[]
+}
+
+/** Mirror of PizzaShop.Application.Reviews.Dtos.ReviewDto (ADR-0042). */
+export interface Review {
+  id: string
+  orderId: string
+  customerId: string
+  menuItemId: string
+  rating: number
+  comment: string | null
+  createdAt: string
+}
+
+/** Mirror of PizzaShop.Application.Reviews.Dtos.MenuItemReviewsDto (ADR-0042). */
+export interface MenuItemReviews {
+  menuItemId: string
+  averageRating: number | null
+  reviews: Review[]
+}
+
+/** Mirror of PizzaShop.Application.Reviews.Commands.CreateReviewCommand (ADR-0042). */
+export interface CreateReviewCommand {
+  orderId: string
+  menuItemId: string
+  rating: number
+  comment: string | null
 }

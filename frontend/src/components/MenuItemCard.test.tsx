@@ -18,6 +18,8 @@ function makeItem(overrides: Partial<MenuItem> = {}): MenuItem {
     variants: [],
     baseIngredients: [],
     allowedExtras: [],
+    averageRating: null,
+    reviewCount: 0,
     ...overrides,
   }
 }

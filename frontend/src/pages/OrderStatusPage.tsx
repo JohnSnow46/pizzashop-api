@@ -1,4 +1,5 @@
 import { useParams } from 'react-router-dom'
+import { OrderReviewForm } from '../components/orders/OrderReviewForm'
 import { OrderTrackingStatus } from '../components/orders/OrderTrackingStatus'
 import { RetryPaymentButton } from '../components/orders/RetryPaymentButton'
 import { useOrderTracking } from '../hooks/useOrderTracking'
@@ -29,6 +30,7 @@ export function OrderStatusPage() {
           {orderId && tracking.order?.paymentMethod === 'Online' && tracking.order.paymentStatus !== 'Paid' && (
             <RetryPaymentButton source={{ orderId }} />
           )}
+          {tracking.order?.status === 'Completed' && <OrderReviewForm order={tracking.order} />}
         </>
       )}
     </div>
