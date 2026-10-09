@@ -96,12 +96,19 @@ decyzja usera) albo okazały się nieaktualne. Poniższe to naturalne kontynuacj
 podjętych decyzji (ADR-0042/ADR-0043) plus jedna nowa, uzasadniona luka — nie wymagają
 nowego ADR, chyba że zaznaczono inaczej.
 
-8. **Integracja frontendu z koszykiem serwerowym** — `ADR-0043` dostarczył pełny backend
-   (`Cart`/`CartItem`, `GET/POST/PATCH/DELETE /api/cart[...]`), ale `frontend/src/cart/`
-   nadal używa wyłącznie `localStorage`/`CartContext`. Przełączenie źródła prawdy na
-   backend dla zalogowanych klientów (klucz merge pozycji już 1:1 zgodny, patrz ADR-0043
-   §B) — goście zostają przy dzisiejszym koszyku client-side. Zakres: **mały-średni**,
-   decyzja już zapadła w ADR-0043, nie wymaga nowego.
+8. ~~**Integracja frontendu z koszykiem serwerowym**~~ — **zrobione (2026-10-09).**
+   `CartContext` przełącza źródło prawdy na `GET/POST/PATCH/DELETE /api/cart[...]` dla
+   zalogowanych klientów (`isAuthenticated && customerId`), goście bez zmian
+   (`useContext(AuthContext)` zamiast rzucającego `useAuth()` — `CartContext.test.tsx`
+   renderuje `CartProvider` bez `AuthProvider` nad nim, więc musi bezpiecznie
+   degradować do trybu gościa). Backend nie trzyma nazw/cen (ADR-0043 §2) —
+   `hydrateFromServerCart` odtwarza je z żywego katalogu (`getMenu()`), pomijając
+   pozycję, jeśli referencja już nie istnieje. Mutacje optymistyczne +
+   `pendingAddByKey`/`backendIdByKey` obsługują realny wyścig (remove tuż po add, zanim
+   POST wróci z prawdziwym id) — pokryte osobnym testem. Scalanie koszyka gościa po
+   zalogowaniu świadomie NIE zaimplementowane (patrz poz. 9 — osobna, nierozstrzygnięta
+   decyzja); koszyk gościa zostaje nietknięty w `localStorage`. 119/119 testów
+   frontendu, typy/lint/build czyste; nie testowane ręcznie w przeglądarce.
 
 9. **Scalanie koszyka gościa po zalogowaniu** — jawnie odłożone w ADR-0043 ("Nie w
    zakresie"). Wymaga małej, osobnej decyzji: co się dzieje przy konflikcie (gość ma

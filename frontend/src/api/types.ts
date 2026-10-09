@@ -42,6 +42,10 @@
 //   - src/PizzaShop.Application/Customers/Commands/AddCustomerAddressCommand.cs (address book)
 //   - src/PizzaShop.Application/Reports/Dtos/SalesReportDto.cs (admin reports UI)
 //   - src/PizzaShop.Application/Reports/Dtos/TopMenuItemDto.cs (admin reports UI)
+//   - src/PizzaShop.Application/Reviews/Dtos/ReviewDto.cs (+ MenuItemReviewsDto, ADR-0042)
+//   - src/PizzaShop.Application/Reviews/Commands/CreateReviewCommand.cs (ADR-0042)
+//   - src/PizzaShop.Application/Carts/Dtos/CartDto.cs (+ CartItemDto, ADR-0043)
+//   - src/PizzaShop.Application/Carts/Commands/AddCartItemCommand.cs (ADR-0043)
 
 import type { UserRole } from '../auth/types'
 
@@ -584,4 +588,33 @@ export interface CreateReviewCommand {
   menuItemId: string
   rating: number
   comment: string | null
+}
+
+/**
+ * Mirror of PizzaShop.Application.Carts.Dtos.CartItemDto/CartDto (ADR-0043). Holds only
+ * reference ids, never price/name snapshots — the frontend resolves display data against
+ * the live menu catalog (see cart/CartContext.tsx's hydration), same as the Api recomputes
+ * prices fresh at checkout.
+ */
+export interface CartItemDto {
+  id: string
+  menuItemId: string
+  variantId: string | null
+  extraIds: string[]
+  quantity: number
+  notes: string | null
+}
+
+export interface CartDto {
+  items: CartItemDto[]
+  updatedAt: string
+}
+
+/** Mirror of PizzaShop.Application.Carts.Commands.AddCartItemCommand (ADR-0043). */
+export interface AddCartItemCommand {
+  menuItemId: string
+  variantId: string | null
+  extraIds: string[]
+  quantity: number
+  notes: string | null
 }

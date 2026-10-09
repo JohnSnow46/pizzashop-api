@@ -1,6 +1,10 @@
-import { createContext, useEffect, useReducer, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useRef, useReducer, type ReactNode } from 'react'
+import { AuthContext } from '../auth/AuthContext'
+import { addCartItem, clearCart as clearCartApi, getMyCart, removeCartItem, updateCartItemQuantity } from '../api/cartApi'
+import { getMenu } from '../api/menuApi'
+import type { CartDto, MenuItem } from '../api/types'
 import { loadCart, saveCart } from './cartStorage'
-import type { CartItem } from './types'
+import { buildCartItemKey, type CartItem } from './types'
 
 export interface AddCartItemInput {
   menuItemId: string
@@ -21,6 +25,7 @@ type CartAction =
   | { type: 'remove'; key: string }
   | { type: 'setQuantity'; key: string; quantity: number }
   | { type: 'clear' }
+  | { type: 'replaceAll'; items: CartItem[] }
 
 function cartReducer(items: CartItem[], action: CartAction): CartItem[] {
   switch (action.type) {
@@ -43,9 +48,52 @@ function cartReducer(items: CartItem[], action: CartAction): CartItem[] {
     }
     case 'clear':
       return []
+    case 'replaceAll':
+      return action.items
     default:
       return items
   }
+}
+
+/**
+ * Resolves a persistent cart (ADR-0043, raw ids only) against the live menu catalog into
+ * display-ready CartItems — the backend deliberately stores no name/price snapshot (a cart
+ * is a draft, not a transaction), so this mirrors what MenuItemCard already computes when
+ * adding an item. A referenced menu item/variant/extra that no longer exists in the catalog
+ * (e.g. deleted since being added) is skipped rather than crashing the cart view.
+ */
+function hydrateFromServerCart(cart: CartDto, menu: MenuItem[]): { item: CartItem; backendId: string }[] {
+  const menuById = new Map(menu.map((m) => [m.id, m]))
+
+  const resolved: { item: CartItem; backendId: string }[] = []
+  for (const line of cart.items) {
+    const menuItem = menuById.get(line.menuItemId)
+    if (!menuItem) {
+      continue
+    }
+
+    const variant = line.variantId ? (menuItem.variants.find((v) => v.id === line.variantId) ?? null) : null
+    const extras = menuItem.allowedExtras.filter((extra) => line.extraIds.includes(extra.id))
+    const unitPriceAmount =
+      (variant?.price.amount ?? menuItem.basePrice.amount) + extras.reduce((sum, extra) => sum + extra.extraPrice.amount, 0)
+
+    resolved.push({
+      backendId: line.id,
+      item: {
+        key: buildCartItemKey(line.menuItemId, line.variantId, line.extraIds),
+        menuItemId: line.menuItemId,
+        menuItemName: menuItem.name,
+        variantId: line.variantId,
+        variantName: variant?.name ?? null,
+        extraIds: line.extraIds,
+        extraNames: extras.map((extra) => extra.name),
+        unitPriceAmount,
+        currency: variant?.price.currency ?? menuItem.basePrice.currency,
+        quantity: line.quantity,
+      },
+    })
+  }
+  return resolved
 }
 
 export interface CartContextValue {
@@ -61,24 +109,179 @@ export interface CartContextValue {
 
 export const CartContext = createContext<CartContextValue | null>(null)
 
+/**
+ * `useContext` directly (not the throwing `useAuth()` wrapper) — `CartProvider` must stay
+ * usable standalone (CartContext.test.tsx renders it with no AuthProvider above it), and
+ * "no auth context" is correctly treated the same as "not logged in": the existing
+ * client-side-only cart, unchanged. Logged-in customers only (`isAuthenticated` plus a
+ * `customerId` — Employee/Admin accounts have neither a cart nor a reason to use one).
+ */
+function useIsBackendCartCustomer(): boolean {
+  const auth = useContext(AuthContext)
+  return Boolean(auth?.isAuthenticated && auth.user?.customerId)
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, dispatch] = useReducer(cartReducer, undefined, loadCart)
+  const useBackendCart = useIsBackendCartCustomer()
 
+  // Backend CartItem id per line key — populated by hydration and by addItem's response.
+  // A plain ref (not state): it's bookkeeping for which network call to fire next, not
+  // something that should itself trigger a re-render.
+  const backendIdByKey = useRef<Map<string, string>>(new Map())
+  // In-flight addItem calls, so a remove/setQuantity on a line added moments ago waits for
+  // its real backend id instead of acting on nothing.
+  const pendingAddByKey = useRef<Map<string, Promise<string>>>(new Map())
+
+  async function resolveBackendId(key: string): Promise<string | undefined> {
+    const known = backendIdByKey.current.get(key)
+    if (known) {
+      return known
+    }
+    return pendingAddByKey.current.get(key)
+  }
+
+  // Persist only the guest cart -- the backend is the source of truth once
+  // useBackendCart is true, and must not be clobbered by a stale localStorage write.
   useEffect(() => {
-    saveCart(items)
-  }, [items])
+    if (!useBackendCart) {
+      saveCart(items)
+    }
+  }, [items, useBackendCart])
+
+  // Switches the displayed cart's source on every auth-mode transition (including the
+  // initial mount): the server cart + live catalog when logged in as a customer, the
+  // existing localStorage snapshot otherwise. Deliberately doesn't merge the two --
+  // ADR-0043 leaves "guest cart survives login" as a separate, not-yet-made decision
+  // (docs/roadmap.md #9); the guest cart is simply left untouched in localStorage.
+  useEffect(() => {
+    let cancelled = false
+
+    if (!useBackendCart) {
+      dispatch({ type: 'replaceAll', items: loadCart() })
+      return
+    }
+
+    backendIdByKey.current = new Map()
+    pendingAddByKey.current = new Map()
+
+    Promise.all([getMyCart(), getMenu()])
+      .then(([cart, menu]) => {
+        if (cancelled) {
+          return
+        }
+        const resolved = hydrateFromServerCart(cart, menu)
+        backendIdByKey.current = new Map(resolved.map(({ item, backendId }) => [item.key, backendId]))
+        dispatch({ type: 'replaceAll', items: resolved.map((r) => r.item) })
+      })
+      .catch((error: unknown) => {
+        // Best-effort: leaves the cart empty rather than blocking the rest of the app on
+        // a failed fetch. The next successful mutation/hydration will self-correct.
+        console.error('Failed to load the server-side cart.', error)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [useBackendCart])
 
   const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0)
   const totalAmount = items.reduce((sum, i) => sum + i.unitPriceAmount * i.quantity, 0)
+
+  function addItem(item: AddCartItemInput) {
+    dispatch({ type: 'add', item })
+
+    if (!useBackendCart) {
+      return
+    }
+
+    const promise = addCartItem({
+      menuItemId: item.menuItemId,
+      variantId: item.variantId,
+      extraIds: item.extraIds,
+      quantity: item.quantity,
+      notes: null,
+    })
+      .then((id) => {
+        backendIdByKey.current.set(item.key, id)
+        return id
+      })
+      .catch((error: unknown) => {
+        console.error('Failed to add the item to the server-side cart.', error)
+        throw error
+      })
+      .finally(() => {
+        pendingAddByKey.current.delete(item.key)
+      })
+
+    // A failed add has no other consumer unless a remove/setQuantity happens to await it
+    // via resolveBackendId before it settles -- attach an inert catch so that common case
+    // doesn't surface as an unhandled rejection; the error is already logged above, and any
+    // real awaiter still observes the same rejection independently.
+    promise.catch(() => {})
+
+    pendingAddByKey.current.set(item.key, promise)
+  }
+
+  function removeItem(key: string) {
+    dispatch({ type: 'remove', key })
+
+    if (!useBackendCart) {
+      return
+    }
+
+    void resolveBackendId(key)
+      .then((id) => {
+        if (!id) {
+          return
+        }
+        backendIdByKey.current.delete(key)
+        return removeCartItem(id)
+      })
+      .catch((error: unknown) => console.error('Failed to remove the item from the server-side cart.', error))
+  }
+
+  function setQuantity(key: string, quantity: number) {
+    dispatch({ type: 'setQuantity', key, quantity })
+
+    if (!useBackendCart) {
+      return
+    }
+
+    void resolveBackendId(key)
+      .then((id) => {
+        if (!id) {
+          return
+        }
+        if (quantity <= 0) {
+          backendIdByKey.current.delete(key)
+          return removeCartItem(id)
+        }
+        return updateCartItemQuantity(id, quantity)
+      })
+      .catch((error: unknown) => console.error('Failed to update the item in the server-side cart.', error))
+  }
+
+  function clear() {
+    dispatch({ type: 'clear' })
+
+    if (!useBackendCart) {
+      return
+    }
+
+    backendIdByKey.current = new Map()
+    pendingAddByKey.current = new Map()
+    void clearCartApi().catch((error: unknown) => console.error('Failed to clear the server-side cart.', error))
+  }
 
   const value: CartContextValue = {
     items,
     totalQuantity,
     totalAmount,
-    addItem: (item) => dispatch({ type: 'add', item }),
-    removeItem: (key) => dispatch({ type: 'remove', key }),
-    setQuantity: (key, quantity) => dispatch({ type: 'setQuantity', key, quantity }),
-    clear: () => dispatch({ type: 'clear' }),
+    addItem,
+    removeItem,
+    setQuantity,
+    clear,
   }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
