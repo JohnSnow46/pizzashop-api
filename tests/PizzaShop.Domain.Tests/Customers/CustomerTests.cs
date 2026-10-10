@@ -105,6 +105,30 @@ public class CustomerTests
     }
 
     [Fact]
+    public void UpdateAddress_UnknownAddressId_ThrowsAddressNotInAddressBookException()
+    {
+        var customer = CreateCustomer();
+
+        var act = () => customer.UpdateAddress(Guid.NewGuid(), "Home", SampleAddress());
+
+        act.Should().Throw<AddressNotInAddressBookException>();
+    }
+
+    [Fact]
+    public void UpdateAddress_KnownAddressId_ReplacesLabelAndAddressWithoutChangingDefault()
+    {
+        var customer = CreateCustomer();
+        var home = customer.AddAddress("Home", SampleAddress(), isDefault: true);
+        var newAddress = new DeliveryAddress(new Address("Oak St", "2", "Warsaw", "00-002"), new GeoCoordinate(52.1, 21.1));
+
+        customer.UpdateAddress(home.Id, "Home (corrected)", newAddress);
+
+        home.Label.Should().Be("Home (corrected)");
+        home.DeliveryAddress.Should().Be(newAddress);
+        home.IsDefault.Should().BeTrue();
+    }
+
+    [Fact]
     public void UpdateContactDetails_MissingFullName_ThrowsArgumentException()
     {
         var customer = CreateCustomer();

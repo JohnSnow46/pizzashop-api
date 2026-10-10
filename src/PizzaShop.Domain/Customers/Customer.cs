@@ -80,6 +80,14 @@ public class Customer
         _addressBook.RemoveAll(a => a.Id == addressId);
     }
 
+    public void UpdateAddress(Guid addressId, string label, DeliveryAddress deliveryAddress)
+    {
+        var target = _addressBook.FirstOrDefault(a => a.Id == addressId)
+            ?? throw new AddressNotInAddressBookException(addressId);
+
+        target.Update(label, deliveryAddress);
+    }
+
     public void SetDefaultAddress(Guid addressId)
     {
         var target = _addressBook.FirstOrDefault(a => a.Id == addressId)

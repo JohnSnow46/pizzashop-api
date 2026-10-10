@@ -40,6 +40,13 @@ public sealed class CustomersController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPut("addresses/{id:guid}")]
+    public async Task<ActionResult<CustomerAddressDto>> UpdateAddress(Guid id, UpdateCustomerAddressCommand command, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(command with { AddressId = id }, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpDelete("addresses/{id:guid}")]
     public async Task<IActionResult> RemoveAddress(Guid id, CancellationToken cancellationToken)
     {

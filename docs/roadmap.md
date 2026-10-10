@@ -145,6 +145,31 @@ nowego ADR, chyba że zaznaczono inaczej.
     się z prawdziwym Postgresem. 4 nowe testy jednostkowe (Application), 130/130 Api
     testów zielonych po poprawce.
 
+## Kolejne kroki (2026-10-11)
+
+13. ~~**Edycja pozycji w książce adresowej klienta**~~ — **zrobione (2026-10-11).**
+    `CustomerAddress.Update(label, deliveryAddress)` istniał w Domain od początku
+    (ADR dot. książki adresowej), ale nic go nie wywoływało — klient mógł tylko dodać i
+    usunąć adres, więc poprawka literówki w ulicy gubiła `IsDefault`, jeśli to był adres
+    domyślny (usuń+dodaj od nowa). `Customer.UpdateAddress` (nowa metoda, wzorzec 1:1 z
+    `SetDefaultAddress` — `AddressNotInAddressBookException`, jeśli id nie jest w
+    książce), `UpdateCustomerAddressCommand`/Handler/Validator (wzorzec 1:1 z Add*,
+    w tym re-geokodowanie nowego adresu), `PUT /api/customers/addresses/{id}`. 11 nowych
+    testów (Domain + Application), zielone.
+
+14. **Walidacja istnienia pozycji katalogu przy dodawaniu do koszyka (`AddCartItemCommandHandler`)**
+    — ADR-0043 świadomie zostawił to bez walidacji ("frontend też tego nie robi"), opierając
+    się wyłącznie na `CreateOrderCommand` jako jedynym autorytatywnym punkcie kontroli.
+    Dziś `AddCartItemCommandHandler` nie sprawdza, czy `MenuItemId`/`VariantId`/`ExtraIds`
+    faktycznie istnieją w katalogu — linia koszyka odwołująca się do usunionej/zmienionej
+    pozycji jest dziś nieszkodliwa (frontend już ją pomija przy hydratacji, patrz
+    `hydrateFromServerCart`), ale to tania, prawdziwa dziura do zamknięcia, zamiast
+    pozwalać koszykowi cicho zbierać martwe referencje. Zakres: **mały** — dodanie
+    `IMenuItemRepository`/`IIngredientRepository` do handlera + sprawdzenie istnienia
+    (bez wywołania `MenuItem.ResolvePrice`, które wymusza reguły specyficzne dla
+    zamówienia, nieadekwatne dla szkicu-koszyka). Nie wymaga nowego ADR. **Nie
+    zaimplementowane dzisiaj** — znalezione podczas przeglądu, odłożone na kolejny dzień.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,
