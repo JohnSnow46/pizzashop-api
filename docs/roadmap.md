@@ -157,18 +157,16 @@ nowego ADR, chyba że zaznaczono inaczej.
     w tym re-geokodowanie nowego adresu), `PUT /api/customers/addresses/{id}`. 11 nowych
     testów (Domain + Application), zielone.
 
-14. **Walidacja istnienia pozycji katalogu przy dodawaniu do koszyka (`AddCartItemCommandHandler`)**
-    — ADR-0043 świadomie zostawił to bez walidacji ("frontend też tego nie robi"), opierając
-    się wyłącznie na `CreateOrderCommand` jako jedynym autorytatywnym punkcie kontroli.
-    Dziś `AddCartItemCommandHandler` nie sprawdza, czy `MenuItemId`/`VariantId`/`ExtraIds`
-    faktycznie istnieją w katalogu — linia koszyka odwołująca się do usunionej/zmienionej
-    pozycji jest dziś nieszkodliwa (frontend już ją pomija przy hydratacji, patrz
-    `hydrateFromServerCart`), ale to tania, prawdziwa dziura do zamknięcia, zamiast
-    pozwalać koszykowi cicho zbierać martwe referencje. Zakres: **mały** — dodanie
-    `IMenuItemRepository`/`IIngredientRepository` do handlera + sprawdzenie istnienia
-    (bez wywołania `MenuItem.ResolvePrice`, które wymusza reguły specyficzne dla
-    zamówienia, nieadekwatne dla szkicu-koszyka). Nie wymaga nowego ADR. **Nie
-    zaimplementowane dzisiaj** — znalezione podczas przeglądu, odłożone na kolejny dzień.
+14. ~~**Walidacja istnienia pozycji katalogu przy dodawaniu do koszyka (`AddCartItemCommandHandler`)**~~
+    — **zrobione (2026-10-11).** ADR-0043 świadomie zostawił to bez walidacji ("frontend też
+    tego nie robi"), opierając się wyłącznie na `CreateOrderCommand` jako jedynym
+    autorytatywnym punkcie kontroli. `AddCartItemCommandHandler` teraz sprawdza przez
+    `IMenuItemRepository`/`IIngredientRepository`, że `MenuItemId`/`VariantId`/`ExtraIds`
+    faktycznie istnieją w katalogu (`NotFoundException`) i że każdy `ExtraId` jest
+    dozwolony dla tej pozycji (`MenuItem.EnsureExtraAllowed`) — bez wywołania
+    `MenuItem.ResolvePrice`, które wymusza reguły specyficzne dla zamówienia
+    (dostępność, wymagany wariant), nieadekwatne dla szkicu-koszyka. 6 nowych testów
+    jednostkowych (Application), 440/440 zielonych.
 
 ## Świadomie pominięte
 
