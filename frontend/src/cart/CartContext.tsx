@@ -96,6 +96,41 @@ function hydrateFromServerCart(cart: CartDto, menu: MenuItem[]): { item: CartIte
   return resolved
 }
 
+/**
+ * Merges the guest's localStorage cart into the server-backed one on login (roadmap #9,
+ * left as a separate decision by ADR-0043). Decision made here: sum quantities on a
+ * matching selection, by simply replaying each guest line through addCartItem -- the
+ * backend already merges into an existing line with the same (menuItemId, variantId,
+ * extraIds) and sums quantity (ADR-0043 SS B), so this needs no client-side merge logic of
+ * its own. A line is only dropped from localStorage once its own POST has succeeded, so a
+ * partial failure (one line fails, others succeed) leaves just the unmerged remainder for
+ * the next mount to retry rather than silently losing it or double-merging what already
+ * went through.
+ */
+async function mergeGuestCartIntoServerCart(): Promise<void> {
+  const guestItems = loadCart()
+  if (guestItems.length === 0) {
+    return
+  }
+
+  const remaining: CartItem[] = []
+  for (const guestItem of guestItems) {
+    try {
+      await addCartItem({
+        menuItemId: guestItem.menuItemId,
+        variantId: guestItem.variantId,
+        extraIds: guestItem.extraIds,
+        quantity: guestItem.quantity,
+        notes: null,
+      })
+    } catch (error) {
+      console.error('Failed to merge a guest cart line into the server-side cart.', error)
+      remaining.push(guestItem)
+    }
+  }
+  saveCart(remaining)
+}
+
 export interface CartContextValue {
   items: CartItem[]
   totalQuantity: number
@@ -151,9 +186,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Switches the displayed cart's source on every auth-mode transition (including the
   // initial mount): the server cart + live catalog when logged in as a customer, the
-  // existing localStorage snapshot otherwise. Deliberately doesn't merge the two --
-  // ADR-0043 leaves "guest cart survives login" as a separate, not-yet-made decision
-  // (docs/roadmap.md #9); the guest cart is simply left untouched in localStorage.
+  // existing localStorage snapshot otherwise.
   useEffect(() => {
     let cancelled = false
 
@@ -165,7 +198,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     backendIdByKey.current = new Map()
     pendingAddByKey.current = new Map()
 
-    Promise.all([getMyCart(), getMenu()])
+    mergeGuestCartIntoServerCart()
+      .then(() => Promise.all([getMyCart(), getMenu()]))
       .then(([cart, menu]) => {
         if (cancelled) {
           return

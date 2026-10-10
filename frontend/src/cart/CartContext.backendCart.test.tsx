@@ -198,4 +198,62 @@ describe('CartContext (logged-in customer, server-backed cart)', () => {
 
     await waitFor(() => expect(clearCartMock).toHaveBeenCalled())
   })
+
+  it('merges a guest cart left in localStorage into the server cart on login, then clears it', async () => {
+    const guestKey = buildCartItemKey('pizza-1', null, [])
+    localStorage.setItem(
+      'pizzashop.cart',
+      JSON.stringify([
+        {
+          key: guestKey,
+          menuItemId: 'pizza-1',
+          menuItemName: 'Margherita',
+          variantId: null,
+          variantName: null,
+          extraIds: [],
+          extraNames: [],
+          unitPriceAmount: 30,
+          currency: 'PLN',
+          quantity: 2,
+        },
+      ]),
+    )
+    addCartItemMock.mockResolvedValue('merged-id-1')
+
+    renderHook(() => useCart(), { wrapper })
+
+    await waitFor(() =>
+      expect(addCartItemMock).toHaveBeenCalledWith({
+        menuItemId: 'pizza-1',
+        variantId: null,
+        extraIds: [],
+        quantity: 2,
+        notes: null,
+      }),
+    )
+    await waitFor(() => expect(JSON.parse(localStorage.getItem('pizzashop.cart') ?? '[]')).toEqual([]))
+  })
+
+  it('keeps an unmerged guest line in localStorage when its merge POST fails', async () => {
+    const guestKey = buildCartItemKey('pizza-1', null, [])
+    const guestLine = {
+      key: guestKey,
+      menuItemId: 'pizza-1',
+      menuItemName: 'Margherita',
+      variantId: null,
+      variantName: null,
+      extraIds: [],
+      extraNames: [],
+      unitPriceAmount: 30,
+      currency: 'PLN',
+      quantity: 2,
+    }
+    localStorage.setItem('pizzashop.cart', JSON.stringify([guestLine]))
+    addCartItemMock.mockRejectedValue(new Error('network error'))
+
+    renderHook(() => useCart(), { wrapper })
+
+    await waitFor(() => expect(addCartItemMock).toHaveBeenCalled())
+    await waitFor(() => expect(JSON.parse(localStorage.getItem('pizzashop.cart') ?? '[]')).toEqual([guestLine]))
+  })
 })
