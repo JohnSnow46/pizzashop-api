@@ -110,12 +110,15 @@ nowego ADR, chyba że zaznaczono inaczej.
    decyzja); koszyk gościa zostaje nietknięty w `localStorage`. 119/119 testów
    frontendu, typy/lint/build czyste; nie testowane ręcznie w przeglądarce.
 
-9. **Scalanie koszyka gościa po zalogowaniu** — jawnie odłożone w ADR-0043 ("Nie w
-   zakresie"). Wymaga małej, osobnej decyzji: co się dzieje przy konflikcie (gość ma
-   pizza Margherita w koszyku, zalogowany klient ma już inny koszyk na serwerze —
-   sumować ilości czy nadpisywać?). Zakres: **mały**, ale rekomendowane rozstrzygnięcie
-   tej jednej decyzji przed implementacją (nie pełny ADR, wystarczy notatka w
-   `## ADR Notes`).
+9. ~~**Scalanie koszyka gościa po zalogowaniu**~~ — **zrobione (2026-10-10).** Decyzja na
+   konflikt: sumować ilości, nie nadpisywać — to już ustalony sposób łączenia identycznej
+   selekcji gdzie indziej w koszyku (reducer `add`, i backendowy `addCartItem`, ADR-0043
+   §B). `mergeGuestCartIntoServerCart` w `CartContext.tsx` po prostu odtwarza każdą
+   linię gościa przez `addCartItem` przy przejściu na koszyk serwerowy — backend już sam
+   scala po `(menuItemId, variantId, extraIds)` i sumuje ilość, więc nie trzeba
+   duplikować tej logiki po stronie klienta. Linia znika z `localStorage` tylko po
+   udanym POST-cie, więc częściowy błąd zostawia jedynie nieschowaną resztę do ponowienia
+   przy następnym montowaniu, bez utraty czy podwójnego scalenia tego co już przeszło.
 
 10. **TTL/auto-czyszczenie starych koszyków** — jawnie odłożone w ADR-0043 z powodu braku
     infrastruktury zadań w tle (Hangfire/scheduled job) w tym repo. Realny dopiero gdy

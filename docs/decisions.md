@@ -84,6 +84,25 @@ Szablon wpisu:
 
 ---
 
+### 2026-10-10 — Scalanie koszyka gościa po zalogowaniu (roadmap #9)
+
+**Wykorzystane ADR:**
+- ADR-0043 — Trwały koszyk (`Cart`) dla zalogowanych klientów
+  - §B (merge po `(menuItemId, variantId, extraIds)` + suma ilości na `addCartItem`)
+    użyte bez zmian: `mergeGuestCartIntoServerCart` tylko odtwarza linie gościa przez
+    istniejące `addCartItem`, zamiast duplikować logikę scalania po stronie klienta.
+
+**Wpływ na implementację:**
+- `frontend/src/cart/CartContext.tsx`: nowa funkcja `mergeGuestCartIntoServerCart`,
+  wywoływana przed hydratacją koszyka serwerowego przy przejściu `useBackendCart` na
+  `true`. Decyzja na konflikt: sumować ilości (konsekwentnie z resztą koszyka), nie
+  nadpisywać. Linia usuwana z `localStorage` tylko po udanym POST-cie — częściowy błąd
+  zostawia nieschowaną resztę do ponowienia przy następnym montowaniu.
+- 2 nowe testy w `CartContext.backendCart.test.tsx` (merge sukcesu, merge częściowej
+  porażki).
+
+---
+
 ### 2026-09-30 — Trwały koszyk (Cart) dla zalogowanych klientów
 
 **Wykorzystane ADR:**
