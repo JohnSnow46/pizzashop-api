@@ -168,6 +168,18 @@ nowego ADR, chyba że zaznaczono inaczej.
     (dostępność, wymagany wariant), nieadekwatne dla szkicu-koszyka. 6 nowych testów
     jednostkowych (Application), 440/440 zielonych.
 
+## Kolejne kroki (2026-10-13)
+
+15. **Frontend dla edycji pozycji w książce adresowej** — **zrobione (2026-10-13).**
+    Poz. 13 dodała `PUT /api/customers/addresses/{id}` na backendzie, ale
+    `MyAccountPage` wołał tylko `addAddress`/`removeAddress`/`setDefaultAddress` —
+    edycja istniejącego wpisu wymagała usunięcia i ponownego dodania (gubiąc
+    `isDefault`, ten sam problem co poz. 13 na poziomie API). `updateAddress`
+    w `customersApi.ts` + przycisk "Edytuj" ładujący wpis do istniejącego formularza
+    "Dodaj adres" (teraz dzielonego między add/edit, przełącznik przez
+    `editingAddressId`), przycisk zmienia się na "Zapisz zmiany" + "Anuluj". 2 nowe
+    testy (`MyAccountPage.test.tsx`), 123/123 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

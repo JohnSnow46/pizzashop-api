@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getMyOrders } from '../api/ordersApi'
 import { getLoyaltyBalance } from '../api/loyaltyApi'
-import { addAddress, getMyAddresses, removeAddress, setDefaultAddress } from '../api/customersApi'
+import { addAddress, getMyAddresses, removeAddress, setDefaultAddress, updateAddress } from '../api/customersApi'
 import { ApiError } from '../api/client'
 import type {
   Address,
@@ -68,6 +68,7 @@ export function MyAccountPage() {
   const [addressApiError, setAddressApiError] = useState<string | null>(null)
   const [isSavingAddress, setIsSavingAddress] = useState(false)
   const [addressActionId, setAddressActionId] = useState<string | null>(null)
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -94,7 +95,7 @@ export function MyAccountPage() {
     }
   }, [])
 
-  async function handleAddAddress() {
+  async function handleSaveAddress() {
     const validationErrors = validateAddress(newAddress)
     const errors: Record<string, string> = { ...validationErrors }
     if (newLabel.trim().length === 0) {
@@ -108,16 +109,35 @@ export function MyAccountPage() {
     setIsSavingAddress(true)
     setAddressApiError(null)
     try {
-      const created = await addAddress({ label: newLabel.trim(), address: newAddress, isDefault: addresses.length === 0 })
-      setAddresses((prev) => (created.isDefault ? prev.map((a) => ({ ...a, isDefault: false })) : prev).concat(created))
-      setNewLabel('')
-      setNewAddress(EMPTY_NEW_ADDRESS)
-      setAddressErrors({})
+      if (editingAddressId) {
+        const updated = await updateAddress(editingAddressId, { label: newLabel.trim(), address: newAddress })
+        setAddresses((prev) => prev.map((a) => (a.id === editingAddressId ? updated : a)))
+      } else {
+        const created = await addAddress({ label: newLabel.trim(), address: newAddress, isDefault: addresses.length === 0 })
+        setAddresses((prev) => (created.isDefault ? prev.map((a) => ({ ...a, isDefault: false })) : prev).concat(created))
+      }
+      handleCancelEditAddress()
     } catch (err) {
-      setAddressApiError(err instanceof ApiError ? (err.detail ?? err.message) : 'Nie udało się dodać adresu.')
+      const fallback = editingAddressId ? 'Nie udało się zapisać zmian adresu.' : 'Nie udało się dodać adresu.'
+      setAddressApiError(err instanceof ApiError ? (err.detail ?? err.message) : fallback)
     } finally {
       setIsSavingAddress(false)
     }
+  }
+
+  function handleEditAddress(entry: CustomerAddress) {
+    setEditingAddressId(entry.id)
+    setNewLabel(entry.label)
+    setNewAddress(entry.address)
+    setAddressErrors({})
+    setAddressApiError(null)
+  }
+
+  function handleCancelEditAddress() {
+    setEditingAddressId(null)
+    setNewLabel('')
+    setNewAddress(EMPTY_NEW_ADDRESS)
+    setAddressErrors({})
   }
 
   async function handleRemoveAddress(id: string) {
@@ -126,6 +146,9 @@ export function MyAccountPage() {
     try {
       await removeAddress(id)
       setAddresses((prev) => prev.filter((a) => a.id !== id))
+      if (editingAddressId === id) {
+        handleCancelEditAddress()
+      }
     } catch (err) {
       setAddressApiError(err instanceof ApiError ? (err.detail ?? err.message) : 'Nie udało się usunąć adresu.')
     } finally {
@@ -237,6 +260,14 @@ export function MyAccountPage() {
                   )}
                   <button
                     type="button"
+                    className="queue-action-btn"
+                    disabled={addressActionId === entry.id}
+                    onClick={() => handleEditAddress(entry)}
+                  >
+                    Edytuj
+                  </button>
+                  <button
+                    type="button"
                     className="queue-action-btn queue-action-btn--danger"
                     disabled={addressActionId === entry.id}
                     onClick={() => handleRemoveAddress(entry.id)}
@@ -305,9 +336,14 @@ export function MyAccountPage() {
         </div>
 
         <div className="checkout-actions">
-          <button type="button" className="add-to-cart-btn" disabled={isSavingAddress} onClick={handleAddAddress}>
-            {isSavingAddress ? 'Zapisywanie...' : 'Dodaj adres'}
+          <button type="button" className="add-to-cart-btn" disabled={isSavingAddress} onClick={handleSaveAddress}>
+            {isSavingAddress ? 'Zapisywanie...' : editingAddressId ? 'Zapisz zmiany' : 'Dodaj adres'}
           </button>
+          {editingAddressId && (
+            <button type="button" className="queue-action-btn" disabled={isSavingAddress} onClick={handleCancelEditAddress}>
+              Anuluj
+            </button>
+          )}
         </div>
       </section>
     </div>

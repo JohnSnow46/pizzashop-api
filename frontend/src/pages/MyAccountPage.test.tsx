@@ -17,11 +17,12 @@ vi.mock('../api/customersApi', () => ({
   addAddress: vi.fn(),
   removeAddress: vi.fn(),
   setDefaultAddress: vi.fn(),
+  updateAddress: vi.fn(),
 }))
 
 import { getMyOrders } from '../api/ordersApi'
 import { getLoyaltyBalance } from '../api/loyaltyApi'
-import { addAddress, getMyAddresses, removeAddress, setDefaultAddress } from '../api/customersApi'
+import { addAddress, getMyAddresses, removeAddress, setDefaultAddress, updateAddress } from '../api/customersApi'
 import { MyAccountPage } from './MyAccountPage'
 
 const getMyOrdersMock = vi.mocked(getMyOrders)
@@ -30,6 +31,7 @@ const getMyAddressesMock = vi.mocked(getMyAddresses)
 const addAddressMock = vi.mocked(addAddress)
 const removeAddressMock = vi.mocked(removeAddress)
 const setDefaultAddressMock = vi.mocked(setDefaultAddress)
+const updateAddressMock = vi.mocked(updateAddress)
 
 function makeOrder(overrides: Partial<OrderSummary> = {}): OrderSummary {
   return {
@@ -77,6 +79,7 @@ beforeEach(() => {
   addAddressMock.mockReset()
   removeAddressMock.mockReset()
   setDefaultAddressMock.mockReset()
+  updateAddressMock.mockReset()
 
   getMyOrdersMock.mockResolvedValue([makeOrder()])
   getLoyaltyBalanceMock.mockResolvedValue(makeLoyalty())
@@ -177,5 +180,50 @@ describe('MyAccountPage', () => {
     expect(await screen.findByText('Nie można usunąć adresu domyślnego.')).toBeDefined()
     expect(screen.getByText('Dom')).toBeDefined()
     expect(setDefaultAddressMock).not.toHaveBeenCalled()
+  })
+
+  it('edits an existing address: prefills the form, calls updateAddress and shows the result', async () => {
+    const updated = makeAddress({ label: 'Dom (nowy)', address: { ...makeAddress().address, street: 'Nowa' } })
+    updateAddressMock.mockResolvedValue(updated)
+
+    renderPage()
+    await screen.findByText('Dom')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edytuj' }))
+
+    expect((screen.getByLabelText('Nazwa adresu (np. Dom, Praca)') as HTMLInputElement).value).toBe('Dom')
+    expect((screen.getByLabelText('Ulica') as HTMLInputElement).value).toBe('Kwiatowa')
+
+    fireEvent.change(screen.getByLabelText('Nazwa adresu (np. Dom, Praca)'), { target: { value: 'Dom (nowy)' } })
+    fireEvent.change(screen.getByLabelText('Ulica'), { target: { value: 'Nowa' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz zmiany' }))
+
+    expect(await screen.findByText('Dom (nowy)')).toBeDefined()
+    expect(updateAddressMock).toHaveBeenCalledWith('addr-1', {
+      label: 'Dom (nowy)',
+      address: {
+        street: 'Nowa',
+        buildingNumber: '5',
+        city: 'Warszawa',
+        postalCode: '00-001',
+        apartmentNumber: null,
+        notes: null,
+      },
+    })
+    expect(addAddressMock).not.toHaveBeenCalled()
+  })
+
+  it('cancels an in-progress address edit and restores the "add" form', async () => {
+    renderPage()
+    await screen.findByText('Dom')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edytuj' }))
+    expect(screen.getByRole('button', { name: 'Zapisz zmiany' })).toBeDefined()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Anuluj' }))
+
+    expect(screen.getByRole('button', { name: 'Dodaj adres' })).toBeDefined()
+    expect((screen.getByLabelText('Nazwa adresu (np. Dom, Praca)') as HTMLInputElement).value).toBe('')
   })
 })

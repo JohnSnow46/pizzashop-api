@@ -547,6 +547,12 @@ export interface AddCustomerAddressCommand {
   isDefault: boolean
 }
 
+/** Mirror of PizzaShop.Application.Customers.Commands.UpdateCustomerAddressCommand (address book). */
+export interface UpdateCustomerAddressCommand {
+  label: string
+  address: Address
+}
+
 /** Mirror of PizzaShop.Application.Reports.Dtos.TopMenuItemDto (admin reports UI). */
 export interface TopMenuItem {
   menuItemId: string
