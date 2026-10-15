@@ -40,6 +40,7 @@ export function MenuItemList({ items, onEdit, onAvailabilityChanged }: MenuItemL
             <th>Nazwa</th>
             <th>Kategoria</th>
             <th>Cena bazowa</th>
+            <th>Ocena</th>
             <th>Dostępność</th>
             <th />
           </tr>
@@ -52,6 +53,7 @@ export function MenuItemList({ items, onEdit, onAvailabilityChanged }: MenuItemL
               <td>
                 {item.basePrice.amount.toFixed(2)} {item.basePrice.currency}
               </td>
+              <td>{item.averageRating !== null ? `★ ${item.averageRating.toFixed(1)} (${item.reviewCount})` : '—'}</td>
               <td>
                 <button
                   type="button"

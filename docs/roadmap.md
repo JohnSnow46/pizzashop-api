@@ -180,6 +180,18 @@ nowego ADR, chyba że zaznaczono inaczej.
     `editingAddressId`), przycisk zmienia się na "Zapisz zmiany" + "Anuluj". 2 nowe
     testy (`MyAccountPage.test.tsx`), 123/123 zielonych.
 
+## Kolejne kroki (2026-10-15)
+
+16. **Ocena widoczna w panelu admina katalogu** — **zrobione (2026-10-15).** Poz. 12
+    dodała `averageRating`/`reviewCount` do `MenuItemDto`/`MenuItemCard` (widok klienta),
+    ale `MenuItemList` (tabela `/admin/menu` do zarządzania katalogiem) nigdy nie dostała
+    tej samej kolumny — admin zarządzający katalogiem nie widział, które pozycje są
+    dobrze/słabo oceniane, bez przechodzenia na stronę klienta. Nowa kolumna "Ocena" w
+    `MenuItemList.tsx`, ten sam format `★ X.X (N)` / "—" co `MenuItemCard`. Czysto
+    frontendowe — pole już istniało w typie `MenuItem`, zero zmian backendowych. 2 nowe
+    testy (`MenuItemList.test.tsx`, nowy plik — komponent nie miał dotąd własnych testów),
+    125/125 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,
