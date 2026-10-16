@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, within } from '@testing-library/react'
 import { MenuItemList } from './MenuItemList'
 import type { MenuItem } from '../../api/types'
 
@@ -44,5 +44,58 @@ describe('MenuItemList', () => {
     )
 
     expect(screen.getByText('★ 4.5 (12)')).not.toBeNull()
+  })
+
+  it('shows the Polish category label instead of the raw enum value', () => {
+    render(
+      <MenuItemList items={[makeItem({ category: 'Drink' })]} onEdit={vi.fn()} onAvailabilityChanged={vi.fn()} />,
+    )
+
+    const table = within(screen.getByRole('table'))
+    expect(table.getByText('Napoje')).not.toBeNull()
+    expect(table.queryByText('Drink')).toBeNull()
+  })
+
+  it('filters by name, case-insensitively', () => {
+    render(
+      <MenuItemList
+        items={[makeItem({ id: 'p1', name: 'Margherita' }), makeItem({ id: 'p2', name: 'Pepperoni' })]}
+        onEdit={vi.fn()}
+        onAvailabilityChanged={vi.fn()}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText('Szukaj w menu'), { target: { value: 'pepper' } })
+
+    expect(screen.queryByText('Margherita')).toBeNull()
+    expect(screen.getByText('Pepperoni')).not.toBeNull()
+  })
+
+  it('filters by category', () => {
+    render(
+      <MenuItemList
+        items={[
+          makeItem({ id: 'p1', name: 'Margherita', category: 'Pizza' }),
+          makeItem({ id: 'p2', name: 'Cola', category: 'Drink' }),
+        ]}
+        onEdit={vi.fn()}
+        onAvailabilityChanged={vi.fn()}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText('Filtruj po kategorii'), { target: { value: 'Drink' } })
+
+    expect(screen.queryByText('Margherita')).toBeNull()
+    expect(screen.getByText('Cola')).not.toBeNull()
+  })
+
+  it('shows an empty-state message when the filter matches nothing', () => {
+    render(
+      <MenuItemList items={[makeItem({ name: 'Margherita' })]} onEdit={vi.fn()} onAvailabilityChanged={vi.fn()} />,
+    )
+
+    fireEvent.change(screen.getByLabelText('Szukaj w menu'), { target: { value: 'nonexistent' } })
+
+    expect(screen.getByText('Brak pozycji spełniających kryteria wyszukiwania.')).not.toBeNull()
   })
 })

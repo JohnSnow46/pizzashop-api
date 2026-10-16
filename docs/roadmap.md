@@ -192,6 +192,17 @@ nowego ADR, chyba że zaznaczono inaczej.
     testy (`MenuItemList.test.tsx`, nowy plik — komponent nie miał dotąd własnych testów),
     125/125 zielonych.
 
+## Kolejne kroki (2026-10-16)
+
+17. **Filtr i polskie etykiety kategorii w panelu admina katalogu** — **zrobione
+    (2026-10-16).** Dwie luki w tym samym pliku: (a) `MenuList` (widok klienta) od dawna
+    ma wyszukiwanie + filtr kategorii, ale `MenuItemList` (`/admin/menu`) pokazywał
+    wszystkie pozycje bez żadnego filtra — niewygodne, gdy katalog rośnie; (b) `MenuList`
+    renderuje kategorię przez `CATEGORY_LABELS` (polskie etykiety), a `MenuItemList`
+    renderował surową wartość enuma (`Drink`, `Side`...) mimo że cała resztę UI jest po
+    polsku. Dodano ten sam search+select wzorzec z `MenuList` + poprawiono wyświetlanie
+    kategorii. 4 nowe testy, 129/129 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,
