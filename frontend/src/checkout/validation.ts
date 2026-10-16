@@ -56,6 +56,17 @@ export function validatePromotionCode(code: string): string | null {
 }
 
 /**
+ * Mirrors AddCustomerAddressCommandValidator/UpdateCustomerAddressCommandValidator:
+ * required, max 100 chars. Used by the account page's address-book form.
+ */
+export function validateAddressLabel(label: string): string | null {
+  if (label.trim().length === 0) {
+    return 'Podaj nazwę adresu.'
+  }
+  return label.trim().length > 100 ? 'Nazwa adresu może mieć maksymalnie 100 znaków.' : null
+}
+
+/**
  * Length limits mirror CreateOrderCommandValidator's DeliveryAddress rules: same
  * DB-mapped Address value object, so the same maximums apply here.
  */

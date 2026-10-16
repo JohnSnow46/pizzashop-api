@@ -5,6 +5,7 @@ import {
   validateFullName,
   validateContact,
   validateAddress,
+  validateAddressLabel,
   validatePromotionCode,
 } from './validation'
 import type { Address, ContactDetails } from '../api/types'
@@ -86,6 +87,28 @@ describe('validatePromotionCode', () => {
 
   it('returns an error for a code over 50 characters', () => {
     expect(validatePromotionCode('a'.repeat(51))).not.toBeNull()
+  })
+})
+
+describe('validateAddressLabel', () => {
+  it('returns an error for an empty string', () => {
+    expect(validateAddressLabel('')).not.toBeNull()
+  })
+
+  it('returns an error for whitespace only', () => {
+    expect(validateAddressLabel('   ')).not.toBeNull()
+  })
+
+  it('returns null for a non-empty label', () => {
+    expect(validateAddressLabel('Dom')).toBeNull()
+  })
+
+  it('returns null for a label at exactly 100 characters', () => {
+    expect(validateAddressLabel('a'.repeat(100))).toBeNull()
+  })
+
+  it('returns an error for a label over 100 characters', () => {
+    expect(validateAddressLabel('a'.repeat(101))).not.toBeNull()
   })
 })
 

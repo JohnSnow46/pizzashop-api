@@ -203,6 +203,16 @@ nowego ADR, chyba że zaznaczono inaczej.
     polsku. Dodano ten sam search+select wzorzec z `MenuList` + poprawiono wyświetlanie
     kategorii. 4 nowe testy, 129/129 zielonych.
 
+18. **Walidacja długości etykiety adresu w panelu konta klienta** — **zrobione
+    (2026-10-16).** `AddCustomerAddressCommandValidator`/`UpdateCustomerAddressCommandValidator`
+    ograniczają `Label` do 100 znaków (ADR-0012, shape-only), a frontendowy `validateAddress`
+    już konsekwentnie mirroruje każdy limit długości `Address` — ale `MyAccountPage`'s
+    `handleSaveAddress` sprawdzał `newLabel` tylko na puste pole, nigdy na limit 100 znaków,
+    więc za długa etykieta przechodziła walidację frontu i trafiała na gołe query 400 z
+    backendu. Nowa `validateAddressLabel` w `checkout/validation.ts` (ten sam wzorzec co
+    `validateFullName`/`validatePromotionCode`), użyta w `MyAccountPage`. 5 nowych testów,
+    134/134 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

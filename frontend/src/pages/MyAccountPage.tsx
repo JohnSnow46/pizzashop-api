@@ -13,7 +13,7 @@ import type {
   OrderSummary,
 } from '../api/types'
 import { PAYMENT_STATUS_LABELS, STATUS_LABELS } from '../components/orders/orderStatusLabels'
-import { validateAddress } from '../checkout/validation'
+import { validateAddress, validateAddressLabel } from '../checkout/validation'
 
 const FULFILLMENT_LABELS: Record<FulfillmentType, string> = {
   Delivery: 'Dostawa',
@@ -98,8 +98,9 @@ export function MyAccountPage() {
   async function handleSaveAddress() {
     const validationErrors = validateAddress(newAddress)
     const errors: Record<string, string> = { ...validationErrors }
-    if (newLabel.trim().length === 0) {
-      errors.label = 'Podaj nazwę adresu.'
+    const labelError = validateAddressLabel(newLabel)
+    if (labelError) {
+      errors.label = labelError
     }
     setAddressErrors(errors)
     if (Object.keys(errors).length > 0) {
