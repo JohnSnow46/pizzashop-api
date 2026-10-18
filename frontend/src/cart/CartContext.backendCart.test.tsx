@@ -190,6 +190,20 @@ describe('CartContext (logged-in customer, server-backed cart)', () => {
     expect(removeCartItemMock).not.toHaveBeenCalled()
   })
 
+  it('setQuantity above 100 calls PATCH with the clamped quantity, mirroring the backend validator', async () => {
+    addCartItemMock.mockResolvedValue('backend-id-4')
+    const { result } = renderHook(() => useCart(), { wrapper })
+    await waitFor(() => expect(getMyCartMock).toHaveBeenCalled())
+
+    const item = makeAddInput()
+    act(() => {
+      result.current.addItem(item)
+      result.current.setQuantity(item.key, 500)
+    })
+
+    await waitFor(() => expect(updateCartItemQuantityMock).toHaveBeenCalledWith('backend-id-4', 100))
+  })
+
   it('clear calls the server-side clear endpoint', async () => {
     const { result } = renderHook(() => useCart(), { wrapper })
     await waitFor(() => expect(getMyCartMock).toHaveBeenCalled())

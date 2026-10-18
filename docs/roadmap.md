@@ -226,6 +226,16 @@ nowego ADR, chyba że zaznaczono inaczej.
     (`OrderReviewForm.test.tsx`, nowy plik — komponent nie miał dotąd własnych testów),
     137/137 zielonych.
 
+20. **Limit maksymalnej ilości pozycji w koszyku** — **zrobione (2026-10-18).** Ten sam
+    wzorzec luki co poz. 18/19, trzeci raz: `AddCartItemCommandValidator`/
+    `UpdateCartItemQuantityCommandValidator` ograniczają `Quantity` do `InclusiveBetween(1,
+    100)`, ale input liczby w `CartView.tsx` miał tylko `min={1}`, bez `max`. Co ważniejsze:
+    atrybut `max` na `<input type="number">` i tak nie blokuje wpisania większej wartości
+    (tylko strzałki stepper'a) — a koszyk gościa (bez backendu) nie miał WOGÓLE żadnej
+    walidacji ilości. Dodano realne przycinanie do 100 w `cartReducer` (`add`/`setQuantity`)
+    i w `CartContext.setQuantity`'s wywołaniu PATCH, plus `max={100}` na input jako
+    kosmetyczny sygnał. 3 nowe testy, 140/140 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

@@ -27,16 +27,23 @@ type CartAction =
   | { type: 'clear' }
   | { type: 'replaceAll'; items: CartItem[] }
 
+/** Mirrors AddCartItemCommandValidator/UpdateCartItemQuantityCommandValidator:
+ * InclusiveBetween(1, 100). The guest/localStorage cart has no backend to enforce this at
+ * all, so it needs to be clamped here rather than relying on the server-backed path's 400. */
+const MAX_CART_ITEM_QUANTITY = 100
+
 function cartReducer(items: CartItem[], action: CartAction): CartItem[] {
   switch (action.type) {
     case 'add': {
       const existing = items.find((i) => i.key === action.item.key)
       if (existing) {
         return items.map((i) =>
-          i.key === action.item.key ? { ...i, quantity: i.quantity + action.item.quantity } : i,
+          i.key === action.item.key
+            ? { ...i, quantity: Math.min(i.quantity + action.item.quantity, MAX_CART_ITEM_QUANTITY) }
+            : i,
         )
       }
-      return [...items, { ...action.item }]
+      return [...items, { ...action.item, quantity: Math.min(action.item.quantity, MAX_CART_ITEM_QUANTITY) }]
     }
     case 'remove':
       return items.filter((i) => i.key !== action.key)
@@ -44,7 +51,8 @@ function cartReducer(items: CartItem[], action: CartAction): CartItem[] {
       if (action.quantity <= 0) {
         return items.filter((i) => i.key !== action.key)
       }
-      return items.map((i) => (i.key === action.key ? { ...i, quantity: action.quantity } : i))
+      const quantity = Math.min(action.quantity, MAX_CART_ITEM_QUANTITY)
+      return items.map((i) => (i.key === action.key ? { ...i, quantity } : i))
     }
     case 'clear':
       return []
@@ -282,16 +290,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    const clampedQuantity = Math.min(quantity, MAX_CART_ITEM_QUANTITY)
+
     void resolveBackendId(key)
       .then((id) => {
         if (!id) {
           return
         }
-        if (quantity <= 0) {
+        if (clampedQuantity <= 0) {
           backendIdByKey.current.delete(key)
           return removeCartItem(id)
         }
-        return updateCartItemQuantity(id, quantity)
+        return updateCartItemQuantity(id, clampedQuantity)
       })
       .catch((error: unknown) => console.error('Failed to update the item in the server-side cart.', error))
   }

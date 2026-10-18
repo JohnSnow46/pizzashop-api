@@ -27,6 +27,7 @@ export function CartView() {
           <input
             type="number"
             min={1}
+            max={100}
             className="cart-item__quantity"
             value={item.quantity}
             onChange={(e) => setQuantity(item.key, Number(e.target.value))}

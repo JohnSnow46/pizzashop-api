@@ -93,6 +93,21 @@ describe('CartContext', () => {
     expect(result.current.items).toHaveLength(0)
   })
 
+  it('setQuantity clamps to 100, mirroring UpdateCartItemQuantityCommandValidator', () => {
+    const { result } = renderHook(() => useCart(), { wrapper: CartProvider })
+    act(() => result.current.addItem(makeItem()))
+    const key = buildCartItemKey('pizza-1', null, [])
+    act(() => result.current.setQuantity(key, 500))
+    expect(result.current.items[0].quantity).toBe(100)
+  })
+
+  it('addItem with the same key clamps the merged quantity to 100', () => {
+    const { result } = renderHook(() => useCart(), { wrapper: CartProvider })
+    act(() => result.current.addItem(makeItem({ quantity: 60 })))
+    act(() => result.current.addItem(makeItem({ quantity: 60 })))
+    expect(result.current.items[0].quantity).toBe(100)
+  })
+
   it('clear empties all items', () => {
     const { result } = renderHook(() => useCart(), { wrapper: CartProvider })
     act(() => result.current.addItem(makeItem({ menuItemId: 'pizza-1' })))
