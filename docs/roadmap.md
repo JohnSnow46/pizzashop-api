@@ -213,6 +213,19 @@ nowego ADR, chyba że zaznaczono inaczej.
     `validateFullName`/`validatePromotionCode`), użyta w `MyAccountPage`. 5 nowych testów,
     134/134 zielonych.
 
+## Kolejne kroki (2026-10-18)
+
+19. **Limit długości komentarza recenzji** — **zrobione (2026-10-18).** Ten sam wzorzec
+    luki co poz. 18, w innym miejscu: `Review.MaxCommentLength` (Domain, 1000 znaków) jest
+    wymuszany przez `CreateReviewCommandValidator`, ale `textarea` komentarza w
+    `OrderReviewForm.tsx` nie miała żadnego limitu po stronie frontu — za długi komentarz
+    przechodził przez jedyny istniejący check ("czy wybrano ocenę") i trafiał na goły 400 z
+    backendu. Naprawione najprościej z możliwych sposobów, zgodnym z istniejącym
+    precedensem w tym repo (`PromotionField.tsx`'s `maxLength={50}`): atrybut HTML
+    `maxLength={1000}` na `textarea`, bez osobnej walidacji JS. 3 nowe testy
+    (`OrderReviewForm.test.tsx`, nowy plik — komponent nie miał dotąd własnych testów),
+    137/137 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

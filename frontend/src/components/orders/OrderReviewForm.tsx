@@ -5,6 +5,11 @@ import type { Order, Review } from '../../api/types'
 
 const RATINGS = [1, 2, 3, 4, 5]
 
+/** Mirrors PizzaShop.Domain.Reviews.Review.MaxCommentLength — the comment textarea had no
+ * client-side cap at all, so a comment over the backend's limit passed the "is there a
+ * rating" check here and only failed on a bare 400 from CreateReviewCommandValidator. */
+const MAX_COMMENT_LENGTH = 1000
+
 interface ReviewItemRowProps {
   orderId: string
   menuItemId: string
@@ -57,6 +62,7 @@ function ReviewItemRow({ orderId, menuItemId, menuItemName, onReviewed }: Review
         placeholder="Komentarz (opcjonalnie)"
         value={comment}
         onChange={(event) => setComment(event.target.value)}
+        maxLength={MAX_COMMENT_LENGTH}
       />
       {error && <p className="checkout-error">{error}</p>}
       <button type="button" className="add-to-cart-btn" disabled={submitting} onClick={handleSubmit}>
