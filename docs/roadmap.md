@@ -236,6 +236,17 @@ nowego ADR, chyba że zaznaczono inaczej.
     i w `CartContext.setQuantity`'s wywołaniu PATCH, plus `max={100}` na input jako
     kosmetyczny sygnał. 3 nowe testy, 140/140 zielonych.
 
+## Kolejne kroki (2026-10-19)
+
+21. **Polskie etykiety kategorii w formularzu pozycji menu** — **zrobione (2026-10-19).**
+    Poz. 16 (2026-10-16) podpięła `CATEGORY_LABELS` pod tabelę i filtr w `MenuItemList`,
+    ale `<select>` kategorii w `MenuItemForm.tsx` (dodawanie/edycja pozycji, ten sam
+    ekran `/admin/menu`) dalej renderował surowe angielskie wartości enuma (`Drink`,
+    `Side`...) — admin widział "Napoje" w tabeli, a "Drink" w formularzu tuż obok.
+    Etykiety opcji idą teraz przez `CATEGORY_LABELS`, `value` zostaje surowym enumem
+    wysyłanym do backendu. 2 nowe testy (`MenuItemForm.test.tsx`, nowy plik), 142/142
+    zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

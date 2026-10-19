@@ -2,6 +2,7 @@ import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { ApiError } from '../../api/client'
 import { createMenuItem, updateMenuItem, uploadMenuItemImage } from '../../api/menuApi'
 import type { Ingredient, MenuCategory, MenuItem, MenuItemVariantInput, UpdateMenuItemCommand } from '../../api/types'
+import { CATEGORY_LABELS } from '../menuCategoryLabels'
 import { MenuItemVariantsEditor } from './MenuItemVariantsEditor'
 
 const MENU_CATEGORIES: MenuCategory[] = ['Pizza', 'Drink', 'Side', 'Dessert', 'Sauce']
@@ -157,7 +158,7 @@ export function MenuItemForm({ mode, item, ingredients, onSaved, onCancel }: Men
           <select value={category} onChange={(e) => setCategory(e.target.value as MenuCategory)}>
             {MENU_CATEGORIES.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {CATEGORY_LABELS[c]}
               </option>
             ))}
           </select>
