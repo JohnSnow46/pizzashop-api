@@ -27,4 +27,31 @@ describe('MenuItemForm', () => {
     const select = screen.getByLabelText('Kategoria') as HTMLSelectElement
     expect(Array.from(select.options).map((o) => o.value)).toEqual(['Pizza', 'Drink', 'Side', 'Dessert', 'Sauce'])
   })
+
+  it('caps name/description at the backend MaximumLength (200/1000 chars)', () => {
+    render(<MenuItemForm mode="create" ingredients={[]} onSaved={vi.fn()} onCancel={vi.fn()} />)
+
+    expect(screen.getByLabelText('Nazwa').getAttribute('maxlength')).toBe('200')
+    expect(screen.getByLabelText('Opis (opcjonalnie)').getAttribute('maxlength')).toBe('1000')
+  })
+
+  it('caps each variant name at the backend MaximumLength (100 chars)', () => {
+    const item = {
+      id: 'pizza-1',
+      name: 'Margherita',
+      description: null,
+      category: 'Pizza' as const,
+      basePrice: { amount: 25, currency: 'PLN' },
+      isAvailable: true,
+      imageUrl: null,
+      variants: [{ id: 'v1', name: '32 cm', price: { amount: 25, currency: 'PLN' }, isDefault: true }],
+      baseIngredients: [],
+      allowedExtras: [],
+      averageRating: null,
+      reviewCount: 0,
+    }
+    render(<MenuItemForm mode="edit" item={item} ingredients={[]} onSaved={vi.fn()} onCancel={vi.fn()} />)
+
+    expect(screen.getByPlaceholderText('Nazwa wariantu').getAttribute('maxlength')).toBe('100')
+  })
 })

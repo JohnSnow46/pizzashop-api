@@ -150,7 +150,7 @@ export function MenuItemForm({ mode, item, ingredients, onSaved, onCancel }: Men
       <div className="checkout-form-grid">
         <label className="checkout-field">
           Nazwa
-          <input value={name} onChange={(e) => setName(e.target.value)} required />
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} required />
         </label>
 
         <label className="checkout-field">
@@ -166,7 +166,7 @@ export function MenuItemForm({ mode, item, ingredients, onSaved, onCancel }: Men
 
         <label className="checkout-field">
           Opis (opcjonalnie)
-          <input value={description} onChange={(e) => setDescription(e.target.value)} />
+          <input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1000} />
         </label>
 
         <label className="checkout-field">

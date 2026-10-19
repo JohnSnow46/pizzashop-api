@@ -55,6 +55,7 @@ export function MenuItemVariantsEditor({ variants, currency, onChange }: MenuIte
             <input
               className="variant-row__name"
               placeholder="Nazwa wariantu"
+              maxLength={100}
               value={variant.name}
               onChange={(e) => updateRow(index, { name: e.target.value })}
             />

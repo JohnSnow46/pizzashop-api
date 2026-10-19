@@ -247,6 +247,16 @@ nowego ADR, chyba że zaznaczono inaczej.
     wysyłanym do backendu. 2 nowe testy (`MenuItemForm.test.tsx`, nowy plik), 142/142
     zielonych.
 
+22. **Limity długości w adminowych formularzach katalogu** — **zrobione (2026-10-19).**
+    Ten sam wzorzec luki co poz. 18-20, tym razem po stronie admina:
+    `Create/UpdateMenuItemCommandValidator` ograniczają `Name` do 200, `Description` do
+    1000 i nazwę wariantu do 100 znaków, a `Create/UpdateIngredientCommandValidator` —
+    `Name` do 200 i `Category` do 100, ale żaden z inputów w `MenuItemForm`,
+    `MenuItemVariantsEditor` i `IngredientForm` nie miał `maxLength`, więc za długa
+    wartość kończyła się dopiero listą błędów 400 z backendu. Dodano atrybut HTML
+    `maxLength` (ten sam prosty wariant co poz. 19 — formularz wysyłany jednorazowo, bez
+    reducera). 3 nowe testy (`IngredientForm.test.tsx` nowy plik), 145/145 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

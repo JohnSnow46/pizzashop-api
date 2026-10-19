@@ -57,7 +57,7 @@ export function IngredientForm({ mode, ingredient, onSaved, onCancel }: Ingredie
       <div className="checkout-form-grid">
         <label className="checkout-field">
           Nazwa
-          <input value={name} onChange={(e) => setName(e.target.value)} required />
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={200} required />
         </label>
 
         <label className="checkout-field">
@@ -73,7 +73,7 @@ export function IngredientForm({ mode, ingredient, onSaved, onCancel }: Ingredie
 
         <label className="checkout-field">
           Kategoria (opcjonalnie)
-          <input value={category} onChange={(e) => setCategory(e.target.value)} />
+          <input value={category} onChange={(e) => setCategory(e.target.value)} maxLength={100} />
         </label>
 
         {mode === 'edit' && (
