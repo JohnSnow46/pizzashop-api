@@ -1,4 +1,5 @@
 import type { StaffAccount } from '../../api/types'
+import { ROLE_LABELS } from '../../auth/roleLabels'
 
 interface StaffAccountListProps {
   staffAccounts: StaffAccount[]
@@ -29,7 +30,7 @@ export function StaffAccountList({ staffAccounts }: StaffAccountListProps) {
           {staffAccounts.map((account) => (
             <tr key={account.id}>
               <td>{account.email}</td>
-              <td>{account.role}</td>
+              <td>{ROLE_LABELS[account.role]}</td>
               <td>{account.isActive ? 'Tak' : 'Nie'}</td>
               <td>{formatDate(account.createdAt)}</td>
             </tr>

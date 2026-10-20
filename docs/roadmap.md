@@ -276,6 +276,14 @@ nowego ADR, chyba że zaznaczono inaczej.
     polami, plus `maxLength={200}` na e-mailu. 4 nowe testy (`StaffAccountForm.test.tsx`,
     nowy plik), 150/150 zielonych.
 
+25. **Polskie etykiety ról w liście kont pracowników** — **zrobione (2026-10-20).** Ten
+    sam wzorzec co poz. 16/21 (etykiety kategorii), tym razem dla ról: `StaffAccountForm`
+    miał lokalne `ROLE_LABELS` ("Pracownik", "Administrator restauracji"), ale
+    `StaffAccountList` tuż pod nim na `/admin/staff` renderował surowy enum
+    (`RestaurantAdmin`). `ROLE_LABELS` przeniesione do współdzielonego `auth/roleLabels.ts`
+    (analogicznie do `menuCategoryLabels.ts`) i użyte w obu miejscach. 1 nowy test
+    (`StaffAccountList.test.tsx`, nowy plik), 151/151 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

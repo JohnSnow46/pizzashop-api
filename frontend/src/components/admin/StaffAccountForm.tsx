@@ -3,6 +3,7 @@ import { ApiError } from '../../api/client'
 import { createStaffAccount } from '../../api/staffApi'
 import { validateEmail, validateNewPassword } from '../../auth/validation'
 import type { UserRole } from '../../auth/types'
+import { ROLE_LABELS } from '../../auth/roleLabels'
 
 /**
  * Roles this form may request. Never SuperAdmin/Customer (out of scope for this UI) — the
@@ -10,13 +11,6 @@ import type { UserRole } from '../../auth/types'
  * RestaurantAdmin caller picking RestaurantAdmin here surfaces as a generic API error below.
  */
 const CREATABLE_ROLES: UserRole[] = ['Employee', 'RestaurantAdmin']
-
-const ROLE_LABELS: Record<UserRole, string> = {
-  Customer: 'Klient',
-  Employee: 'Pracownik',
-  RestaurantAdmin: 'Administrator restauracji',
-  SuperAdmin: 'Super administrator',
-}
 
 interface StaffAccountFormProps {
   onCreated: () => void
