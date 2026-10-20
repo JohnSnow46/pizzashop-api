@@ -257,6 +257,15 @@ nowego ADR, chyba że zaznaczono inaczej.
     `maxLength` (ten sam prosty wariant co poz. 19 — formularz wysyłany jednorazowo, bez
     reducera). 3 nowe testy (`IngredientForm.test.tsx` nowy plik), 145/145 zielonych.
 
+## Kolejne kroki (2026-10-20)
+
+23. **Limity długości w formularzu promocji** — **zrobione (2026-10-20).** Ten sam wzorzec
+    co poz. 22, ostatni adminowy formularz z tym brakiem: `CreatePromotionCommandValidator`
+    ogranicza `Name` do 200, a `Code` do 50 znaków (ten sam limit, który `PromotionField`
+    w checkoucie mirroruje od dawna przez `maxLength={50}`), ale inputy nazwy i kodu w
+    `PromotionForm.tsx` nie miały żadnego `maxLength`. Dodano atrybut HTML. 1 nowy test
+    (`PromotionForm.test.tsx`, nowy plik).
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

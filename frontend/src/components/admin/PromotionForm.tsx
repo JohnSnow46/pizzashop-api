@@ -125,13 +125,14 @@ export function PromotionForm({ mode, promotion, onSaved, onCancel }: PromotionF
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={mode === 'edit'}
+            maxLength={200}
             required
           />
         </label>
 
         <label className="checkout-field">
           Kod (opcjonalnie)
-          <input value={code} onChange={(e) => setCode(e.target.value)} disabled={mode === 'edit'} />
+          <input value={code} onChange={(e) => setCode(e.target.value)} disabled={mode === 'edit'} maxLength={50} />
         </label>
 
         <label className="checkout-field">
