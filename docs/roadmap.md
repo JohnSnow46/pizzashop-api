@@ -266,6 +266,16 @@ nowego ADR, chyba że zaznaczono inaczej.
     `PromotionForm.tsx` nie miały żadnego `maxLength`. Dodano atrybut HTML. 1 nowy test
     (`PromotionForm.test.tsx`, nowy plik).
 
+24. **Walidacja hasła w formularzu konta pracownika** — **zrobione (2026-10-20).**
+    `RegisterStaffAccountCommandValidator` ma dokładnie te same reguły hasła co
+    `RegisterCustomerCommandValidator` (8-100 znaków, co najmniej jedna litera i jedna
+    cyfra), a `RegisterPage` od dawna mirroruje je po stronie frontu przez
+    `validateNewPassword` — ale `StaffAccountForm.tsx` (admin `/admin/staff`) nie
+    sprawdzał niczego poza `required`, więc słabe hasło wracało dopiero jako lista błędów
+    400. Ten sam `validateEmail`/`validateNewPassword` co w `RegisterPage`, błędy pod
+    polami, plus `maxLength={200}` na e-mailu. 4 nowe testy (`StaffAccountForm.test.tsx`,
+    nowy plik), 150/150 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

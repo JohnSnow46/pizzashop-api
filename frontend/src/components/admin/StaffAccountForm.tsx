@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { ApiError } from '../../api/client'
 import { createStaffAccount } from '../../api/staffApi'
+import { validateEmail, validateNewPassword } from '../../auth/validation'
 import type { UserRole } from '../../auth/types'
 
 /**
@@ -31,13 +32,27 @@ export function StaffAccountForm({ onCreated, onCancel }: StaffAccountFormProps)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]> | null>(null)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    setSubmitting(true)
     setSubmitError(null)
     setFieldErrors(null)
 
+    // Same client-side mirror RegisterPage uses -- RegisterStaffAccountCommandValidator has
+    // the exact password rules RegisterCustomerCommandValidator has (8-100 chars, a letter
+    // and a digit), so a weak password shouldn't need a round-trip to find out.
+    const validationErrors: Record<string, string> = {}
+    const emailError = validateEmail(email)
+    if (emailError) validationErrors.email = emailError
+    const passwordError = validateNewPassword(password)
+    if (passwordError) validationErrors.password = passwordError
+    setErrors(validationErrors)
+    if (Object.keys(validationErrors).length > 0) {
+      return
+    }
+
+    setSubmitting(true)
     try {
       await createStaffAccount({ email, password, role })
       onCreated()
@@ -62,12 +77,14 @@ export function StaffAccountForm({ onCreated, onCancel }: StaffAccountFormProps)
       <div className="checkout-form-grid">
         <label className="checkout-field">
           Email
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200} required />
+          {errors.email && <span className="checkout-error">{errors.email}</span>}
         </label>
 
         <label className="checkout-field">
           Hasło
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          {errors.password && <span className="checkout-error">{errors.password}</span>}
         </label>
 
         <label className="checkout-field">
