@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { deactivatePromotion } from '../../api/promotionsApi'
 import type { Promotion } from '../../api/types'
+import { promotionStatus } from './promotionStatus'
 
 interface PromotionListProps {
   promotions: Promotion[]
@@ -63,7 +64,7 @@ export function PromotionList({ promotions, onEdit, onDeactivated }: PromotionLi
             <th>Typ</th>
             <th>Wartość</th>
             <th>Okno ważności</th>
-            <th>Aktywna</th>
+            <th>Status</th>
             <th>Limit/Użycia</th>
             <th />
           </tr>
@@ -78,7 +79,7 @@ export function PromotionList({ promotions, onEdit, onDeactivated }: PromotionLi
               <td>
                 {formatDate(promotion.validFrom)} – {formatDate(promotion.validTo)}
               </td>
-              <td>{promotion.isActive ? 'Tak' : 'Nie'}</td>
+              <td>{promotionStatus(promotion)}</td>
               <td>
                 {promotion.usageCount}
                 {promotion.usageLimit !== null ? ` / ${promotion.usageLimit}` : ''}

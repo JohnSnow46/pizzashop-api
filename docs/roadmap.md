@@ -284,6 +284,16 @@ nowego ADR, chyba że zaznaczono inaczej.
     (analogicznie do `menuCategoryLabels.ts`) i użyte w obu miejscach. 1 nowy test
     (`StaffAccountList.test.tsx`, nowy plik), 151/151 zielonych.
 
+## Kolejne kroki (2026-10-21)
+
+26. **Rzeczywisty status promocji w tabeli admina** — **zrobione (2026-10-21).** Kolumna
+    "Aktywna" w `PromotionList.tsx` pokazywała surową flagę `isActive`, więc promocja po
+    `validTo`, przed `validFrom` albo z wyczerpanym `usageLimit` dalej świeciła "Tak", choć
+    `Promotion.IsQualifiedFor` (Domain) już jej nie zastosuje. Nowa kolumna "Status"
+    (`promotionStatus.ts`): Nieaktywna / Zaplanowana / Wygasła / Wyczerpana / Aktywna — te
+    same warunki okna czasu i limitu użyć co w Domain, bez nowego endpointu. 6 nowych
+    testów (`PromotionList.test.tsx`, nowy plik), 157/157 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,
