@@ -11,6 +11,7 @@ import {
 import type { FulfillmentType, Order, OrderStatus } from '../../api/types'
 import { useOrderTracking } from '../../hooks/useOrderTracking'
 import { PAYMENT_STATUS_LABELS, STATUS_LABELS } from './orderStatusLabels'
+import { formatAddress } from '../../shared/formatAddress'
 
 const FULFILLMENT_LABELS: Record<FulfillmentType, string> = {
   Delivery: 'Dostawa',
@@ -137,6 +138,14 @@ export function EmployeeOrderRow({ orderId, onLeftQueue }: EmployeeOrderRowProps
         <span className="cart-item__meta">
           {order.contact.fullName} · {order.contact.phoneNumber}
         </span>
+        {/* The queue never showed where a delivery order goes -- staff had the phone number but
+            no address, even though deliveryAddress is on every Delivery order. */}
+        {order.fulfillmentType === 'Delivery' && order.deliveryAddress && (
+          <span className="cart-item__meta">
+            Adres: {formatAddress(order.deliveryAddress)}
+            {order.deliveryAddress.notes && ` · ${order.deliveryAddress.notes}`}
+          </span>
+        )}
         <span className="cart-item__meta">
           {new Date(order.placedAt).toLocaleString('pl-PL')} · {order.items.length} poz. · {order.total.amount.toFixed(2)}{' '}
           {order.total.currency}

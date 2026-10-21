@@ -14,6 +14,7 @@ import type {
 } from '../api/types'
 import { PAYMENT_STATUS_LABELS, STATUS_LABELS } from '../components/orders/orderStatusLabels'
 import { validateAddress, validateAddressLabel } from '../checkout/validation'
+import { formatAddress } from '../shared/formatAddress'
 
 const FULFILLMENT_LABELS: Record<FulfillmentType, string> = {
   Delivery: 'Dostawa',
@@ -34,11 +35,6 @@ function formatDateTime(value: string): string {
 
 function formatMoney(amount: number, currency: string): string {
   return `${amount.toFixed(2)} ${currency}`
-}
-
-function formatAddress(address: Address): string {
-  const apartment = address.apartmentNumber ? `/${address.apartmentNumber}` : ''
-  return `${address.street} ${address.buildingNumber}${apartment}, ${address.postalCode} ${address.city}`
 }
 
 const EMPTY_NEW_ADDRESS: Address = {

@@ -301,6 +301,14 @@ nowego ADR, chyba że zaznaczono inaczej.
     100%"), a próg minimalnego zamówienia doklejany ("10%, od 50.00 PLN"). 2 nowe testy,
     159/159 zielonych.
 
+28. **Adres dostawy w kolejce pracownika** — **zrobione (2026-10-21).** `EmployeeOrderRow`
+    pokazywał numer, status, kontakt i kwotę, ale nigdy `deliveryAddress` — pracownik
+    wysyłający zamówienie "Dostawa" miał telefon klienta, ale nie adres, choć jest on na
+    każdym takim zamówieniu (razem z notatką typu "domofon nie działa"). Nowa linia
+    "Adres: ..." dla zamówień z dostawą; `formatAddress` przeniesiony z `MyAccountPage` do
+    współdzielonego `shared/formatAddress.ts`. 2 nowe testy (`EmployeeOrderRow.test.tsx`,
+    nowy plik), 161/161 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,
