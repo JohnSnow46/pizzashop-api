@@ -83,4 +83,16 @@ describe('EmployeeOrderRow', () => {
 
     expect(screen.queryByText(/Adres:/)).toBeNull()
   })
+
+  it('highlights the requested time for a scheduled order', () => {
+    renderWith(makeOrder({ requestedFulfillmentTime: '2026-10-21T16:30:00Z' }))
+
+    expect(screen.getByText(/^Na godzinę:/)).not.toBeNull()
+  })
+
+  it('shows no requested-time line for an as-soon-as-possible order', () => {
+    renderWith(makeOrder({ requestedFulfillmentTime: null }))
+
+    expect(screen.queryByText(/Na godzinę:/)).toBeNull()
+  })
 })

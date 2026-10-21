@@ -309,6 +309,13 @@ nowego ADR, chyba że zaznaczono inaczej.
     współdzielonego `shared/formatAddress.ts`. 2 nowe testy (`EmployeeOrderRow.test.tsx`,
     nowy plik), 161/161 zielonych.
 
+29. **Zamówiona godzina realizacji w kolejce pracownika** — **zrobione (2026-10-21).**
+    Krok 4 checkoutu pozwala zamówić na konkretną godzinę (`requestedFulfillmentTime`,
+    ADR-0036), ale ta wartość nie była nigdzie wyświetlana — w kolejce zamówienie na 18:30
+    wyglądało identycznie jak "jak najszybciej", więc pracownik nie wiedział, z którym
+    poczekać. Pogrubiona linia "Na godzinę: ..." w `EmployeeOrderRow`, gdy pole jest
+    ustawione (`null` = ASAP, bez linii). 2 nowe testy, 163/163 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

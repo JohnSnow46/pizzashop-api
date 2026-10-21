@@ -138,6 +138,22 @@ export function EmployeeOrderRow({ orderId, onLeftQueue }: EmployeeOrderRowProps
         <span className="cart-item__meta">
           {order.contact.fullName} · {order.contact.phoneNumber}
         </span>
+        {/* A scheduled order (the "scheduled" option in checkout step 4) looked identical to an
+            ASAP one here -- requestedFulfillmentTime was sent with the order but never shown,
+            so staff couldn't tell which orders to hold back. null means "as soon as possible". */}
+        {order.requestedFulfillmentTime && (
+          <span className="cart-item__meta">
+            <strong>
+              Na godzinę:{' '}
+              {new Date(order.requestedFulfillmentTime).toLocaleString('pl-PL', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </strong>
+          </span>
+        )}
         {/* The queue never showed where a delivery order goes -- staff had the phone number but
             no address, even though deliveryAddress is on every Delivery order. */}
         {order.fulfillmentType === 'Delivery' && order.deliveryAddress && (
