@@ -17,14 +17,29 @@ const TYPE_LABELS: Record<Promotion['type'], string> = {
   BuyXGetY: 'Kup X dostań Y',
 }
 
-function formatValue(promotion: Promotion): string {
+function formatBaseValue(promotion: Promotion): string {
   if (promotion.type === 'Percentage') {
     return promotion.value !== null ? `${promotion.value}%` : '—'
   }
   if (promotion.type === 'FixedAmount') {
     return promotion.value !== null ? `${promotion.value.toFixed(2)} PLN` : '—'
   }
+  if (promotion.type === 'BuyXGetY' && promotion.buyXGetY) {
+    const rule = promotion.buyXGetY
+    return `Kup ${rule.buyQuantity}, ${rule.getQuantity} taniej o ${rule.rewardDiscountPercentage}%`
+  }
   return '—'
+}
+
+/** Base value plus the minimum order value, when set -- previously BuyXGetY/FreeDelivery rows
+ * and every minOrderValue were simply invisible in this table, only in the edit form. */
+function formatValue(promotion: Promotion): string {
+  const base = formatBaseValue(promotion)
+  if (!promotion.minOrderValue) {
+    return base
+  }
+  const minimum = `od ${promotion.minOrderValue.amount.toFixed(2)} ${promotion.minOrderValue.currency}`
+  return base === '—' ? minimum : `${base}, ${minimum}`
 }
 
 function formatDate(iso: string): string {

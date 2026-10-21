@@ -294,6 +294,13 @@ nowego ADR, chyba że zaznaczono inaczej.
     same warunki okna czasu i limitu użyć co w Domain, bez nowego endpointu. 6 nowych
     testów (`PromotionList.test.tsx`, nowy plik), 157/157 zielonych.
 
+27. **Pełna wartość promocji w tabeli admina** — **zrobione (2026-10-21).** Kolumna
+    "Wartość" w `PromotionList.tsx` umiała opisać tylko `Percentage`/`FixedAmount` — dla
+    `BuyXGetY` i `FreeDelivery` pokazywała "—", a `minOrderValue` nie był widoczny w ogóle
+    (tylko w formularzu edycji). Teraz reguła BuyXGetY jest opisana ("Kup 2, 1 taniej o
+    100%"), a próg minimalnego zamówienia doklejany ("10%, od 50.00 PLN"). 2 nowe testy,
+    159/159 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

@@ -61,4 +61,38 @@ describe('PromotionList', () => {
     expect(screen.getByText('Status')).not.toBeNull()
     expect(screen.getByText('Nieaktywna')).not.toBeNull()
   })
+
+  it('describes a BuyXGetY rule instead of an em dash', () => {
+    render(
+      <PromotionList
+        promotions={[
+          makePromotion({
+            type: 'BuyXGetY',
+            value: null,
+            buyXGetY: { triggerMenuItemId: 'm1', buyQuantity: 2, rewardMenuItemId: 'm2', getQuantity: 1, rewardDiscountPercentage: 100 },
+          }),
+        ]}
+        onEdit={vi.fn()}
+        onDeactivated={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Kup 2, 1 taniej o 100%')).not.toBeNull()
+  })
+
+  it('appends the minimum order value when one is set', () => {
+    render(
+      <PromotionList
+        promotions={[
+          makePromotion({ value: 10, minOrderValue: { amount: 50, currency: 'PLN' } }),
+          makePromotion({ id: 'promo-2', type: 'FreeDelivery', value: null, minOrderValue: { amount: 80, currency: 'PLN' } }),
+        ]}
+        onEdit={vi.fn()}
+        onDeactivated={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('10%, od 50.00 PLN')).not.toBeNull()
+    expect(screen.getByText('od 80.00 PLN')).not.toBeNull()
+  })
 })
