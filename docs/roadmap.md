@@ -326,6 +326,13 @@ nowego ADR, chyba że zaznaczono inaczej.
     "Zamówione na: ...", gdy `requestedFulfillmentTime` jest ustawione. 2 nowe testy
     (`OrderTrackingStatus.test.tsx`, nowy plik), 165/165 zielonych.
 
+31. **Lista pozycji w kolejce pracownika** — **zrobione (2026-10-22).** `EmployeeOrderRow`
+    pokazywał tylko liczbę pozycji ("3 poz."), więc osoba przygotowująca zamówienie
+    musiała szukać gdzie indziej, co w nim właściwie jest — warianty, dodatki i uwagi do
+    pozycji były w `OrderDto`, ale nie w kolejce. Każda pozycja w formacie "2× Margherita —
+    32 cm (oliwki)" (nowy `formatOrderItem.ts`, ten sam kształt co `OrderSummary` w
+    checkoucie) plus "uwagi: ..." gdy są. 1 nowy test, 166/166 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

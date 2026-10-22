@@ -12,6 +12,7 @@ import type { FulfillmentType, Order, OrderStatus } from '../../api/types'
 import { useOrderTracking } from '../../hooks/useOrderTracking'
 import { PAYMENT_STATUS_LABELS, STATUS_LABELS } from './orderStatusLabels'
 import { formatAddress } from '../../shared/formatAddress'
+import { formatOrderItem } from './formatOrderItem'
 
 const FULFILLMENT_LABELS: Record<FulfillmentType, string> = {
   Delivery: 'Dostawa',
@@ -166,6 +167,16 @@ export function EmployeeOrderRow({ orderId, onLeftQueue }: EmployeeOrderRowProps
           {new Date(order.placedAt).toLocaleString('pl-PL')} · {order.items.length} poz. · {order.total.amount.toFixed(2)}{' '}
           {order.total.currency}
         </span>
+        {/* The queue only ever said "3 poz." -- whoever prepares the order had to open it
+            elsewhere to see what's actually in it, variants/extras/notes included. */}
+        <ul className="checkout-summary-list">
+          {order.items.map((item) => (
+            <li key={item.id}>
+              {formatOrderItem(item)}
+              {item.notes && <span className="cart-item__meta"> · uwagi: {item.notes}</span>}
+            </li>
+          ))}
+        </ul>
         {actionError && <span className="checkout-error">{actionError}</span>}
         <div className="queue-actions">
           {actions.map((action) => (

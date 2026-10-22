@@ -95,4 +95,28 @@ describe('EmployeeOrderRow', () => {
 
     expect(screen.queryByText(/Na godzinę:/)).toBeNull()
   })
+
+  it('lists each item with its variant, extras and notes', () => {
+    renderWith(
+      makeOrder({
+        items: [
+          {
+            id: 'i1',
+            menuItemId: 'm1',
+            menuItemName: 'Margherita',
+            variantId: 'v1',
+            variantName: '32 cm',
+            unitPrice: money(30),
+            quantity: 2,
+            notes: 'bez bazylii',
+            extras: [{ ingredientId: 'x1', name: 'oliwki', price: money(3) }],
+            lineTotal: money(66),
+          },
+        ],
+      }),
+    )
+
+    expect(screen.getByText('2× Margherita — 32 cm (oliwki)')).not.toBeNull()
+    expect(screen.getByText(/uwagi: bez bazylii/)).not.toBeNull()
+  })
 })
