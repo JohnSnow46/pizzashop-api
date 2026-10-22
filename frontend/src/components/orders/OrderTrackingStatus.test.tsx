@@ -50,4 +50,29 @@ describe('OrderTrackingStatus', () => {
 
     expect(screen.queryByText(/Zamówione na:/)).toBeNull()
   })
+
+  it('lists the ordered items and the total', () => {
+    renderStatus(
+      makeOrder({
+        total: money(57.5),
+        items: [
+          {
+            id: 'i1',
+            menuItemId: 'm1',
+            menuItemName: 'Pepperoni',
+            variantId: null,
+            variantName: null,
+            unitPrice: money(28.75),
+            quantity: 2,
+            notes: null,
+            extras: [],
+            lineTotal: money(57.5),
+          },
+        ],
+      }),
+    )
+
+    expect(screen.getByText('2× Pepperoni')).not.toBeNull()
+    expect(screen.getByText('57.50 PLN')).not.toBeNull()
+  })
 })

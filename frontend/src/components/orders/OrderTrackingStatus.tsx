@@ -1,6 +1,7 @@
 import type { OrderStatus } from '../../api/types'
 import type { OrderTrackingConnectionState, UseOrderTrackingResult } from '../../hooks/useOrderTracking'
 import { STATUS_LABELS } from './orderStatusLabels'
+import { formatOrderItem } from './formatOrderItem'
 
 /** Terminal negative statuses — shown visually/textually distinct from Completed. */
 const NEGATIVE_STATUSES: ReadonlySet<OrderStatus> = new Set(['Rejected', 'Cancelled'])
@@ -49,6 +50,21 @@ export function OrderTrackingStatus({ order, isLoading, error, connectionState }
           Szacowany czas gotowości/dostawy: {new Date(order.estimatedReadyAt).toLocaleString('pl-PL')}
         </p>
       )}
+
+      {/* What was actually ordered -- the tracking view used to show only the status, so a
+          customer double-checking their order (or a guest with only the tracking link) had no
+          way to see its contents or total after leaving checkout. */}
+      <ul className="checkout-summary-list">
+        {order.items.map((item) => (
+          <li key={item.id}>{formatOrderItem(item)}</li>
+        ))}
+      </ul>
+      <div className="cart-summary">
+        <span>Razem</span>
+        <span>
+          {order.total.amount.toFixed(2)} {order.total.currency}
+        </span>
+      </div>
 
       <p className="checkout-hint">{CONNECTION_LABELS[connectionState]}</p>
     </div>

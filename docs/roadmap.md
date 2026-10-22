@@ -333,6 +333,13 @@ nowego ADR, chyba że zaznaczono inaczej.
     32 cm (oliwki)" (nowy `formatOrderItem.ts`, ten sam kształt co `OrderSummary` w
     checkoucie) plus "uwagi: ..." gdy są. 1 nowy test, 166/166 zielonych.
 
+32. **Pozycje i suma na stronie śledzenia zamówienia (klient)** — **zrobione
+    (2026-10-22).** `OrderTrackingStatus` (potwierdzenie, `/orders/:id`, śledzenie po
+    tokenie) pokazywał wyłącznie status — klient sprawdzający zamówienie po wyjściu z
+    checkoutu (albo gość z samym linkiem śledzenia) nie widział ani jego zawartości, ani
+    kwoty. Lista pozycji przez ten sam `formatOrderItem` co kolejka pracownika (poz. 31)
+    plus "Razem". 1 nowy test, 167/167 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,
