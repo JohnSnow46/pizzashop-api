@@ -316,6 +316,16 @@ nowego ADR, chyba że zaznaczono inaczej.
     poczekać. Pogrubiona linia "Na godzinę: ..." w `EmployeeOrderRow`, gdy pole jest
     ustawione (`null` = ASAP, bez linii). 2 nowe testy, 163/163 zielonych.
 
+## Kolejne kroki (2026-10-22)
+
+30. **Zamówiona godzina na stronie śledzenia zamówienia (klient)** — **zrobione
+    (2026-10-22).** Odpowiednik poz. 29 po stronie klienta: `OrderTrackingStatus` (strona
+    potwierdzenia, `/orders/:id`, śledzenie po tokenie) pokazywał tylko status i
+    `estimatedReadyAt`, nigdy wybranej w kroku 4 checkoutu godziny — przy zamówieniu na
+    później ETA łatwo było odczytać jako "przyjedzie wcześniej, niż prosiłem". Nowa linia
+    "Zamówione na: ...", gdy `requestedFulfillmentTime` jest ustawione. 2 nowe testy
+    (`OrderTrackingStatus.test.tsx`, nowy plik), 165/165 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

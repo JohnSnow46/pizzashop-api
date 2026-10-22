@@ -35,6 +35,15 @@ export function OrderTrackingStatus({ order, isLoading, error, connectionState }
         <strong className={isNegative ? 'checkout-error' : undefined}>{STATUS_LABELS[order.status]}</strong>
       </p>
 
+      {/* The scheduled time the customer picked in checkout step 4 was never echoed back after
+          ordering -- only the ETA, which for a scheduled order is easy to misread as "it'll come
+          earlier than I asked". */}
+      {order.requestedFulfillmentTime && (
+        <p className="checkout-hint">
+          Zamówione na: {new Date(order.requestedFulfillmentTime).toLocaleString('pl-PL')}
+        </p>
+      )}
+
       {order.estimatedReadyAt && (
         <p className="checkout-hint">
           Szacowany czas gotowości/dostawy: {new Date(order.estimatedReadyAt).toLocaleString('pl-PL')}
