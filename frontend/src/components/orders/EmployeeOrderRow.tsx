@@ -8,16 +8,11 @@ import {
   startDelivery,
   startPreparation,
 } from '../../api/ordersApi'
-import type { FulfillmentType, Order, OrderStatus } from '../../api/types'
+import type { Order, OrderStatus } from '../../api/types'
 import { useOrderTracking } from '../../hooks/useOrderTracking'
-import { PAYMENT_STATUS_LABELS, STATUS_LABELS } from './orderStatusLabels'
+import { FULFILLMENT_LABELS, PAYMENT_STATUS_LABELS, STATUS_LABELS } from './orderStatusLabels'
 import { formatAddress } from '../../shared/formatAddress'
 import { formatOrderItem } from './formatOrderItem'
-
-const FULFILLMENT_LABELS: Record<FulfillmentType, string> = {
-  Delivery: 'Dostawa',
-  Pickup: 'Odbiór osobisty',
-}
 
 /** Statuses that still belong in the queue — anything else means the order left it. */
 const ACTIVE_QUEUE_STATUSES: ReadonlySet<OrderStatus> = new Set([

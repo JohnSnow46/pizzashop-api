@@ -1,6 +1,7 @@
 import type { OrderStatus } from '../../api/types'
 import type { OrderTrackingConnectionState, UseOrderTrackingResult } from '../../hooks/useOrderTracking'
-import { STATUS_LABELS } from './orderStatusLabels'
+import { FULFILLMENT_LABELS, STATUS_LABELS } from './orderStatusLabels'
+import { formatAddress } from '../../shared/formatAddress'
 import { formatOrderItem } from './formatOrderItem'
 
 /** Terminal negative statuses — shown visually/textually distinct from Completed. */
@@ -34,6 +35,13 @@ export function OrderTrackingStatus({ order, isLoading, error, connectionState }
       <p>
         Status zamówienia:{' '}
         <strong className={isNegative ? 'checkout-error' : undefined}>{STATUS_LABELS[order.status]}</strong>
+      </p>
+
+      {/* How/where the order is fulfilled -- a guest with only the tracking link had no way
+          to double-check the delivery address they typed at checkout. */}
+      <p className="checkout-hint">
+        {FULFILLMENT_LABELS[order.fulfillmentType]}
+        {order.fulfillmentType === 'Delivery' && order.deliveryAddress && `: ${formatAddress(order.deliveryAddress)}`}
       </p>
 
       {/* The scheduled time the customer picked in checkout step 4 was never echoed back after

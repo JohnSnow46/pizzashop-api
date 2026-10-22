@@ -75,4 +75,21 @@ describe('OrderTrackingStatus', () => {
     expect(screen.getByText('2× Pepperoni')).not.toBeNull()
     expect(screen.getByText('57.50 PLN')).not.toBeNull()
   })
+
+  it('shows the delivery address for a delivery order', () => {
+    renderStatus(
+      makeOrder({
+        fulfillmentType: 'Delivery',
+        deliveryAddress: { street: 'Długa', buildingNumber: '5', apartmentNumber: null, city: 'Kraków', postalCode: '30-001', notes: null },
+      }),
+    )
+
+    expect(screen.getByText('Dostawa: Długa 5, 30-001 Kraków')).not.toBeNull()
+  })
+
+  it('labels a pickup order without an address', () => {
+    renderStatus(makeOrder())
+
+    expect(screen.getByText('Odbiór osobisty')).not.toBeNull()
+  })
 })

@@ -1,4 +1,4 @@
-import type { OrderStatus, PaymentStatus } from '../../api/types'
+import type { FulfillmentType, OrderStatus, PaymentStatus } from '../../api/types'
 
 /** Polish label per OrderStatus (all 8 values, src/PizzaShop.Domain/Enums/OrderStatus.cs). */
 export const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -19,4 +19,11 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   Paid: 'Opłacona',
   Refunded: 'Zwrócona',
   Failed: 'Nieudana',
+}
+
+/** Polish label per FulfillmentType — shared by the account order history, the employee queue
+ * and the customer tracking view. */
+export const FULFILLMENT_LABELS: Record<FulfillmentType, string> = {
+  Delivery: 'Dostawa',
+  Pickup: 'Odbiór osobisty',
 }

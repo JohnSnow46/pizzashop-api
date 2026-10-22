@@ -7,19 +7,13 @@ import { ApiError } from '../api/client'
 import type {
   Address,
   CustomerAddress,
-  FulfillmentType,
   LoyaltyBalance,
   LoyaltyTransactionType,
   OrderSummary,
 } from '../api/types'
-import { PAYMENT_STATUS_LABELS, STATUS_LABELS } from '../components/orders/orderStatusLabels'
+import { FULFILLMENT_LABELS, PAYMENT_STATUS_LABELS, STATUS_LABELS } from '../components/orders/orderStatusLabels'
 import { validateAddress, validateAddressLabel } from '../checkout/validation'
 import { formatAddress } from '../shared/formatAddress'
-
-const FULFILLMENT_LABELS: Record<FulfillmentType, string> = {
-  Delivery: 'Dostawa',
-  Pickup: 'Odbiór osobisty',
-}
 
 const LOYALTY_TYPE_LABELS: Record<LoyaltyTransactionType, string> = {
   Earned: 'Naliczono',

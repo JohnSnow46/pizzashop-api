@@ -340,6 +340,13 @@ nowego ADR, chyba że zaznaczono inaczej.
     kwoty. Lista pozycji przez ten sam `formatOrderItem` co kolejka pracownika (poz. 31)
     plus "Razem". 1 nowy test, 167/167 zielonych.
 
+33. **Sposób realizacji i adres na stronie śledzenia zamówienia (klient)** — **zrobione
+    (2026-10-22).** `OrderTrackingStatus` nie pokazywał, czy zamówienie jest z dostawą, ani
+    dokąd jedzie — gość z samym linkiem śledzenia nie mógł sprawdzić adresu wpisanego w
+    checkoucie. Nowa linia "Dostawa: <adres>" / "Odbiór osobisty". Przy okazji
+    zduplikowane `FULFILLMENT_LABELS` (`MyAccountPage` i `EmployeeOrderRow`) przeniesione do
+    wspólnego `orderStatusLabels.ts`. 2 nowe testy, 169/169 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,
