@@ -48,6 +48,25 @@ function renderCard(item: MenuItem) {
 }
 
 describe('MenuItemCard', () => {
+  it('lists the base ingredients when the item has any', () => {
+    renderCard(
+      makeItem({
+        baseIngredients: [
+          { id: 'i1', name: 'mozzarella', extraPrice: { amount: 0, currency: 'PLN' }, isAvailable: true, category: null },
+          { id: 'i2', name: 'sos pomidorowy', extraPrice: { amount: 0, currency: 'PLN' }, isAvailable: true, category: null },
+        ],
+      }),
+    )
+
+    expect(screen.getByText('Składniki: mozzarella, sos pomidorowy')).not.toBeNull()
+  })
+
+  it('shows no ingredients line for an item without base ingredients', () => {
+    renderCard(makeItem({ baseIngredients: [] }))
+
+    expect(screen.queryByText(/Składniki:/)).toBeNull()
+  })
+
   beforeEach(() => {
     localStorage.clear()
   })

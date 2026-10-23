@@ -216,6 +216,12 @@
   flex-grow: 1;
 }
 
+.menu-card__ingredients {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+
 .menu-card__price {
   font-weight: var(--font-weight-semibold);
 }

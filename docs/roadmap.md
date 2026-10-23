@@ -347,6 +347,14 @@ nowego ADR, chyba że zaznaczono inaczej.
     zduplikowane `FULFILLMENT_LABELS` (`MyAccountPage` i `EmployeeOrderRow`) przeniesione do
     wspólnego `orderStatusLabels.ts`. 2 nowe testy, 169/169 zielonych.
 
+## Kolejne kroki (2026-10-23)
+
+34. **Skład pizzy na karcie menu** — **zrobione (2026-10-23).** Każdy `MenuItem` przychodzi z
+    `baseIngredients`, ale używał ich wyłącznie adminowy formularz — klient sprawdzający,
+    czy pizza zawiera składnik, którego unika, miał tylko wolnotekstowy opis. `MenuItemCard`
+    pokazuje teraz "Składniki: mozzarella, sos pomidorowy" (gdy lista nie jest pusta). 2 nowe
+    testy, 171/171 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

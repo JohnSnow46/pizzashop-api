@@ -70,6 +70,11 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
       <h3>{item.name}</h3>
       {!item.isAvailable && <span className="menu-card__unavailable-badge">Niedostępne</span>}
       {item.description && <p className="menu-card__description">{item.description}</p>}
+      {/* baseIngredients came with every MenuItem but only the admin form ever used it -- a
+          customer checking for an ingredient they avoid had to rely on the free-text description. */}
+      {item.baseIngredients.length > 0 && (
+        <p className="menu-card__ingredients">Składniki: {item.baseIngredients.map((i) => i.name).join(', ')}</p>
+      )}
 
       <div className="menu-card__rating">
         {item.averageRating !== null ? (
