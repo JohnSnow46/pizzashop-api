@@ -28,7 +28,13 @@ export function MenuList({ items }: MenuListProps) {
       if (onlyAvailable && !item.isAvailable) {
         return false
       }
-      if (query && !item.name.toLowerCase().includes(query)) {
+      // Also matches base ingredients ("pieczarki" finds every pizza with mushrooms) -- the
+      // card now lists them, so searching by one is the natural next question.
+      if (
+        query &&
+        !item.name.toLowerCase().includes(query) &&
+        !item.baseIngredients.some((ingredient) => ingredient.name.toLowerCase().includes(query))
+      ) {
         return false
       }
       return true
@@ -45,7 +51,7 @@ export function MenuList({ items }: MenuListProps) {
         <input
           type="search"
           className="menu-filters__search"
-          placeholder="Szukaj w menu..."
+          placeholder="Szukaj po nazwie lub składniku..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           aria-label="Szukaj w menu"

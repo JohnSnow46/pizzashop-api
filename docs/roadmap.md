@@ -355,6 +355,12 @@ nowego ADR, chyba że zaznaczono inaczej.
     pokazuje teraz "Składniki: mozzarella, sos pomidorowy" (gdy lista nie jest pusta). 2 nowe
     testy, 171/171 zielonych.
 
+35. **Wyszukiwanie w menu po składniku** — **zrobione (2026-10-23).** Naturalny ciąg dalszy
+    poz. 34: karta pokazuje już skład, ale wyszukiwarka `MenuList` dopasowywała tylko nazwę
+    pozycji, więc "pieczarki" nie znajdowało Funghi. Zapytanie dopasowuje teraz także nazwy
+    `baseIngredients`; placeholder zmieniony na "Szukaj po nazwie lub składniku...". 1 nowy
+    test (`MenuList.test.tsx`, nowy plik), 172/172 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,
