@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { Ingredient } from '../../api/types'
 import { IngredientForm } from './IngredientForm'
 
@@ -14,6 +14,21 @@ type FormState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; ingre
 /** Ingredient dictionary management: list with availability flag + an add/edit form. */
 export function IngredientsSection({ ingredients, loading, error, onChanged }: IngredientsSectionProps) {
   const [form, setForm] = useState<FormState>({ mode: 'closed' })
+  const [search, setSearch] = useState('')
+
+  // Same name search MenuItemList already has next to it on /admin/menu, also matching the
+  // free-text category -- the ingredient dictionary only grows, and finding "mozzarella" to
+  // toggle its availability meant scrolling the whole table.
+  const filteredIngredients = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    if (!query) {
+      return ingredients
+    }
+    return ingredients.filter(
+      (ingredient) =>
+        ingredient.name.toLowerCase().includes(query) || (ingredient.category ?? '').toLowerCase().includes(query),
+    )
+  }, [ingredients, search])
 
   function handleSaved() {
     setForm({ mode: 'closed' })
@@ -30,6 +45,16 @@ export function IngredientsSection({ ingredients, loading, error, onChanged }: I
       {!loading && !error && (
         ingredients.length > 0 ? (
           <div className="admin-table-wrap">
+            <div className="menu-filters">
+              <input
+                type="search"
+                className="menu-filters__search"
+                placeholder="Szukaj składnika..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Szukaj składnika"
+              />
+            </div>
             <table className="admin-table">
               <thead>
                 <tr>
@@ -41,7 +66,7 @@ export function IngredientsSection({ ingredients, loading, error, onChanged }: I
                 </tr>
               </thead>
               <tbody>
-                {ingredients.map((ingredient) => (
+                {filteredIngredients.map((ingredient) => (
                   <tr key={ingredient.id}>
                     <td>{ingredient.name}</td>
                     <td>{ingredient.category ?? '—'}</td>

@@ -361,6 +361,15 @@ nowego ADR, chyba że zaznaczono inaczej.
     `baseIngredients`; placeholder zmieniony na "Szukaj po nazwie lub składniku...". 1 nowy
     test (`MenuList.test.tsx`, nowy plik), 172/172 zielonych.
 
+## Kolejne kroki (2026-10-24)
+
+36. **Wyszukiwarka w adminowej sekcji składników** — **zrobione (2026-10-24).** `MenuItemList`
+    na `/admin/menu` ma wyszukiwarkę od poz. 16, ale `IngredientsSection` tuż obok — nie,
+    choć słownik składników tylko rośnie, a znalezienie "mozzarella", żeby przełączyć jej
+    dostępność, wymagało przewijania całej tabeli. Pole "Szukaj składnika" filtruje po
+    nazwie i (wolnotekstowej) kategorii. 2 nowe testy (`IngredientsSection.test.tsx`, nowy
+    plik), 174/174 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,
