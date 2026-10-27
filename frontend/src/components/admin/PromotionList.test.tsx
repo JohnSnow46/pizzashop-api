@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { PromotionList } from './PromotionList'
 import { promotionStatus } from './promotionStatus'
 import type { Promotion } from '../../api/types'
@@ -94,5 +94,26 @@ describe('PromotionList', () => {
 
     expect(screen.getByText('10%, od 50.00 PLN')).not.toBeNull()
     expect(screen.getByText('od 80.00 PLN')).not.toBeNull()
+  })
+
+  it('filters rows by name or code', () => {
+    render(
+      <PromotionList
+        promotions={[
+          makePromotion(),
+          makePromotion({ id: 'promo-2', name: 'Weekend', code: 'WEEKEND5' }),
+        ]}
+        onEdit={vi.fn()}
+        onDeactivated={vi.fn()}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText('Szukaj promocji'), { target: { value: 'weekend5' } })
+    expect(screen.getByText('Weekend')).not.toBeNull()
+    expect(screen.queryByText('Jesień')).toBeNull()
+
+    fireEvent.change(screen.getByLabelText('Szukaj promocji'), { target: { value: 'jesie' } })
+    expect(screen.getByText('Jesień')).not.toBeNull()
+    expect(screen.queryByText('Weekend')).toBeNull()
   })
 })

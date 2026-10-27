@@ -369,6 +369,11 @@ nowego ADR, chyba że zaznaczono inaczej.
     dostępność, wymagało przewijania całej tabeli. Pole "Szukaj składnika" filtruje po
     nazwie i (wolnotekstowej) kategorii. 2 nowe testy (`IngredientsSection.test.tsx`, nowy
     plik), 174/174 zielonych.
+37. **Wyszukiwarka na liście promocji** — **zrobione (2026-10-27).** Tabele menu i
+    składników mają wyszukiwarkę (poz. 16, 36), a `PromotionList` na `/admin/promotions` —
+    nie, choć promocje są tylko dezaktywowane, nigdy usuwane, więc lista tylko rośnie.
+    Pole "Szukaj promocji" filtruje po nazwie i kodzie (np. gdy klient pyta o "JESIEN10").
+    1 nowy test (`PromotionList.test.tsx`), 175/175 zielonych.
 
 ## Świadomie pominięte
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { deactivatePromotion } from '../../api/promotionsApi'
 import type { Promotion } from '../../api/types'
 import { promotionStatus } from './promotionStatus'
@@ -50,6 +50,21 @@ function formatDate(iso: string): string {
 export function PromotionList({ promotions, onEdit, onDeactivated }: PromotionListProps) {
   const [pendingId, setPendingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+
+  // Same search box the menu and ingredient tables on /admin/menu already have, matching the
+  // name or the code -- a customer asking about "JESIEN10" meant scanning every row for it,
+  // and the list only grows since promotions are deactivated, never deleted.
+  const filteredPromotions = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    if (!query) {
+      return promotions
+    }
+    return promotions.filter(
+      (promotion) =>
+        promotion.name.toLowerCase().includes(query) || (promotion.code ?? '').toLowerCase().includes(query),
+    )
+  }, [promotions, search])
 
   async function deactivate(promotion: Promotion) {
     setPendingId(promotion.id)
@@ -71,6 +86,16 @@ export function PromotionList({ promotions, onEdit, onDeactivated }: PromotionLi
   return (
     <div className="admin-table-wrap">
       {error && <p className="checkout-error">{error}</p>}
+      <div className="menu-filters">
+        <input
+          type="search"
+          className="menu-filters__search"
+          placeholder="Szukaj promocji lub kodu..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          aria-label="Szukaj promocji"
+        />
+      </div>
       <table className="admin-table">
         <thead>
           <tr>
@@ -85,7 +110,7 @@ export function PromotionList({ promotions, onEdit, onDeactivated }: PromotionLi
           </tr>
         </thead>
         <tbody>
-          {promotions.map((promotion) => (
+          {filteredPromotions.map((promotion) => (
             <tr key={promotion.id}>
               <td>{promotion.name}</td>
               <td>{promotion.code ?? '—'}</td>
