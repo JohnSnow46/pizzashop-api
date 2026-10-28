@@ -379,6 +379,12 @@ nowego ADR, chyba że zaznaczono inaczej.
     spełniających kryteria wyszukiwania.", ale wyszukiwarki z poz. 36 i 37
     (`IngredientsSection`, `PromotionList`) zostawiały wtedy pustą tabelę z samym
     nagłówkiem. Oba miejsca dostały ten sam komunikat. 2 nowe testy, 177/177 zielonych.
+39. **Zaznaczenie bieżącej strony w nagłówku** — **zrobione (2026-10-28).** Adminowi
+    nagłówek pokazuje do ośmiu linków (koszyk, konto, panel pracownika, panel admina,
+    promocje, restauracja, pracownicy, raporty), ale żaden nie mówił, na której stronie
+    jesteś. Linki to teraz `NavLink` (`aria-current="page"` + klasa `.active`, akcent i
+    podkreślenie); "Panel admina" dopasowuje `/admin` dokładnie (`end`), żeby nie świecił
+    obok konkretnej podstrony. 2 nowe testy (`Layout.test.tsx`, nowy plik), 179/179 zielonych.
 
 ## Świadomie pominięte
 

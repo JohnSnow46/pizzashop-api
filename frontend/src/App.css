@@ -102,6 +102,13 @@
   color: var(--accent);
 }
 
+.auth-account-link.active,
+.cart-link.active {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
 /* Account page */
 
 .account-order-list {

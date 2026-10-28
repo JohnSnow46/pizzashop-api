@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import type { UserRole } from '../auth/types'
 import { useAuth } from '../hooks/useAuth'
 import { useCart } from '../hooks/useCart'
@@ -31,39 +31,43 @@ export function Layout({ children }: LayoutProps) {
           <Link to="/">PizzaShop</Link>
         </h1>
         <div className="header-actions">
-          <Link to="/cart" className="cart-link">
+          {/* NavLink rather than Link so the page you're on is marked (aria-current + .active) --
+              with up to eight links in the header, nothing said which one you'd clicked. "/admin"
+              matches exactly, otherwise it would stay lit on every /admin/* page next to the
+              more specific link. */}
+          <NavLink to="/cart" className="cart-link">
             Koszyk ({totalQuantity})
-          </Link>
+          </NavLink>
           {isAuthenticated ? (
             <span className="auth-status">
               {user?.email}{' '}
-              <Link to="/account" className="auth-account-link">
+              <NavLink to="/account" className="auth-account-link">
                 Moje konto
-              </Link>{' '}
+              </NavLink>{' '}
               {user && STAFF_ROLES.includes(user.role) && (
                 <>
-                  <Link to="/employee/orders" className="auth-account-link">
+                  <NavLink to="/employee/orders" className="auth-account-link">
                     Panel pracownika
-                  </Link>{' '}
+                  </NavLink>{' '}
                 </>
               )}
               {user && ADMIN_ROLES.includes(user.role) && (
                 <>
-                  <Link to="/admin" className="auth-account-link">
+                  <NavLink to="/admin" end className="auth-account-link">
                     Panel admina
-                  </Link>{' '}
-                  <Link to="/admin/promotions" className="auth-account-link">
+                  </NavLink>{' '}
+                  <NavLink to="/admin/promotions" className="auth-account-link">
                     Promocje
-                  </Link>{' '}
-                  <Link to="/admin/restaurant" className="auth-account-link">
+                  </NavLink>{' '}
+                  <NavLink to="/admin/restaurant" className="auth-account-link">
                     Restauracja
-                  </Link>{' '}
-                  <Link to="/admin/staff" className="auth-account-link">
+                  </NavLink>{' '}
+                  <NavLink to="/admin/staff" className="auth-account-link">
                     Pracownicy
-                  </Link>{' '}
-                  <Link to="/admin/reports" className="auth-account-link">
+                  </NavLink>{' '}
+                  <NavLink to="/admin/reports" className="auth-account-link">
                     Raporty
-                  </Link>{' '}
+                  </NavLink>{' '}
                 </>
               )}
               <button type="button" className="auth-logout-btn" onClick={handleLogout}>
