@@ -55,34 +55,40 @@ export function IngredientsSection({ ingredients, loading, error, onChanged }: I
                 aria-label="Szukaj składnika"
               />
             </div>
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Nazwa</th>
-                  <th>Kategoria</th>
-                  <th>Dopłata</th>
-                  <th>Dostępność</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {filteredIngredients.map((ingredient) => (
-                  <tr key={ingredient.id}>
-                    <td>{ingredient.name}</td>
-                    <td>{ingredient.category ?? '—'}</td>
-                    <td>
-                      {ingredient.extraPrice.amount.toFixed(2)} {ingredient.extraPrice.currency}
-                    </td>
-                    <td>{ingredient.isAvailable ? 'Dostępny' : 'Niedostępny'}</td>
-                    <td>
-                      <button type="button" onClick={() => setForm({ mode: 'edit', ingredient })}>
-                        Edytuj
-                      </button>
-                    </td>
+            {/* Same no-match message MenuItemList shows next to it -- without it a search with
+                no hits left a bare header row. */}
+            {filteredIngredients.length === 0 ? (
+              <p className="empty-state">Brak składników spełniających kryteria wyszukiwania.</p>
+            ) : (
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Nazwa</th>
+                    <th>Kategoria</th>
+                    <th>Dopłata</th>
+                    <th>Dostępność</th>
+                    <th />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredIngredients.map((ingredient) => (
+                    <tr key={ingredient.id}>
+                      <td>{ingredient.name}</td>
+                      <td>{ingredient.category ?? '—'}</td>
+                      <td>
+                        {ingredient.extraPrice.amount.toFixed(2)} {ingredient.extraPrice.currency}
+                      </td>
+                      <td>{ingredient.isAvailable ? 'Dostępny' : 'Niedostępny'}</td>
+                      <td>
+                        <button type="button" onClick={() => setForm({ mode: 'edit', ingredient })}>
+                          Edytuj
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         ) : (
           <p className="empty-state">Brak składników.</p>

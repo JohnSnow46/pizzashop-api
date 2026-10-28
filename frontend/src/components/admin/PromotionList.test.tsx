@@ -116,4 +116,13 @@ describe('PromotionList', () => {
     expect(screen.getByText('Jesień')).not.toBeNull()
     expect(screen.queryByText('Weekend')).toBeNull()
   })
+
+  it('says so when the search matches nothing', () => {
+    render(<PromotionList promotions={[makePromotion()]} onEdit={vi.fn()} onDeactivated={vi.fn()} />)
+
+    fireEvent.change(screen.getByLabelText('Szukaj promocji'), { target: { value: 'zima' } })
+
+    expect(screen.getByText('Brak promocji spełniających kryteria wyszukiwania.')).not.toBeNull()
+    expect(screen.queryByRole('table')).toBeNull()
+  })
 })

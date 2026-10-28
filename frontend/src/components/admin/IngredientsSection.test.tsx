@@ -41,4 +41,13 @@ describe('IngredientsSection', () => {
     expect(screen.queryByText('Mozzarella')).toBeNull()
     expect(screen.queryByText('Salami')).toBeNull()
   })
+
+  it('says so when the search matches nothing', () => {
+    render(<IngredientsSection ingredients={ingredients} loading={false} error={null} onChanged={vi.fn()} />)
+
+    fireEvent.change(screen.getByLabelText('Szukaj składnika'), { target: { value: 'ananas' } })
+
+    expect(screen.getByText('Brak składników spełniających kryteria wyszukiwania.')).not.toBeNull()
+    expect(screen.queryByRole('table')).toBeNull()
+  })
 })

@@ -96,52 +96,57 @@ export function PromotionList({ promotions, onEdit, onDeactivated }: PromotionLi
           aria-label="Szukaj promocji"
         />
       </div>
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Nazwa</th>
-            <th>Kod</th>
-            <th>Typ</th>
-            <th>Wartość</th>
-            <th>Okno ważności</th>
-            <th>Status</th>
-            <th>Limit/Użycia</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {filteredPromotions.map((promotion) => (
-            <tr key={promotion.id}>
-              <td>{promotion.name}</td>
-              <td>{promotion.code ?? '—'}</td>
-              <td>{TYPE_LABELS[promotion.type]}</td>
-              <td>{formatValue(promotion)}</td>
-              <td>
-                {formatDate(promotion.validFrom)} – {formatDate(promotion.validTo)}
-              </td>
-              <td>{promotionStatus(promotion)}</td>
-              <td>
-                {promotion.usageCount}
-                {promotion.usageLimit !== null ? ` / ${promotion.usageLimit}` : ''}
-              </td>
-              <td>
-                <button type="button" onClick={() => onEdit(promotion)}>
-                  Edytuj
-                </button>
-                {promotion.isActive && (
-                  <button
-                    type="button"
-                    disabled={pendingId === promotion.id}
-                    onClick={() => void deactivate(promotion)}
-                  >
-                    Dezaktywuj
-                  </button>
-                )}
-              </td>
+      {/* Same no-match message as MenuItemList/IngredientsSection. */}
+      {filteredPromotions.length === 0 ? (
+        <p className="empty-state">Brak promocji spełniających kryteria wyszukiwania.</p>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Nazwa</th>
+              <th>Kod</th>
+              <th>Typ</th>
+              <th>Wartość</th>
+              <th>Okno ważności</th>
+              <th>Status</th>
+              <th>Limit/Użycia</th>
+              <th />
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filteredPromotions.map((promotion) => (
+              <tr key={promotion.id}>
+                <td>{promotion.name}</td>
+                <td>{promotion.code ?? '—'}</td>
+                <td>{TYPE_LABELS[promotion.type]}</td>
+                <td>{formatValue(promotion)}</td>
+                <td>
+                  {formatDate(promotion.validFrom)} – {formatDate(promotion.validTo)}
+                </td>
+                <td>{promotionStatus(promotion)}</td>
+                <td>
+                  {promotion.usageCount}
+                  {promotion.usageLimit !== null ? ` / ${promotion.usageLimit}` : ''}
+                </td>
+                <td>
+                  <button type="button" onClick={() => onEdit(promotion)}>
+                    Edytuj
+                  </button>
+                  {promotion.isActive && (
+                    <button
+                      type="button"
+                      disabled={pendingId === promotion.id}
+                      onClick={() => void deactivate(promotion)}
+                    >
+                      Dezaktywuj
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   )
 }

@@ -374,6 +374,11 @@ nowego ADR, chyba że zaznaczono inaczej.
     nie, choć promocje są tylko dezaktywowane, nigdy usuwane, więc lista tylko rośnie.
     Pole "Szukaj promocji" filtruje po nazwie i kodzie (np. gdy klient pyta o "JESIEN10").
     1 nowy test (`PromotionList.test.tsx`), 175/175 zielonych.
+38. **Komunikat "brak wyników" w nowych wyszukiwarkach** — **zrobione (2026-10-28).**
+    `MenuItemList` i `MenuList` przy wyszukiwaniu bez trafień pokazują "Brak pozycji
+    spełniających kryteria wyszukiwania.", ale wyszukiwarki z poz. 36 i 37
+    (`IngredientsSection`, `PromotionList`) zostawiały wtedy pustą tabelę z samym
+    nagłówkiem. Oba miejsca dostały ten sam komunikat. 2 nowe testy, 177/177 zielonych.
 
 ## Świadomie pominięte
 
