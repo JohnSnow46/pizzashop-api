@@ -397,6 +397,10 @@ nowego ADR, chyba że zaznaczono inaczej.
     przy adresie na `/account` kasował go od razu, a odtworzenie oznaczało przepisanie całego
     adresu przy następnym zamówieniu. Teraz pyta przez `window.confirm` z etykietą adresu
     (jak poz. 40-41). 1 nowy test + istniejący test błędu API potwierdza dialog, 184/184 zielonych.
+43. **Potwierdzenie przed usunięciem zdjęcia pozycji menu** — **zrobione (2026-10-29).**
+    W przeciwieństwie do reszty `MenuItemForm` "Usuń zdjęcie" zapisuje od razu (bez kroku
+    "Zapisz"), a przywrócenie zdjęcia wymaga ponownego wgrania pliku. Teraz pyta przez
+    `window.confirm` (jak poz. 40-42). 1 nowy test, 185/185 zielonych.
 
 ## Świadomie pominięte
 

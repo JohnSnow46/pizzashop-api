@@ -69,6 +69,10 @@ export function MenuItemForm({ mode, item, ingredients, onSaved, onCancel }: Men
 
   async function handleRemoveImage() {
     if (!item) return
+    // Unlike the rest of this form, this saves straight away (no "Zapisz" step), and getting
+    // the photo back means finding and re-uploading the file -- so ask first, like the
+    // promotion deactivation and cart/address removals.
+    if (!window.confirm('Usunąć zdjęcie tej pozycji menu?')) return
 
     setUploadingImage(true)
     setUploadError(null)

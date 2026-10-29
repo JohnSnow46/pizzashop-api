@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { MenuItemForm } from './MenuItemForm'
+import { updateMenuItem } from '../../api/menuApi'
 
 vi.mock('../../api/menuApi', () => ({
   createMenuItem: vi.fn(),
@@ -11,6 +12,8 @@ vi.mock('../../api/menuApi', () => ({
 describe('MenuItemForm', () => {
   afterEach(() => {
     cleanup()
+    vi.restoreAllMocks()
+    vi.mocked(updateMenuItem).mockClear()
   })
 
   it('shows Polish category labels in the category select instead of the raw enum values', () => {
@@ -53,5 +56,29 @@ describe('MenuItemForm', () => {
     render(<MenuItemForm mode="edit" item={item} ingredients={[]} onSaved={vi.fn()} onCancel={vi.fn()} />)
 
     expect(screen.getByPlaceholderText('Nazwa wariantu').getAttribute('maxlength')).toBe('100')
+  })
+
+  it('asks before removing the photo and keeps it when declined', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const item = {
+      id: 'pizza-1',
+      name: 'Margherita',
+      description: null,
+      category: 'Pizza' as const,
+      basePrice: { amount: 25, currency: 'PLN' },
+      isAvailable: true,
+      imageUrl: '/images/margherita.webp',
+      variants: [],
+      baseIngredients: [],
+      allowedExtras: [],
+      averageRating: null,
+      reviewCount: 0,
+    }
+    render(<MenuItemForm mode="edit" item={item} ingredients={[]} onSaved={vi.fn()} onCancel={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Usuń zdjęcie' }))
+
+    expect(window.confirm).toHaveBeenCalledOnce()
+    expect(updateMenuItem).not.toHaveBeenCalled()
   })
 })
