@@ -389,6 +389,10 @@ nowego ADR, chyba że zaznaczono inaczej.
     jest jednokierunkowa (nie ma akcji "aktywuj"), a wykonywała się po jednym kliknięciu.
     Teraz pyta przez `window.confirm` — ten sam wzorzec, którego `EmployeeOrderRow` używa
     przed anulowaniem zamówienia. 2 nowe testy, 181/181 zielonych.
+41. **Potwierdzenie przed wyczyszczeniem koszyka** — **zrobione (2026-10-29).** "Wyczyść
+    koszyk" stoi tuż obok "Przejdź do kasy" i jednym kliknięciem usuwał wszystkie pozycje
+    razem z wariantami i dodatkami. Teraz pyta przez `window.confirm` (jak poz. 40).
+    2 nowe testy (`CartView.test.tsx`, nowy plik), 183/183 zielonych.
 
 ## Świadomie pominięte
 

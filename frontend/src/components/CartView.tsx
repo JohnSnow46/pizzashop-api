@@ -46,7 +46,14 @@ export function CartView() {
       </div>
 
       <div className="cart-actions">
-        <button type="button" onClick={clear}>
+        {/* Sits right next to "Przejdź do kasy" and emptied the whole cart -- every item with its
+            variant and extras -- on one click, so a near-miss meant rebuilding the order. */}
+        <button
+          type="button"
+          onClick={() => {
+            if (window.confirm('Usunąć wszystkie pozycje z koszyka?')) clear()
+          }}
+        >
           Wyczyść koszyk
         </button>
         <Link to="/checkout" className="add-to-cart-btn">
