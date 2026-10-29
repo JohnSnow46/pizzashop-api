@@ -385,6 +385,10 @@ nowego ADR, chyba że zaznaczono inaczej.
     jesteś. Linki to teraz `NavLink` (`aria-current="page"` + klasa `.active`, akcent i
     podkreślenie); "Panel admina" dopasowuje `/admin` dokładnie (`end`), żeby nie świecił
     obok konkretnej podstrony. 2 nowe testy (`Layout.test.tsx`, nowy plik), 179/179 zielonych.
+40. **Potwierdzenie przed dezaktywacją promocji** — **zrobione (2026-10-29).** Dezaktywacja
+    jest jednokierunkowa (nie ma akcji "aktywuj"), a wykonywała się po jednym kliknięciu.
+    Teraz pyta przez `window.confirm` — ten sam wzorzec, którego `EmployeeOrderRow` używa
+    przed anulowaniem zamówienia. 2 nowe testy, 181/181 zielonych.
 
 ## Świadomie pominięte
 

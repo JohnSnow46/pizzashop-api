@@ -67,6 +67,11 @@ export function PromotionList({ promotions, onEdit, onDeactivated }: PromotionLi
   }, [promotions, search])
 
   async function deactivate(promotion: Promotion) {
+    // Deactivation is one-way (there's no "activate" action), yet it fired on a single click --
+    // same window.confirm guard EmployeeOrderRow uses before cancelling an order.
+    if (!window.confirm(`Dezaktywować promocję "${promotion.name}"? Tej operacji nie można cofnąć.`)) {
+      return
+    }
     setPendingId(promotion.id)
     setError(null)
     try {

@@ -1,11 +1,12 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { PromotionList } from './PromotionList'
+import { deactivatePromotion } from '../../api/promotionsApi'
 import { promotionStatus } from './promotionStatus'
 import type { Promotion } from '../../api/types'
 
 vi.mock('../../api/promotionsApi', () => ({
-  deactivatePromotion: vi.fn(),
+  deactivatePromotion: vi.fn().mockResolvedValue(undefined),
 }))
 
 function makePromotion(overrides: Partial<Promotion> = {}): Promotion {
@@ -53,6 +54,7 @@ describe('promotionStatus', () => {
 describe('PromotionList', () => {
   afterEach(() => {
     cleanup()
+    vi.clearAllMocks()
   })
 
   it('renders a Status column instead of the raw isActive flag', () => {
@@ -124,5 +126,28 @@ describe('PromotionList', () => {
 
     expect(screen.getByText('Brak promocji spełniających kryteria wyszukiwania.')).not.toBeNull()
     expect(screen.queryByRole('table')).toBeNull()
+  })
+
+  it('asks for confirmation before deactivating and does nothing when declined', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<PromotionList promotions={[makePromotion()]} onEdit={vi.fn()} onDeactivated={vi.fn()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dezaktywuj' }))
+
+    expect(confirmSpy).toHaveBeenCalledOnce()
+    expect(deactivatePromotion).not.toHaveBeenCalled()
+    confirmSpy.mockRestore()
+  })
+
+  it('deactivates once confirmed', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const onDeactivated = vi.fn()
+    render(<PromotionList promotions={[makePromotion()]} onEdit={vi.fn()} onDeactivated={onDeactivated} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dezaktywuj' }))
+
+    expect(deactivatePromotion).toHaveBeenCalledWith('promo-1')
+    await vi.waitFor(() => expect(onDeactivated).toHaveBeenCalled())
+    confirmSpy.mockRestore()
   })
 })
