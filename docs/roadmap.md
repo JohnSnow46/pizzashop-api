@@ -393,6 +393,10 @@ nowego ADR, chyba że zaznaczono inaczej.
     koszyk" stoi tuż obok "Przejdź do kasy" i jednym kliknięciem usuwał wszystkie pozycje
     razem z wariantami i dodatkami. Teraz pyta przez `window.confirm` (jak poz. 40).
     2 nowe testy (`CartView.test.tsx`, nowy plik), 183/183 zielonych.
+42. **Potwierdzenie przed usunięciem zapisanego adresu** — **zrobione (2026-10-29).** "Usuń"
+    przy adresie na `/account` kasował go od razu, a odtworzenie oznaczało przepisanie całego
+    adresu przy następnym zamówieniu. Teraz pyta przez `window.confirm` z etykietą adresu
+    (jak poz. 40-41). 1 nowy test + istniejący test błędu API potwierdza dialog, 184/184 zielonych.
 
 ## Świadomie pominięte
 

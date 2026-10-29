@@ -261,7 +261,11 @@ export function MyAccountPage() {
                     type="button"
                     className="queue-action-btn queue-action-btn--danger"
                     disabled={addressActionId === entry.id}
-                    onClick={() => handleRemoveAddress(entry.id)}
+                    // A saved address can't be restored -- removing it meant retyping the whole thing
+                    // at the next checkout, so ask first like the cart's "Wyczyść koszyk".
+                    onClick={() => {
+                      if (window.confirm(`Usunąć adres "${entry.label}"?`)) void handleRemoveAddress(entry.id)
+                    }}
                   >
                     Usuń
                   </button>

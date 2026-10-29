@@ -88,6 +88,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  vi.restoreAllMocks()
 })
 
 function renderPage() {
@@ -169,9 +170,22 @@ describe('MyAccountPage', () => {
     expect((screen.getByLabelText('Nazwa adresu (np. Dom, Praca)') as HTMLInputElement).value).toBe('')
   })
 
+  it('does not remove an address when the confirmation is declined', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    renderPage()
+    await screen.findByText('Dom')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Usuń' }))
+
+    expect(window.confirm).toHaveBeenCalledWith('Usunąć adres "Dom"?')
+    expect(removeAddressMock).not.toHaveBeenCalled()
+    expect(screen.getByText('Dom')).toBeDefined()
+  })
+
   it('shows an API error and keeps the entry when removing an address fails', async () => {
     removeAddressMock.mockRejectedValue(new ApiError(409, 'Conflict', { detail: 'Nie można usunąć adresu domyślnego.' }))
 
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
     renderPage()
     await screen.findByText('Dom')
 
