@@ -402,6 +402,13 @@ nowego ADR, chyba że zaznaczono inaczej.
     "Zapisz"), a przywrócenie zdjęcia wymaga ponownego wgrania pliku. Teraz pyta przez
     `window.confirm` (jak poz. 40-42). 1 nowy test, 185/185 zielonych.
 
+## Kolejne kroki (2026-10-31)
+
+44. **`lang="pl"` w `index.html`** — **zrobione (2026-10-31).** Cały interfejs jest po polsku,
+    ale dokument deklarował `lang="en"`, więc czytniki ekranu czytały polskie teksty
+    angielskim syntezatorem, a przeglądarka proponowała tłumaczenie "z angielskiego" i
+    dzieliła wyrazy wg reguł angielskich. Jednolinijkowa zmiana atrybutu.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,
