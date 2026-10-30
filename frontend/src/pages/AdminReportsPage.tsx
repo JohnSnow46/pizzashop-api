@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import type { SalesReport } from '../api/types'
 import { useSalesReport } from '../hooks/useSalesReport'
 
@@ -52,6 +53,7 @@ function downloadReportCsv(report: SalesReport, fromDate: string, toDate: string
  * best-selling menu items in that range.
  */
 export function AdminReportsPage() {
+  useDocumentTitle('Raporty sprzedaży — panel admina')
   const { report, loading, error, fromDate, toDate, topItems, setFromDate, setToDate, setTopItems } = useSalesReport()
 
   return (

@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useState } from 'react'
 import { StaffAccountForm } from '../components/admin/StaffAccountForm'
 import { StaffAccountList } from '../components/admin/StaffAccountList'
@@ -9,6 +10,7 @@ import { useStaffAccounts } from '../hooks/useStaffAccounts'
  * RegisterStaffAccountCommand (list + create only, no edit/deactivate in this iteration).
  */
 export function AdminStaffPage() {
+  useDocumentTitle('Pracownicy — panel admina')
   const { staffAccounts, loading, error, reload } = useStaffAccounts()
   const [formOpen, setFormOpen] = useState(false)
 

@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { Link } from 'react-router-dom'
 
 interface AdminDashboardTile {
@@ -20,6 +21,7 @@ const TILES: AdminDashboardTile[] = [
  * promotions, restaurant, staff, reports).
  */
 export function AdminDashboardPage() {
+  useDocumentTitle('Panel admina')
   return (
     <div className="admin-page">
       <h2>Panel admina</h2>

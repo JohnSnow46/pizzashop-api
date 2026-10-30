@@ -414,6 +414,11 @@ nowego ADR, chyba że zaznaczono inaczej.
     `useDocumentTitle` ustawia "<strona> — PizzaShop" (i przywraca poprzedni tytuł przy
     odmontowaniu); użyty na wszystkich stronach klienta. Panel admina/pracownika to osobny
     krok. 3 nowe testy, 188/188 zielonych.
+46. **Tytuł karty przeglądarki w panelu admina i kolejce zamówień** — **zrobione
+    (2026-10-31).** Dokończenie poz. 45: sześć stron `/admin/*` i `/employee/orders` dalej
+    miało wspólne "PizzaShop", a to właśnie personel trzyma kilka z nich naraz w osobnych
+    kartach (kolejka obok katalogu czy raportów). Ten sam `useDocumentTitle`, np.
+    "Promocje — panel admina — PizzaShop", "Kolejka zamówień — PizzaShop". 188/188 zielonych.
 
 ## Świadomie pominięte
 

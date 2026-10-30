@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { DeliveryAreaForm } from '../components/admin/DeliveryAreaForm'
 import { OpeningHoursForm } from '../components/admin/OpeningHoursForm'
 import { OrderingThresholdsForm } from '../components/admin/OrderingThresholdsForm'
@@ -8,6 +9,7 @@ import { useRestaurantConfig } from '../hooks/useRestaurantConfig'
  * restaurant configuration: opening hours, delivery area, ordering/free-delivery thresholds.
  */
 export function AdminRestaurantPage() {
+  useDocumentTitle('Restauracja — panel admina')
   const { config, loading, error, reload } = useRestaurantConfig()
 
   return (

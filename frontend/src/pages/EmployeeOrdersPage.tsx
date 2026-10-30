@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useEffect, useRef, useState } from 'react'
 import { getOrderQueue } from '../api/ordersApi'
 import { NEW_ORDER_BEEP_SRC } from '../assets/newOrderBeep'
@@ -13,6 +14,7 @@ import { useEmployeeOrderQueueLive } from '../hooks/useEmployeeOrderQueueLive'
  * was missed while disconnected.
  */
 export function EmployeeOrdersPage() {
+  useDocumentTitle('Kolejka zamówień')
   const [orderIds, setOrderIds] = useState<string[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)

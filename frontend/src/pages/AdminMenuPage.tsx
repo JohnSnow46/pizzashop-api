@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useState } from 'react'
 import { IngredientsSection } from '../components/admin/IngredientsSection'
 import { MenuItemForm } from '../components/admin/MenuItemForm'
@@ -14,6 +15,7 @@ type MenuFormState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; i
  * and ingredient selection, ADR-0016) and the ingredient dictionary (list + add/edit).
  */
 export function AdminMenuPage() {
+  useDocumentTitle('Katalog — panel admina')
   const { items, loading, error, reload } = useMenu()
   const {
     ingredients,

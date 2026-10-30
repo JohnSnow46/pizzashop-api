@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useState } from 'react'
 import { PromotionForm } from '../components/admin/PromotionForm'
 import { PromotionList } from '../components/admin/PromotionList'
@@ -13,6 +14,7 @@ type PromotionFormState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edi
  * are mutable after creation.
  */
 export function AdminPromotionsPage() {
+  useDocumentTitle('Promocje — panel admina')
   const { promotions, loading, error, reload } = usePromotions()
   const [form, setForm] = useState<PromotionFormState>({ mode: 'closed' })
 
