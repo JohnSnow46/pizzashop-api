@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
@@ -6,6 +7,7 @@ import { useAuth } from '../hooks/useAuth'
 
 /** /login (ADR-0037) — email/password, auto-redirects to "/" on success. */
 export function LoginPage() {
+  useDocumentTitle('Logowanie')
   const { login } = useAuth()
   const navigate = useNavigate()
 

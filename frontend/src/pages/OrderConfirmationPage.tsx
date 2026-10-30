@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { Link, useSearchParams } from 'react-router-dom'
 import { loadOrderResult } from '../checkout/orderResultStorage'
 import { OrderTrackingStatus } from '../components/orders/OrderTrackingStatus'
@@ -14,6 +15,7 @@ import { useOrderTracking, type OrderTrackingSource } from '../hooks/useOrderTra
  * to another tab/device); logged-in customers are tracked via `orderId` instead.
  */
 export function OrderConfirmationPage() {
+  useDocumentTitle('Potwierdzenie zamówienia')
   const [searchParams] = useSearchParams()
   const paymentError = searchParams.get('error')
   const result = loadOrderResult()

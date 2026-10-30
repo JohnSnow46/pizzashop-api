@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
@@ -22,6 +23,7 @@ import { useCart } from '../hooks/useCart'
  * (useCheckoutState) rather than one route per step — see the ADR for the rationale.
  */
 export function CheckoutPage() {
+  useDocumentTitle('Zamówienie')
   const { items, totalAmount, clear } = useCart()
   const navigate = useNavigate()
   const [state, dispatch] = useCheckoutState()

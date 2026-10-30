@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getMyOrders } from '../api/ordersApi'
@@ -46,6 +47,7 @@ const EMPTY_NEW_ADDRESS: Address = {
  * logged-in analog of the guest live-tracking route (ADR-0038), for that order's live status.
  */
 export function MyAccountPage() {
+  useDocumentTitle('Moje konto')
   const [orders, setOrders] = useState<OrderSummary[] | null>(null)
   const [loyalty, setLoyalty] = useState<LoyaltyBalance | null>(null)
   const [addresses, setAddresses] = useState<CustomerAddress[]>([])

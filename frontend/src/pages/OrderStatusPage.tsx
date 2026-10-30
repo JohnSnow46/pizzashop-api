@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useParams } from 'react-router-dom'
 import { OrderReviewForm } from '../components/orders/OrderReviewForm'
 import { OrderTrackingStatus } from '../components/orders/OrderTrackingStatus'
@@ -10,6 +11,7 @@ import { useOrderTracking } from '../hooks/useOrderTracking'
  * single order's live status, reached from the order history list on `/account`.
  */
 export function OrderStatusPage() {
+  useDocumentTitle('Status zamówienia')
   const { orderId } = useParams<{ orderId: string }>()
   const tracking = useOrderTracking(orderId ? { orderId } : null)
 

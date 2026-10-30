@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../api/client'
@@ -6,6 +7,7 @@ import { useAuth } from '../hooks/useAuth'
 
 /** /register (ADR-0037) — email/password/fullName/phone (optional), auto-login on success. */
 export function RegisterPage() {
+  useDocumentTitle('Rejestracja')
   const { register } = useAuth()
   const navigate = useNavigate()
 

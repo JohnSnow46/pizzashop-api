@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useParams } from 'react-router-dom'
 import { OrderTrackingStatus } from '../components/orders/OrderTrackingStatus'
 import { RetryPaymentButton } from '../components/orders/RetryPaymentButton'
@@ -9,6 +10,7 @@ import { useOrderTracking } from '../hooks/useOrderTracking'
  * OrderConfirmationPage (which doesn't survive a new tab/device).
  */
 export function TrackOrderPage() {
+  useDocumentTitle('Śledzenie zamówienia')
   const { trackingToken } = useParams<{ trackingToken: string }>()
   const tracking = useOrderTracking(trackingToken ? { trackingToken } : null)
 

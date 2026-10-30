@@ -1,3 +1,4 @@
+import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { MenuList } from '../components/MenuList'
 import { useMenu } from '../hooks/useMenu'
 
@@ -21,6 +22,7 @@ function MenuSkeleton() {
 }
 
 export function MenuPage() {
+  useDocumentTitle('Menu')
   const { items, loading, error } = useMenu()
 
   if (loading) {

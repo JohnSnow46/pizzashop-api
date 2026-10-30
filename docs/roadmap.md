@@ -408,6 +408,12 @@ nowego ADR, chyba że zaznaczono inaczej.
     ale dokument deklarował `lang="en"`, więc czytniki ekranu czytały polskie teksty
     angielskim syntezatorem, a przeglądarka proponowała tłumaczenie "z angielskiego" i
     dzieliła wyrazy wg reguł angielskich. Jednolinijkowa zmiana atrybutu.
+45. **Tytuł karty przeglądarki per strona (klient)** — **zrobione (2026-10-31).** Każda trasa
+    miała ten sam statyczny tytuł "PizzaShop" z `index.html`, więc koszyk, checkout i
+    śledzone w drugiej karcie zamówienie wyglądały w pasku kart identycznie. Nowy hook
+    `useDocumentTitle` ustawia "<strona> — PizzaShop" (i przywraca poprzedni tytuł przy
+    odmontowaniu); użyty na wszystkich stronach klienta. Panel admina/pracownika to osobny
+    krok. 3 nowe testy, 188/188 zielonych.
 
 ## Świadomie pominięte
 
