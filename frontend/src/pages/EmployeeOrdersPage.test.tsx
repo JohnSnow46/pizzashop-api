@@ -114,4 +114,21 @@ describe('EmployeeOrdersPage', () => {
     await waitFor(() => expect(screen.getByText('1 nowe zamówienie')).toBeDefined())
     expect(screen.getAllByText('a')).toHaveLength(1)
   })
+
+  it('shows the unseen new-order count in the tab title until the badge is cleared', async () => {
+    getOrderQueueMock.mockResolvedValue(makeOrders(['a']))
+
+    render(<EmployeeOrdersPage />)
+    await screen.findByText('a')
+    expect(document.title).toBe('Kolejka zamówień — PizzaShop')
+
+    const onNewOrder = useEmployeeOrderQueueLiveMock.mock.calls.at(-1)![0] as (orderId: string) => void
+    onNewOrder('y')
+    onNewOrder('z')
+
+    await waitFor(() => expect(document.title).toBe('(2) Kolejka zamówień — PizzaShop'))
+
+    fireEvent.click(screen.getByText('2 nowych zamówień'))
+    await waitFor(() => expect(document.title).toBe('Kolejka zamówień — PizzaShop'))
+  })
 })

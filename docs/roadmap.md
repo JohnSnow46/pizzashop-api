@@ -419,6 +419,12 @@ nowego ADR, chyba że zaznaczono inaczej.
     miało wspólne "PizzaShop", a to właśnie personel trzyma kilka z nich naraz w osobnych
     kartach (kolejka obok katalogu czy raportów). Ten sam `useDocumentTitle`, np.
     "Promocje — panel admina — PizzaShop", "Kolejka zamówień — PizzaShop". 188/188 zielonych.
+47. **Licznik nowych zamówień w tytule karty kolejki** — **zrobione (2026-10-31).** Kolejka
+    `/employee/orders` zwykle wisi w karcie w tle, gdzie odznaka "N nowych zamówień" jest
+    niewidoczna, a sygnał dźwiękowy bywa blokowany przez reguły autoodtwarzania (dopóki
+    pracownik nie kliknie w stronę). Tytuł karty pokazuje teraz licznik, np.
+    "(2) Kolejka zamówień — PizzaShop", i wraca do zwykłego po kliknięciu odznaki. 1 nowy
+    test, 189/189 zielonych.
 
 ## Świadomie pominięte
 

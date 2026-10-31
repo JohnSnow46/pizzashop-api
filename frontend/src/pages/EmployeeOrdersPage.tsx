@@ -14,11 +14,13 @@ import { useEmployeeOrderQueueLive } from '../hooks/useEmployeeOrderQueueLive'
  * was missed while disconnected.
  */
 export function EmployeeOrdersPage() {
-  useDocumentTitle('Kolejka zamówień')
   const [orderIds, setOrderIds] = useState<string[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [newOrderCount, setNewOrderCount] = useState(0)
+  // The queue usually sits in a background tab, where the badge is invisible and the beep may be
+  // blocked by autoplay rules -- put the unseen count in the tab title too, e.g. "(2) Kolejka...".
+  useDocumentTitle(newOrderCount > 0 ? `(${newOrderCount}) Kolejka zamówień` : 'Kolejka zamówień')
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
