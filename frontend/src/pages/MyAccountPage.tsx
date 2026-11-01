@@ -227,7 +227,7 @@ export function MyAccountPage() {
       <section>
         <h3>Adresy dostawy</h3>
 
-        {addressApiError && <p className="checkout-banner checkout-banner--error">{addressApiError}</p>}
+        {addressApiError && <p className="checkout-banner checkout-banner--error" role="alert">{addressApiError}</p>}
 
         {addresses.length > 0 ? (
           <ul className="account-order-list">

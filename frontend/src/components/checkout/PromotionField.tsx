@@ -71,7 +71,7 @@ export function PromotionField({ code, preview, subtotal, deliveryFee, lines, on
         </button>
       </div>
 
-      {error && <p className="checkout-banner checkout-banner--error">{error}</p>}
+      {error && <p className="checkout-banner checkout-banner--error" role="alert">{error}</p>}
 
       {hasUncheckedCode && (
         <p className="checkout-hint">Sprawdź kod przed przejściem dalej albo wyczyść pole, żeby pominąć promocję.</p>

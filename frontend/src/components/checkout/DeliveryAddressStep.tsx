@@ -156,11 +156,11 @@ export function DeliveryAddressStep({
         </label>
       </div>
 
-      {apiError && <p className="checkout-banner checkout-banner--error">{apiError}</p>}
+      {apiError && <p className="checkout-banner checkout-banner--error" role="alert">{apiError}</p>}
 
       {result && !result.isAvailable && (
         <div className="checkout-banner checkout-banner--error">
-          <p>Ten adres jest poza obszarem dostawy.</p>
+          <p role="alert">Ten adres jest poza obszarem dostawy.</p>
           <button type="button" onClick={onSwitchToPickup}>
             Wybierz odbiór osobisty
           </button>

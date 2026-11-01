@@ -129,7 +129,7 @@ export function FulfillmentTimeStep({ schedule, restaurantConfig, onChange, onNe
         </div>
       )}
 
-      {error && <p className="checkout-banner checkout-banner--error">{error}</p>}
+      {error && <p className="checkout-banner checkout-banner--error" role="alert">{error}</p>}
 
       <div className="checkout-actions">
         <button type="button" onClick={onBack}>

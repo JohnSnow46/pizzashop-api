@@ -160,7 +160,7 @@ export function OrderSummary({
 
       {submitError && (
         <div className="checkout-banner checkout-banner--error">
-          <p>{submitError.message}</p>
+          <p role="alert">{submitError.message}</p>
           {submitError.showSwitchToPickup && (
             <button type="button" onClick={onSwitchToPickup}>
               Wybierz odbiór osobisty

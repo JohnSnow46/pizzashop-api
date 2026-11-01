@@ -37,7 +37,7 @@ export function RetryPaymentButton({ source }: RetryPaymentButtonProps) {
       <button type="button" className="add-to-cart-btn" disabled={isSubmitting} onClick={handleClick}>
         {isSubmitting ? 'Przekierowywanie do płatności...' : 'Zapłać ponownie'}
       </button>
-      {error && <p className="checkout-error">{error}</p>}
+      {error && <p className="checkout-error" role="alert">{error}</p>}
     </div>
   )
 }

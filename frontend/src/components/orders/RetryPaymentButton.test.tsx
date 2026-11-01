@@ -67,5 +67,6 @@ describe('RetryPaymentButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zapłać ponownie' }))
 
     await screen.findByText('Nie udało się zainicjować płatności. Spróbuj ponownie.')
+    expect(screen.getByRole('alert').textContent).toBe('Nie udało się zainicjować płatności. Spróbuj ponownie.')
   })
 })

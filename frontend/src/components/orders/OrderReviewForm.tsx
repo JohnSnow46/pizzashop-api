@@ -64,7 +64,7 @@ function ReviewItemRow({ orderId, menuItemId, menuItemName, onReviewed }: Review
         onChange={(event) => setComment(event.target.value)}
         maxLength={MAX_COMMENT_LENGTH}
       />
-      {error && <p className="checkout-error">{error}</p>}
+      {error && <p className="checkout-error" role="alert">{error}</p>}
       <button type="button" className="add-to-cart-btn" disabled={submitting} onClick={handleSubmit}>
         {submitting ? 'Zapisywanie…' : 'Wyślij recenzję'}
       </button>

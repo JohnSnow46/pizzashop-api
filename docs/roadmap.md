@@ -432,6 +432,13 @@ nowego ADR, chyba że zaznaczono inaczej.
     "Nieprawidłowy e-mail lub hasło." i komunikaty ProblemDetails pojawiają się po kliknięciu
     "Zaloguj się"/"Zarejestruj się", ale były zwykłym `<div>`, więc czytnik ekranu nic nie
     ogłaszał i użytkownik nie wiedział, że logowanie się nie udało. 1 nowa asercja w teście.
+49. **Błędy w checkoutcie i przy zamówieniu jako `role="alert"`** — **zrobione
+    (2026-11-01).** To samo co poz. 48 dla pozostałych komunikatów, które pojawiają się
+    dopiero po akcji klienta: błąd sprawdzenia adresu i "Ten adres jest poza obszarem
+    dostawy", błąd terminów odbioru, kodu promocyjnego, złożenia zamówienia, ponowienia
+    płatności, wysłania opinii i zapisu adresu na koncie. Przy banerach z przyciskiem
+    "Wybierz odbiór osobisty" alertem jest sam tekst, żeby czytnik nie odczytywał przycisku.
+    1 nowa asercja (ponowienie płatności), 189/189 zielonych.
 
 ## Świadomie pominięte
 
