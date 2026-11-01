@@ -59,7 +59,7 @@ export function RegisterPage() {
     <div className="checkout-page">
       <h2>Załóż konto</h2>
 
-      {banner && <div className="checkout-banner checkout-banner--error">{banner}</div>}
+      {banner && <div className="checkout-banner checkout-banner--error" role="alert">{banner}</div>}
 
       <form className="checkout-step" onSubmit={handleSubmit}>
         <div className="checkout-form-grid">

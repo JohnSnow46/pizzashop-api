@@ -426,6 +426,13 @@ nowego ADR, chyba że zaznaczono inaczej.
     "(2) Kolejka zamówień — PizzaShop", i wraca do zwykłego po kliknięciu odznaki. 1 nowy
     test, 189/189 zielonych.
 
+## Kolejne kroki (2026-11-01)
+
+48. **Baner błędu logowania/rejestracji jako `role="alert"`** — **zrobione (2026-11-01).**
+    "Nieprawidłowy e-mail lub hasło." i komunikaty ProblemDetails pojawiają się po kliknięciu
+    "Zaloguj się"/"Zarejestruj się", ale były zwykłym `<div>`, więc czytnik ekranu nic nie
+    ogłaszał i użytkownik nie wiedział, że logowanie się nie udało. 1 nowa asercja w teście.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

@@ -63,6 +63,8 @@ describe('LoginPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zaloguj się' }))
 
     await screen.findByText('Nieprawidłowy e-mail lub hasło.')
+    // Announced to screen readers, not just shown -- the banner appears after the submit click.
+    expect(screen.getByRole('alert').textContent).toBe('Nieprawidłowy e-mail lub hasło.')
   })
 
   it('shows a ProblemDetails message for a non-401 ApiError', async () => {
