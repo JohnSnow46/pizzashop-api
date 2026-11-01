@@ -439,6 +439,13 @@ nowego ADR, chyba że zaznaczono inaczej.
     płatności, wysłania opinii i zapisu adresu na koncie. Przy banerach z przyciskiem
     "Wybierz odbiór osobisty" alertem jest sam tekst, żeby czytnik nie odczytywał przycisku.
     1 nowa asercja (ponowienie płatności), 189/189 zielonych.
+50. **Błędy zapisu w panelu admina i akcji w kolejce jako `role="alert"`** — **zrobione
+    (2026-11-01).** Dokończenie poz. 48-49 po stronie personelu: błąd zapisu w siedmiu
+    formularzach admina (pozycja menu, składnik, promocja, konto pracownika, strefa dostawy,
+    godziny otwarcia, progi zamówień), błąd wgrywania zdjęcia, błędy akcji na listach menu i
+    promocji oraz błąd zmiany statusu zamówienia w kolejce pracownika. Błędy ładowania całych
+    stron (`empty-state`) zostają bez zmian — pojawiają się przy wejściu na stronę, nie po
+    akcji. 1 nowy test, 190/190 zielonych.
 
 ## Świadomie pominięte
 

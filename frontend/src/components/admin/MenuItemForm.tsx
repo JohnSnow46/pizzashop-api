@@ -209,7 +209,7 @@ export function MenuItemForm({ mode, item, ingredients, onSaved, onCancel }: Men
                 </button>
               )}
             </div>
-            {uploadError && <p className="checkout-error">{uploadError}</p>}
+            {uploadError && <p className="checkout-error" role="alert">{uploadError}</p>}
           </>
         )}
       </fieldset>
@@ -260,7 +260,7 @@ export function MenuItemForm({ mode, item, ingredients, onSaved, onCancel }: Men
           ))}
         </ul>
       )}
-      {submitError && <p className="checkout-error">{submitError}</p>}
+      {submitError && <p className="checkout-error" role="alert">{submitError}</p>}
 
       <div className="checkout-actions">
         <button type="button" onClick={onCancel} disabled={submitting}>

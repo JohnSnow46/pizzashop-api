@@ -90,7 +90,7 @@ export function PromotionList({ promotions, onEdit, onDeactivated }: PromotionLi
 
   return (
     <div className="admin-table-wrap">
-      {error && <p className="checkout-error">{error}</p>}
+      {error && <p className="checkout-error" role="alert">{error}</p>}
       <div className="menu-filters">
         <input
           type="search"

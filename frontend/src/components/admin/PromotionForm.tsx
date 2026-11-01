@@ -273,7 +273,7 @@ export function PromotionForm({ mode, promotion, onSaved, onCancel }: PromotionF
           ))}
         </ul>
       )}
-      {submitError && <p className="checkout-error">{submitError}</p>}
+      {submitError && <p className="checkout-error" role="alert">{submitError}</p>}
 
       <div className="checkout-actions">
         <button type="button" onClick={onCancel} disabled={submitting}>

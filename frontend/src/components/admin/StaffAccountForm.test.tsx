@@ -61,4 +61,14 @@ describe('StaffAccountForm', () => {
 
     expect(screen.getByLabelText('Email').getAttribute('maxlength')).toBe('200')
   })
+
+  it('announces a failed save as an alert', async () => {
+    createStaffAccountMock.mockRejectedValue(new Error('network down'))
+    render(<StaffAccountForm onCreated={vi.fn()} onCancel={vi.fn()} />)
+
+    fill('staff@pizza.pl', 'secret123')
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toBe('Nie udało się utworzyć konta pracownika.')
+  })
 })

@@ -172,7 +172,7 @@ export function EmployeeOrderRow({ orderId, onLeftQueue }: EmployeeOrderRowProps
             </li>
           ))}
         </ul>
-        {actionError && <span className="checkout-error">{actionError}</span>}
+        {actionError && <span className="checkout-error" role="alert">{actionError}</span>}
         <div className="queue-actions">
           {actions.map((action) => (
             <button
