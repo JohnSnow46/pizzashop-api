@@ -451,6 +451,10 @@ nowego ADR, chyba że zaznaczono inaczej.
     nieprawidłowe. Każde pole `/login` i `/register` dostaje `aria-invalid` sterowane tym
     samym obiektem `errors`, który wyświetla komunikat (komunikat jest wewnątrz `<label>`,
     więc już wchodzi w nazwę pola — `aria-describedby` byłby zdublowany). 1 nowy test, 191/191 zielonych.
+52. **`aria-invalid` na polach checkoutu** — **zrobione (2026-11-02).** To samo co poz. 51
+    dla kroków "Dane kontaktowe" (imię i nazwisko, telefon, e-mail) i "Adres dostawy" (ulica,
+    numer budynku, miasto, kod pocztowy). 1 nowy plik testów (`ContactStep.test.tsx`),
+    192/192 zielonych.
 
 ## Świadomie pominięte
 

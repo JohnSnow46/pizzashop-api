@@ -116,13 +116,13 @@ export function DeliveryAddressStep({
       <div className="checkout-form-grid">
         <label className="checkout-field">
           Ulica
-          <input value={form.street} onChange={(e) => updateField('street', e.target.value)} />
+          <input aria-invalid={!!errors.street} value={form.street} onChange={(e) => updateField('street', e.target.value)} />
           {errors.street && <span className="checkout-error">{errors.street}</span>}
         </label>
 
         <label className="checkout-field">
           Numer budynku
-          <input value={form.buildingNumber} onChange={(e) => updateField('buildingNumber', e.target.value)} />
+          <input aria-invalid={!!errors.buildingNumber} value={form.buildingNumber} onChange={(e) => updateField('buildingNumber', e.target.value)} />
           {errors.buildingNumber && <span className="checkout-error">{errors.buildingNumber}</span>}
         </label>
 
@@ -136,13 +136,14 @@ export function DeliveryAddressStep({
 
         <label className="checkout-field">
           Miasto
-          <input value={form.city} onChange={(e) => updateField('city', e.target.value)} />
+          <input aria-invalid={!!errors.city} value={form.city} onChange={(e) => updateField('city', e.target.value)} />
           {errors.city && <span className="checkout-error">{errors.city}</span>}
         </label>
 
         <label className="checkout-field">
           Kod pocztowy
           <input
+            aria-invalid={!!errors.postalCode}
             placeholder="00-001"
             value={form.postalCode}
             onChange={(e) => updateField('postalCode', e.target.value)}
