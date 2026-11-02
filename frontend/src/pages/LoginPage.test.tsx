@@ -55,6 +55,17 @@ describe('LoginPage', () => {
     expect(login).not.toHaveBeenCalled()
   })
 
+  it('marks only the invalid fields as aria-invalid', () => {
+    renderLoginPage()
+
+    fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'user@test.pl' } })
+    expect(screen.getByLabelText('E-mail').getAttribute('aria-invalid')).toBe('false')
+    fireEvent.click(screen.getByRole('button', { name: 'Zaloguj się' }))
+
+    expect(screen.getByLabelText('E-mail').getAttribute('aria-invalid')).toBe('false')
+    expect(screen.getByLabelText(/^Hasło/).getAttribute('aria-invalid')).toBe('true')
+  })
+
   it('shows an invalid-credentials banner on a 401 response', async () => {
     renderLoginPage(vi.fn().mockRejectedValue(new ApiError(401, 'Unauthorized')))
 

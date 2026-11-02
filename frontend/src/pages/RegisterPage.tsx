@@ -65,19 +65,20 @@ export function RegisterPage() {
         <div className="checkout-form-grid">
           <label className="checkout-field">
             Imię i nazwisko
-            <input value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
+            <input aria-invalid={!!errors.fullName} value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
             {errors.fullName && <span className="checkout-error">{errors.fullName}</span>}
           </label>
 
           <label className="checkout-field">
             E-mail
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+            <input aria-invalid={!!errors.email} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
             {errors.email && <span className="checkout-error">{errors.email}</span>}
           </label>
 
           <label className="checkout-field">
             Hasło
             <input
+              aria-invalid={!!errors.password}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -88,7 +89,7 @@ export function RegisterPage() {
 
           <label className="checkout-field">
             Telefon (opcjonalnie)
-            <input value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} autoComplete="tel" />
+            <input aria-invalid={!!errors.phoneNumber} value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} autoComplete="tel" />
             {errors.phoneNumber && <span className="checkout-error">{errors.phoneNumber}</span>}
           </label>
         </div>

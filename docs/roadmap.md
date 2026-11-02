@@ -446,6 +446,11 @@ nowego ADR, chyba że zaznaczono inaczej.
     promocji oraz błąd zmiany statusu zamówienia w kolejce pracownika. Błędy ładowania całych
     stron (`empty-state`) zostają bez zmian — pojawiają się przy wejściu na stronę, nie po
     akcji. 1 nowy test, 190/190 zielonych.
+51. **`aria-invalid` na polach logowania i rejestracji** — **zrobione (2026-11-02).** Błędy
+    walidacji pod polem były tylko tekstem — czytnik nie wiedział, które pole jest
+    nieprawidłowe. Każde pole `/login` i `/register` dostaje `aria-invalid` sterowane tym
+    samym obiektem `errors`, który wyświetla komunikat (komunikat jest wewnątrz `<label>`,
+    więc już wchodzi w nazwę pola — `aria-describedby` byłby zdublowany). 1 nowy test, 191/191 zielonych.
 
 ## Świadomie pominięte
 
