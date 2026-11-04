@@ -455,6 +455,10 @@ nowego ADR, chyba że zaznaczono inaczej.
     dla kroków "Dane kontaktowe" (imię i nazwisko, telefon, e-mail) i "Adres dostawy" (ulica,
     numer budynku, miasto, kod pocztowy). 1 nowy plik testów (`ContactStep.test.tsx`),
     192/192 zielonych.
+53. **`aria-invalid` na formularzu adresu w "Moje konto"** — **zrobione (2026-11-04).** To samo
+    co poz. 51-52 dla formularza dodawania/edycji adresu: nazwa adresu, ulica, numer budynku,
+    miasto i kod pocztowy. Numer lokalu jest opcjonalny i nie ma walidacji, więc zostaje bez
+    atrybutu. 1 nowy test, 193/193 zielonych.
 
 ## Świadomie pominięte
 

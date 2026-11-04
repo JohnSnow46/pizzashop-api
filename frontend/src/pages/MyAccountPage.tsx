@@ -282,7 +282,7 @@ export function MyAccountPage() {
         <div className="checkout-form-grid">
           <label className="checkout-field">
             Nazwa adresu (np. Dom, Praca)
-            <input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} />
+            <input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} aria-invalid={!!addressErrors.label} />
             {addressErrors.label && <span className="checkout-error">{addressErrors.label}</span>}
           </label>
 
@@ -291,6 +291,7 @@ export function MyAccountPage() {
             <input
               value={newAddress.street}
               onChange={(e) => setNewAddress((prev) => ({ ...prev, street: e.target.value }))}
+              aria-invalid={!!addressErrors.street}
             />
             {addressErrors.street && <span className="checkout-error">{addressErrors.street}</span>}
           </label>
@@ -300,6 +301,7 @@ export function MyAccountPage() {
             <input
               value={newAddress.buildingNumber}
               onChange={(e) => setNewAddress((prev) => ({ ...prev, buildingNumber: e.target.value }))}
+              aria-invalid={!!addressErrors.buildingNumber}
             />
             {addressErrors.buildingNumber && <span className="checkout-error">{addressErrors.buildingNumber}</span>}
           </label>
@@ -317,6 +319,7 @@ export function MyAccountPage() {
             <input
               value={newAddress.city}
               onChange={(e) => setNewAddress((prev) => ({ ...prev, city: e.target.value }))}
+              aria-invalid={!!addressErrors.city}
             />
             {addressErrors.city && <span className="checkout-error">{addressErrors.city}</span>}
           </label>
@@ -327,6 +330,7 @@ export function MyAccountPage() {
               placeholder="00-001"
               value={newAddress.postalCode}
               onChange={(e) => setNewAddress((prev) => ({ ...prev, postalCode: e.target.value }))}
+              aria-invalid={!!addressErrors.postalCode}
             />
             {addressErrors.postalCode && <span className="checkout-error">{addressErrors.postalCode}</span>}
           </label>

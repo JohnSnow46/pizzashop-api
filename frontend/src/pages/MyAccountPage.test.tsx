@@ -139,6 +139,20 @@ describe('MyAccountPage', () => {
     expect(addAddressMock).not.toHaveBeenCalled()
   })
 
+  it('marks only the address fields that failed validation as invalid', async () => {
+    renderPage()
+    await screen.findByText('Dom')
+
+    expect(screen.getByLabelText(/^Ulica/).getAttribute('aria-invalid')).toBe('false')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dodaj adres' }))
+    await screen.findByText('Podaj ulicę.')
+
+    expect(screen.getByLabelText(/^Ulica/).getAttribute('aria-invalid')).toBe('true')
+    expect(screen.getByLabelText(/^Nazwa adresu/).getAttribute('aria-invalid')).toBe('true')
+    expect(screen.getByLabelText(/^Numer lokalu/).getAttribute('aria-invalid')).toBeNull()
+  })
+
   it('adds a new address, shows it in the list and resets the form', async () => {
     const created = makeAddress({ id: 'addr-2', label: 'Praca', isDefault: false })
     addAddressMock.mockResolvedValue(created)
