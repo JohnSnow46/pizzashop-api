@@ -26,6 +26,11 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="layout">
+      {/* With up to eight links in the header, a keyboard user otherwise tabs through all of them
+          on every page. A plain anchor on purpose: the jump is in-page, not a route change. */}
+      <a href="#main-content" className="skip-link">
+        Przejdź do treści
+      </a>
       <header className="header">
         <h1>
           <Link to="/">PizzaShop</Link>
@@ -81,7 +86,10 @@ export function Layout({ children }: LayoutProps) {
           )}
         </div>
       </header>
-      <main>{children}</main>
+      {/* tabIndex -1 so the skip link moves focus here, not just the scroll position. */}
+      <main id="main-content" tabIndex={-1}>
+        {children}
+      </main>
     </div>
   )
 }

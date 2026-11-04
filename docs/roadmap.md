@@ -459,6 +459,11 @@ nowego ADR, chyba że zaznaczono inaczej.
     co poz. 51-52 dla formularza dodawania/edycji adresu: nazwa adresu, ulica, numer budynku,
     miasto i kod pocztowy. Numer lokalu jest opcjonalny i nie ma walidacji, więc zostaje bez
     atrybutu. 1 nowy test, 193/193 zielonych.
+54. **Link "Przejdź do treści"** — **zrobione (2026-11-04).** W nagłówku jest do ośmiu linków
+    i na każdej stronie użytkownik klawiatury przechodził przez nie wszystkie, zanim dotarł
+    do treści. Pierwszy element strony to teraz link widoczny dopiero po złapaniu fokusu,
+    a `<main>` ma `tabIndex={-1}`, więc fokus faktycznie tam trafia. 1 nowy test, 194/194
+    zielonych.
 
 ## Świadomie pominięte
 

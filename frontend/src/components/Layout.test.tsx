@@ -45,4 +45,15 @@ describe('Layout', () => {
     renderAt('/admin')
     expect(screen.getByRole('link', { name: 'Panel admina' }).getAttribute('aria-current')).toBe('page')
   })
+
+  it('starts with a skip link that points at the focusable main content', () => {
+    renderAt('/')
+
+    const skipLink = screen.getAllByRole('link')[0]
+    expect(skipLink.textContent).toBe('Przejdź do treści')
+
+    const main = screen.getByRole('main')
+    expect(skipLink.getAttribute('href')).toBe(`#${main.id}`)
+    expect(main.getAttribute('tabindex')).toBe('-1')
+  })
 })
