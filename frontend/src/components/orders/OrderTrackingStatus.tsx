@@ -21,7 +21,7 @@ const CONNECTION_LABELS: Record<OrderTrackingConnectionState, string> = {
  */
 export function OrderTrackingStatus({ order, isLoading, error, connectionState }: UseOrderTrackingResult) {
   if (isLoading) {
-    return <p>Ładowanie statusu zamówienia...</p>
+    return <p role="status">Ładowanie statusu zamówienia...</p>
   }
 
   if (error || !order) {

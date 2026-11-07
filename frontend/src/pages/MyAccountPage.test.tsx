@@ -100,6 +100,13 @@ function renderPage() {
 }
 
 describe('MyAccountPage', () => {
+  it('announces the loading state as a status', async () => {
+    renderPage()
+
+    expect(screen.getByRole('status').textContent).toBe('Ładowanie konta...')
+    await screen.findByText('ORD-1')
+  })
+
   it('renders order history, loyalty balance and addresses after loading', async () => {
     renderPage()
 

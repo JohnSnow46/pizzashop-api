@@ -81,7 +81,7 @@ export function CheckoutPage() {
   }
 
   if (configLoading) {
-    return <p>Ładowanie...</p>
+    return <p role="status">Ładowanie...</p>
   }
 
   if (configError || !config) {

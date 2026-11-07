@@ -163,7 +163,7 @@ export function MyAccountPage() {
   }
 
   if (isLoading) {
-    return <p>Ładowanie konta...</p>
+    return <p role="status">Ładowanie konta...</p>
   }
 
   if (error) {

@@ -88,7 +88,7 @@ export function MenuItemCard({ item }: MenuItemCardProps) {
 
       {reviewsOpen && (
         <div className="menu-card__reviews">
-          {reviews.loading && <p className="checkout-hint">Ładowanie recenzji…</p>}
+          {reviews.loading && <p className="checkout-hint" role="status">Ładowanie recenzji…</p>}
           {reviews.error && <p className="checkout-error">{reviews.error}</p>}
           {reviews.data && reviews.data.reviews.length === 0 && <p className="checkout-hint">Brak recenzji.</p>}
           {reviews.data && reviews.data.reviews.length > 0 && (

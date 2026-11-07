@@ -95,7 +95,7 @@ export function OrderReviewForm({ order }: { order: Order }) {
   }, [])
 
   if (myReviews === null) {
-    return <p className="checkout-hint">Ładowanie…</p>
+    return <p className="checkout-hint" role="status">Ładowanie…</p>
   }
 
   const reviewedMenuItemIds = new Set(

@@ -468,6 +468,12 @@ nowego ADR, chyba że zaznaczono inaczej.
     formularz z walidacją po stronie klienta, który pomijały poz. 51-53: e-mail i hasło
     w `StaffAccountForm` (panel admina). Rola to `<select>` bez walidacji, więc zostaje bez
     atrybutu. 1 nowy test, 195/195 zielonych.
+56. **Komunikaty "Ładowanie…" ogłaszane czytnikom (strony klienta)** — **zrobione
+    (2026-11-07).** Tylko szkielet menu miał `role="status"`; pozostałe stany ładowania po
+    stronie klienta (konto, checkout, status zamówienia, recenzje pozycji menu, formularz
+    oceny zamówienia) były zwykłym akapitem, więc czytnik milczał, dopóki dane nie
+    przyszły. Każdy dostaje `role="status"`. Strony personelu to osobna pozycja. 1 nowy
+    test, 196/196 zielonych.
 
 ## Świadomie pominięte
 
