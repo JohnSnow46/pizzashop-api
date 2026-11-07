@@ -464,6 +464,10 @@ nowego ADR, chyba że zaznaczono inaczej.
     do treści. Pierwszy element strony to teraz link widoczny dopiero po złapaniu fokusu,
     a `<main>` ma `tabIndex={-1}`, więc fokus faktycznie tam trafia. 1 nowy test, 194/194
     zielonych.
+55. **`aria-invalid` w formularzu konta pracownika** — **zrobione (2026-11-07).** Ostatni
+    formularz z walidacją po stronie klienta, który pomijały poz. 51-53: e-mail i hasło
+    w `StaffAccountForm` (panel admina). Rola to `<select>` bez walidacji, więc zostaje bez
+    atrybutu. 1 nowy test, 195/195 zielonych.
 
 ## Świadomie pominięte
 

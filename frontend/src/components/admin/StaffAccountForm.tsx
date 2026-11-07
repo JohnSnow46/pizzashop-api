@@ -71,13 +71,13 @@ export function StaffAccountForm({ onCreated, onCancel }: StaffAccountFormProps)
       <div className="checkout-form-grid">
         <label className="checkout-field">
           Email
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200} required />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200} aria-invalid={Boolean(errors.email)} required />
           {errors.email && <span className="checkout-error">{errors.email}</span>}
         </label>
 
         <label className="checkout-field">
           Hasło
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={Boolean(errors.password)} required />
           {errors.password && <span className="checkout-error">{errors.password}</span>}
         </label>
 

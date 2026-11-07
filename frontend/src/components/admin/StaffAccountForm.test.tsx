@@ -56,6 +56,18 @@ describe('StaffAccountForm', () => {
     expect(onCreated).toHaveBeenCalled()
   })
 
+  it('marks only the field that failed validation as invalid', () => {
+    render(<StaffAccountForm onCreated={vi.fn()} onCancel={vi.fn()} />)
+
+    expect(screen.getByLabelText(/^Hasło/).getAttribute('aria-invalid')).toBe('false')
+
+    fill('staff@pizza.pl', 'abc1')
+
+    expect(screen.getByLabelText(/^Hasło/).getAttribute('aria-invalid')).toBe('true')
+    expect(screen.getByLabelText(/^Email/).getAttribute('aria-invalid')).toBe('false')
+    expect(createStaffAccountMock).not.toHaveBeenCalled()
+  })
+
   it('caps the email at the backend MaximumLength (200 chars)', () => {
     render(<StaffAccountForm onCreated={vi.fn()} onCancel={vi.fn()} />)
 
