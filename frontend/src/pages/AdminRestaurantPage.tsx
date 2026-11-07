@@ -16,7 +16,7 @@ export function AdminRestaurantPage() {
     <div className="admin-page">
       <h2>Panel admina — restauracja</h2>
 
-      {loading && <p>Ładowanie konfiguracji...</p>}
+      {loading && <p role="status">Ładowanie konfiguracji...</p>}
       {error && <p className="empty-state">{error}</p>}
 
       {config && (

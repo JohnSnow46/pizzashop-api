@@ -99,7 +99,7 @@ export function EmployeeOrdersPage() {
         )}
       </div>
 
-      {isLoading && <p>Ładowanie kolejki...</p>}
+      {isLoading && <p role="status">Ładowanie kolejki...</p>}
       {error && <p className="empty-state">{error}</p>}
 
       {!isLoading && !error && (

@@ -474,6 +474,10 @@ nowego ADR, chyba że zaznaczono inaczej.
     oceny zamówienia) były zwykłym akapitem, więc czytnik milczał, dopóki dane nie
     przyszły. Każdy dostaje `role="status"`. Strony personelu to osobna pozycja. 1 nowy
     test, 196/196 zielonych.
+57. **Komunikaty "Ładowanie…" ogłaszane czytnikom (panel personelu)** — **zrobione
+    (2026-11-07).** To samo co poz. 56 dla stron admina (menu, składniki, promocje, raporty,
+    konfiguracja restauracji, konta pracowników) i kolejki pracownika (cała kolejka i
+    pojedynczy wiersz zamówienia). 1 nowy test, 197/197 zielonych.
 
 ## Świadomie pominięte
 

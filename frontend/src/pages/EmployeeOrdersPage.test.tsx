@@ -46,6 +46,15 @@ afterEach(() => {
 })
 
 describe('EmployeeOrdersPage', () => {
+  it('announces the queue loading state as a status', async () => {
+    getOrderQueueMock.mockResolvedValue(makeOrders(['a']))
+
+    render(<EmployeeOrdersPage />)
+
+    expect(screen.getByRole('status').textContent).toBe('Ładowanie kolejki...')
+    await screen.findByText('a')
+  })
+
   it('renders a row per queued order id', async () => {
     getOrderQueueMock.mockResolvedValue(makeOrders(['a', 'b']))
 

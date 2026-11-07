@@ -39,7 +39,7 @@ export function IngredientsSection({ ingredients, loading, error, onChanged }: I
     <section className="admin-section">
       <h3>Składniki</h3>
 
-      {loading && <p>Ładowanie składników...</p>}
+      {loading && <p role="status">Ładowanie składników...</p>}
       {error && <p className="empty-state">{error}</p>}
 
       {!loading && !error && (

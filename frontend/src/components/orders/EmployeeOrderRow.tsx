@@ -107,7 +107,7 @@ export function EmployeeOrderRow({ orderId, onLeftQueue }: EmployeeOrderRowProps
   if (tracking.isLoading) {
     return (
       <li className="account-order-list__item">
-        <p>Ładowanie...</p>
+        <p role="status">Ładowanie...</p>
       </li>
     )
   }

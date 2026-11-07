@@ -30,7 +30,7 @@ export function AdminPromotionsPage() {
       <section className="admin-section">
         <h3>Promocje</h3>
 
-        {loading && <p>Ładowanie promocji...</p>}
+        {loading && <p role="status">Ładowanie promocji...</p>}
         {error && <p className="empty-state">{error}</p>}
 
         {!loading && !error && (

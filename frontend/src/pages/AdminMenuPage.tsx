@@ -38,7 +38,7 @@ export function AdminMenuPage() {
       <section className="admin-section">
         <h3>Pozycje menu</h3>
 
-        {loading && <p>Ładowanie menu...</p>}
+        {loading && <p role="status">Ładowanie menu...</p>}
         {error && <p className="empty-state">{error}</p>}
 
         {!loading && !error && (

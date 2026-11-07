@@ -26,7 +26,7 @@ export function AdminStaffPage() {
       <section className="admin-section">
         <h3>Konta pracowników</h3>
 
-        {loading && <p>Ładowanie kont...</p>}
+        {loading && <p role="status">Ładowanie kont...</p>}
         {error && <p className="empty-state">{error}</p>}
 
         {!loading && !error && <StaffAccountList staffAccounts={staffAccounts} />}

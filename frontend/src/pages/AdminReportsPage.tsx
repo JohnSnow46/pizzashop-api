@@ -84,7 +84,7 @@ export function AdminReportsPage() {
         </div>
       </section>
 
-      {loading && <p>Ładowanie raportu...</p>}
+      {loading && <p role="status">Ładowanie raportu...</p>}
       {error && <p className="empty-state">{error}</p>}
 
       {!loading && !error && report && (
