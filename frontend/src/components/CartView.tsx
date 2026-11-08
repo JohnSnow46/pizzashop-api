@@ -1,6 +1,12 @@
 import { Link } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
 
+// The quantity box and "Usuń" repeat on every row with no visible label, so a screen reader
+// heard a column of unnamed spin buttons and identical "Usuń" buttons.
+function cartItemLabel(item: { menuItemName: string; variantName: string | null }): string {
+  return item.variantName ? `${item.menuItemName} — ${item.variantName}` : item.menuItemName
+}
+
 export function CartView() {
   const { items, totalAmount, setQuantity, removeItem, clear } = useCart()
 
@@ -31,8 +37,9 @@ export function CartView() {
             className="cart-item__quantity"
             value={item.quantity}
             onChange={(e) => setQuantity(item.key, Number(e.target.value))}
+            aria-label={`Ilość: ${cartItemLabel(item)}`}
           />
-          <button type="button" onClick={() => removeItem(item.key)}>
+          <button type="button" onClick={() => removeItem(item.key)} aria-label={`Usuń ${cartItemLabel(item)}`}>
             Usuń
           </button>
         </div>

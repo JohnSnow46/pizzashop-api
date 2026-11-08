@@ -479,6 +479,12 @@ nowego ADR, chyba że zaznaczono inaczej.
     konfiguracja restauracji, konta pracowników) i kolejki pracownika (cała kolejka i
     pojedynczy wiersz zamówienia). 1 nowy test, 197/197 zielonych.
 
+58. **Nazwane pole ilości i przycisk "Usuń" w koszyku** — **zrobione (2026-11-08).** Każdy
+    wiersz koszyka miał pole liczbowe bez etykiety i taki sam przycisk "Usuń", więc czytnik
+    słyszał kolumnę nienazwanych pól i identycznych przycisków. Pole ma teraz nazwę
+    "Ilość: <pozycja>", a przycisk "Usuń <pozycja>" (z wariantem, jeśli jest). 1 nowy test,
+    198/198 zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

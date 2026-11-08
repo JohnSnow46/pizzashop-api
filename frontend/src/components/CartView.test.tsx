@@ -40,6 +40,13 @@ describe('CartView', () => {
     clear.mockClear()
   })
 
+  it('names the quantity input and remove button after the item', () => {
+    renderCart()
+
+    expect(screen.getByRole('spinbutton', { name: 'Ilość: Margherita' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Usuń Margherita' })).toBeTruthy()
+  })
+
   it('keeps the cart when clearing is not confirmed', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(false)
     renderCart()
