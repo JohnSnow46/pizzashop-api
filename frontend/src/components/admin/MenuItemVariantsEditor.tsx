@@ -46,6 +46,9 @@ export function MenuItemVariantsEditor({ variants, currency, onChange }: MenuIte
     <div className="variant-editor">
       {variants.map((variant, index) => {
         const disabledReason = removeDisabledReason(variant)
+        // Rows repeat with only a placeholder (gone once typed) and no label on the price, so a
+        // screen reader heard unnamed text/number fields and a column of identical "Usuń".
+        const rowLabel = `wariantu ${index + 1}`
         return (
           <div className="variant-row" key={variant.id ?? `new-${index}`}>
             <label className="variant-row__default">
@@ -55,6 +58,7 @@ export function MenuItemVariantsEditor({ variants, currency, onChange }: MenuIte
             <input
               className="variant-row__name"
               placeholder="Nazwa wariantu"
+              aria-label={`Nazwa ${rowLabel}`}
               maxLength={100}
               value={variant.name}
               onChange={(e) => updateRow(index, { name: e.target.value })}
@@ -65,6 +69,7 @@ export function MenuItemVariantsEditor({ variants, currency, onChange }: MenuIte
               step="0.01"
               min="0"
               value={variant.price.amount}
+              aria-label={`Cena ${rowLabel} (${variant.price.currency})`}
               onChange={(e) => updateRow(index, { price: { ...variant.price, amount: Number(e.target.value) } })}
             />
             <span className="variant-row__currency">{variant.price.currency}</span>
@@ -74,6 +79,7 @@ export function MenuItemVariantsEditor({ variants, currency, onChange }: MenuIte
               disabled={disabledReason !== null}
               title={disabledReason ?? undefined}
               onClick={() => removeVariant(index)}
+              aria-label={`Usuń wariant ${variant.name.trim() || index + 1}`}
             >
               Usuń
             </button>

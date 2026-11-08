@@ -485,6 +485,11 @@ nowego ADR, chyba że zaznaczono inaczej.
     "Ilość: <pozycja>", a przycisk "Usuń <pozycja>" (z wariantem, jeśli jest). 1 nowy test,
     198/198 zielonych.
 
+59. **Nazwane pola w edytorze wariantów** — **zrobione (2026-11-08).** Wiersz wariantu
+    w formularzu pozycji menu miał nazwę opisaną tylko placeholderem (znika po wpisaniu),
+    cenę bez żadnej etykiety i identyczny przycisk "Usuń". Pola mają teraz nazwy "Nazwa
+    wariantu N" / "Cena wariantu N (PLN)", a przycisk "Usuń wariant <nazwa>". 1 nowy plik
+    testów, 199/199 zielonych.
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,
