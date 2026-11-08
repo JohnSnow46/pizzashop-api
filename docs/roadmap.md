@@ -490,6 +490,12 @@ nowego ADR, chyba że zaznaczono inaczej.
     cenę bez żadnej etykiety i identyczny przycisk "Usuń". Pola mają teraz nazwy "Nazwa
     wariantu N" / "Cena wariantu N (PLN)", a przycisk "Usuń wariant <nazwa>". 1 nowy plik
     testów, 199/199 zielonych.
+60. **Nazwane pola godzin otwarcia** — **zrobione (2026-11-08).** W konfiguracji
+    restauracji etykietę miał tylko checkbox dnia; dwa pola godziny w każdym wierszu nie
+    miały żadnej, więc czytnik słyszał czternaście nienazwanych pól czasu. Pola nazywają
+    się teraz "<dzień> — otwarcie" / "<dzień> — zamknięcie". 1 nowy plik testów, 200/200
+    zielonych.
+
 ## Świadomie pominięte
 
 Multi-tenancy (kilka restauracji) i skalowanie enterprise (sharding, multi-region,

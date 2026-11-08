@@ -102,6 +102,9 @@ export function OpeningHoursForm({ openingHours, onSaved }: OpeningHoursFormProp
                 value={day.start}
                 disabled={!day.open}
                 onChange={(e) => updateDay(key, { start: e.target.value })}
+                // The two time inputs per day had no label -- only the day's checkbox did -- so a
+                // screen reader heard fourteen unnamed time fields with nothing tying them to a day.
+                aria-label={`${label} — otwarcie`}
               />
               <span>–</span>
               <input
@@ -109,6 +112,7 @@ export function OpeningHoursForm({ openingHours, onSaved }: OpeningHoursFormProp
                 value={day.end}
                 disabled={!day.open}
                 onChange={(e) => updateDay(key, { end: e.target.value })}
+                aria-label={`${label} — zamknięcie`}
               />
             </div>
           )
