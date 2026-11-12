@@ -106,6 +106,7 @@ export function PromotionList({ promotions, onEdit, onDeactivated }: PromotionLi
         <p className="empty-state">Brak promocji spełniających kryteria wyszukiwania.</p>
       ) : (
         <table className="admin-table">
+          <caption className="visually-hidden">Promocje</caption>
           <thead>
             <tr>
               <th>Nazwa</th>

@@ -18,6 +18,7 @@ export function StaffAccountList({ staffAccounts }: StaffAccountListProps) {
   return (
     <div className="admin-table-wrap">
       <table className="admin-table">
+        <caption className="visually-hidden">Konta pracowników</caption>
         <thead>
           <tr>
             <th>Email</th>

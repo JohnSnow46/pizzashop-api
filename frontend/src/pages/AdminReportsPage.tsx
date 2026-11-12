@@ -108,6 +108,7 @@ export function AdminReportsPage() {
             ) : (
               <div className="admin-table-wrap">
                 <table className="admin-table">
+                  <caption className="visually-hidden">Najlepiej sprzedające się pozycje menu</caption>
                   <thead>
                     <tr>
                       <th>Pozycja menu</th>

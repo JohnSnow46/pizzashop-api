@@ -61,6 +61,7 @@ export function IngredientsSection({ ingredients, loading, error, onChanged }: I
               <p className="empty-state">Brak składników spełniających kryteria wyszukiwania.</p>
             ) : (
               <table className="admin-table">
+                <caption className="visually-hidden">Składniki</caption>
                 <thead>
                   <tr>
                     <th>Nazwa</th>

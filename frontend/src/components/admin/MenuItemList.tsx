@@ -89,6 +89,7 @@ export function MenuItemList({ items, onEdit, onAvailabilityChanged }: MenuItemL
         <p className="empty-state">Brak pozycji spełniających kryteria wyszukiwania.</p>
       ) : (
         <table className="admin-table">
+          <caption className="visually-hidden">Pozycje menu</caption>
           <thead>
             <tr>
               <th>Nazwa</th>
