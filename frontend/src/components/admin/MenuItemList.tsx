@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { formatResultCount } from '../../shared/resultCount'
 import { setMenuItemAvailability } from '../../api/menuApi'
 import type { MenuCategory, MenuItem } from '../../api/types'
 import { CATEGORY_LABELS } from '../menuCategoryLabels'
@@ -84,6 +85,10 @@ export function MenuItemList({ items, onEdit, onAvailabilityChanged }: MenuItemL
           ))}
         </select>
       </div>
+      {/* Same filter result count the customer menu announces. */}
+      <p className="visually-hidden" role="status">
+        {search.trim() !== '' || category !== 'all' ? formatResultCount(filteredItems.length) : ''}
+      </p>
 
       {filteredItems.length === 0 ? (
         <p className="empty-state">Brak pozycji spełniających kryteria wyszukiwania.</p>

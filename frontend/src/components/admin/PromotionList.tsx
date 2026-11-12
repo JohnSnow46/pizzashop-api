@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { formatResultCount } from '../../shared/resultCount'
 import { deactivatePromotion } from '../../api/promotionsApi'
 import type { Promotion } from '../../api/types'
 import { promotionStatus } from './promotionStatus'
@@ -101,6 +102,10 @@ export function PromotionList({ promotions, onEdit, onDeactivated }: PromotionLi
           aria-label="Szukaj promocji"
         />
       </div>
+      {/* Same filter result count the customer menu announces. */}
+      <p className="visually-hidden" role="status">
+        {search.trim() !== '' ? formatResultCount(filteredPromotions.length) : ''}
+      </p>
       {/* Same no-match message as MenuItemList/IngredientsSection. */}
       {filteredPromotions.length === 0 ? (
         <p className="empty-state">Brak promocji spełniających kryteria wyszukiwania.</p>

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { formatResultCount } from '../../shared/resultCount'
 import type { Ingredient } from '../../api/types'
 import { IngredientForm } from './IngredientForm'
 
@@ -55,6 +56,10 @@ export function IngredientsSection({ ingredients, loading, error, onChanged }: I
                 aria-label="Szukaj składnika"
               />
             </div>
+            {/* Same filter result count the customer menu announces. */}
+            <p className="visually-hidden" role="status">
+              {search.trim() !== '' ? formatResultCount(filteredIngredients.length) : ''}
+            </p>
             {/* Same no-match message MenuItemList shows next to it -- without it a search with
                 no hits left a bare header row. */}
             {filteredIngredients.length === 0 ? (
