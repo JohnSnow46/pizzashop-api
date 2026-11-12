@@ -52,4 +52,23 @@ describe('MenuList', () => {
     expect(screen.queryByText('Margherita')).toBeNull()
     expect(screen.getByText('Funghi')).not.toBeNull()
   })
+
+  it('announces how many items match once a filter is used', () => {
+    render(
+      <CartProvider>
+        <MenuList
+          items={[
+            makeItem({ id: 'p1', name: 'Margherita' }),
+            makeItem({ id: 'p2', name: 'Funghi' }),
+          ]}
+        />
+      </CartProvider>,
+    )
+
+    expect(screen.getByRole('status').textContent).toBe('')
+
+    fireEvent.change(screen.getByLabelText('Szukaj w menu'), { target: { value: 'Fun' } })
+
+    expect(screen.getByRole('status').textContent).toBe('Znaleziono 1 pozycję')
+  })
 })

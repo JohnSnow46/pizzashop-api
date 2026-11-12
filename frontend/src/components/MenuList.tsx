@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { MenuCategory, MenuItem } from '../api/types'
+import { formatResultCount } from '../shared/resultCount'
 import { CATEGORY_LABELS } from './menuCategoryLabels'
 import { MenuItemCard } from './MenuItemCard'
 
@@ -45,6 +46,8 @@ export function MenuList({ items }: MenuListProps) {
     return <p className="empty-state">Menu jest obecnie puste.</p>
   }
 
+  const filtersActive = search.trim() !== '' || category !== 'all' || onlyAvailable
+
   return (
     <div>
       <div className="menu-filters">
@@ -79,6 +82,12 @@ export function MenuList({ items }: MenuListProps) {
           Tylko dostępne
         </label>
       </div>
+
+      {/* Filtering swaps the grid silently -- say how many items are left. Empty until a
+          filter is touched, so the full menu isn't announced on page load. */}
+      <p className="visually-hidden" role="status">
+        {filtersActive ? formatResultCount(filteredItems.length) : ''}
+      </p>
 
       {filteredItems.length === 0 ? (
         <p className="empty-state">Brak pozycji spełniających kryteria wyszukiwania.</p>
