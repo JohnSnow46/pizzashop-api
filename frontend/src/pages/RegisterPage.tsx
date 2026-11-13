@@ -89,7 +89,7 @@ export function RegisterPage() {
 
           <label className="checkout-field">
             Telefon (opcjonalnie)
-            <input aria-invalid={!!errors.phoneNumber} value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} autoComplete="tel" />
+            <input aria-invalid={!!errors.phoneNumber} type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} autoComplete="tel" />
             {errors.phoneNumber && <span className="checkout-error">{errors.phoneNumber}</span>}
           </label>
         </div>
