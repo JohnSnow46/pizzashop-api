@@ -171,7 +171,7 @@ export function DeliveryAddressStep({
       )}
 
       {result?.isAvailable && (
-        <p className="checkout-banner checkout-banner--success">
+        <p className="checkout-banner checkout-banner--success" role="status">
           Adres w obszarze dostawy{result.distanceKm !== null ? ` (${result.distanceKm.toFixed(1)} km)` : ''}.
           {result.deliveryFee && ` Koszt dostawy: ${result.deliveryFee.amount.toFixed(2)} ${result.deliveryFee.currency}.`}
         </p>
