@@ -49,7 +49,12 @@ export function ContactStep({ contact, onChange, onNext, onBack }: ContactStepPr
       <div className="checkout-form-grid">
         <label className="checkout-field">
           Imię i nazwisko
-          <input aria-invalid={!!errors.fullName} value={contact.fullName} onChange={(e) => onChange({ ...contact, fullName: e.target.value })} />
+          <input
+            aria-invalid={!!errors.fullName}
+            autoComplete="name"
+            value={contact.fullName}
+            onChange={(e) => onChange({ ...contact, fullName: e.target.value })}
+          />
           {errors.fullName && <span className="checkout-error">{errors.fullName}</span>}
         </label>
 
@@ -57,6 +62,8 @@ export function ContactStep({ contact, onChange, onNext, onBack }: ContactStepPr
           Telefon
           <input
             aria-invalid={!!errors.phoneNumber}
+            type="tel"
+            autoComplete="tel"
             placeholder="123456789"
             value={contact.phoneNumber}
             onChange={(e) => onChange({ ...contact, phoneNumber: e.target.value })}
@@ -68,6 +75,8 @@ export function ContactStep({ contact, onChange, onNext, onBack }: ContactStepPr
           E-mail (opcjonalnie)
           <input
             aria-invalid={!!errors.email}
+            type="email"
+            autoComplete="email"
             value={contact.email ?? ''}
             onChange={(e) => onChange({ ...contact, email: e.target.value || null })}
           />
