@@ -289,6 +289,7 @@ export function MyAccountPage() {
           <label className="checkout-field">
             Ulica
             <input
+              autoComplete="address-line1"
               value={newAddress.street}
               onChange={(e) => setNewAddress((prev) => ({ ...prev, street: e.target.value }))}
               aria-invalid={!!addressErrors.street}
@@ -309,6 +310,7 @@ export function MyAccountPage() {
           <label className="checkout-field">
             Numer lokalu (opcjonalnie)
             <input
+              autoComplete="address-line2"
               value={newAddress.apartmentNumber ?? ''}
               onChange={(e) => setNewAddress((prev) => ({ ...prev, apartmentNumber: e.target.value || null }))}
             />
@@ -317,6 +319,7 @@ export function MyAccountPage() {
           <label className="checkout-field">
             Miasto
             <input
+              autoComplete="address-level2"
               value={newAddress.city}
               onChange={(e) => setNewAddress((prev) => ({ ...prev, city: e.target.value }))}
               aria-invalid={!!addressErrors.city}
@@ -327,6 +330,7 @@ export function MyAccountPage() {
           <label className="checkout-field">
             Kod pocztowy
             <input
+              autoComplete="postal-code"
               placeholder="00-001"
               value={newAddress.postalCode}
               onChange={(e) => setNewAddress((prev) => ({ ...prev, postalCode: e.target.value }))}

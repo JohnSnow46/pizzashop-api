@@ -116,7 +116,7 @@ export function DeliveryAddressStep({
       <div className="checkout-form-grid">
         <label className="checkout-field">
           Ulica
-          <input aria-invalid={!!errors.street} value={form.street} onChange={(e) => updateField('street', e.target.value)} />
+          <input aria-invalid={!!errors.street} autoComplete="address-line1" value={form.street} onChange={(e) => updateField('street', e.target.value)} />
           {errors.street && <span className="checkout-error">{errors.street}</span>}
         </label>
 
@@ -129,6 +129,7 @@ export function DeliveryAddressStep({
         <label className="checkout-field">
           Numer lokalu (opcjonalnie)
           <input
+            autoComplete="address-line2"
             value={form.apartmentNumber ?? ''}
             onChange={(e) => updateField('apartmentNumber', e.target.value || null)}
           />
@@ -136,7 +137,7 @@ export function DeliveryAddressStep({
 
         <label className="checkout-field">
           Miasto
-          <input aria-invalid={!!errors.city} value={form.city} onChange={(e) => updateField('city', e.target.value)} />
+          <input aria-invalid={!!errors.city} autoComplete="address-level2" value={form.city} onChange={(e) => updateField('city', e.target.value)} />
           {errors.city && <span className="checkout-error">{errors.city}</span>}
         </label>
 
@@ -144,6 +145,7 @@ export function DeliveryAddressStep({
           Kod pocztowy
           <input
             aria-invalid={!!errors.postalCode}
+            autoComplete="postal-code"
             placeholder="00-001"
             value={form.postalCode}
             onChange={(e) => updateField('postalCode', e.target.value)}
