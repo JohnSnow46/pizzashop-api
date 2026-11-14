@@ -68,6 +68,16 @@ describe('StaffAccountForm', () => {
     expect(createStaffAccountMock).not.toHaveBeenCalled()
   })
 
+  it('links the field error to its input via aria-describedby', () => {
+    render(<StaffAccountForm onCreated={vi.fn()} onCancel={vi.fn()} />)
+
+    fill('staff@pizza.pl', 'abc1')
+
+    const errorId = screen.getByLabelText(/^Hasło/).getAttribute('aria-describedby')
+    expect(document.getElementById(errorId!)?.textContent).toBeTruthy()
+    expect(screen.getByLabelText(/^Email/).hasAttribute('aria-describedby')).toBe(false)
+  })
+
   it('caps the email at the backend MaximumLength (200 chars)', () => {
     render(<StaffAccountForm onCreated={vi.fn()} onCancel={vi.fn()} />)
 

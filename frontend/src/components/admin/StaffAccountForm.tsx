@@ -71,14 +71,14 @@ export function StaffAccountForm({ onCreated, onCancel }: StaffAccountFormProps)
       <div className="checkout-form-grid">
         <label className="checkout-field">
           Email
-          <input type="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200} aria-invalid={Boolean(errors.email)} required />
-          {errors.email && <span className="checkout-error">{errors.email}</span>}
+          <input type="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? 'staff-email-error' : undefined} required />
+          {errors.email && <span id="staff-email-error" className="checkout-error">{errors.email}</span>}
         </label>
 
         <label className="checkout-field">
           Hasło
-          <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={Boolean(errors.password)} required />
-          {errors.password && <span className="checkout-error">{errors.password}</span>}
+          <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} aria-invalid={Boolean(errors.password)} aria-describedby={errors.password ? 'staff-password-error' : undefined} required />
+          {errors.password && <span id="staff-password-error" className="checkout-error">{errors.password}</span>}
         </label>
 
         <label className="checkout-field">
