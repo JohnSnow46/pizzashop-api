@@ -116,14 +116,14 @@ export function DeliveryAddressStep({
       <div className="checkout-form-grid">
         <label className="checkout-field">
           Ulica
-          <input aria-invalid={!!errors.street} autoComplete="address-line1" value={form.street} onChange={(e) => updateField('street', e.target.value)} />
-          {errors.street && <span className="checkout-error">{errors.street}</span>}
+          <input aria-invalid={!!errors.street} aria-describedby={errors.street ? 'address-street-error' : undefined} autoComplete="address-line1" value={form.street} onChange={(e) => updateField('street', e.target.value)} />
+          {errors.street && <span id="address-street-error" className="checkout-error">{errors.street}</span>}
         </label>
 
         <label className="checkout-field">
           Numer budynku
-          <input aria-invalid={!!errors.buildingNumber} value={form.buildingNumber} onChange={(e) => updateField('buildingNumber', e.target.value)} />
-          {errors.buildingNumber && <span className="checkout-error">{errors.buildingNumber}</span>}
+          <input aria-invalid={!!errors.buildingNumber} aria-describedby={errors.buildingNumber ? 'address-building-error' : undefined} value={form.buildingNumber} onChange={(e) => updateField('buildingNumber', e.target.value)} />
+          {errors.buildingNumber && <span id="address-building-error" className="checkout-error">{errors.buildingNumber}</span>}
         </label>
 
         <label className="checkout-field">
@@ -137,20 +137,21 @@ export function DeliveryAddressStep({
 
         <label className="checkout-field">
           Miasto
-          <input aria-invalid={!!errors.city} autoComplete="address-level2" value={form.city} onChange={(e) => updateField('city', e.target.value)} />
-          {errors.city && <span className="checkout-error">{errors.city}</span>}
+          <input aria-invalid={!!errors.city} aria-describedby={errors.city ? 'address-city-error' : undefined} autoComplete="address-level2" value={form.city} onChange={(e) => updateField('city', e.target.value)} />
+          {errors.city && <span id="address-city-error" className="checkout-error">{errors.city}</span>}
         </label>
 
         <label className="checkout-field">
           Kod pocztowy
           <input
             aria-invalid={!!errors.postalCode}
+            aria-describedby={errors.postalCode ? 'address-postal-code-error' : undefined}
             autoComplete="postal-code"
             placeholder="00-001"
             value={form.postalCode}
             onChange={(e) => updateField('postalCode', e.target.value)}
           />
-          {errors.postalCode && <span className="checkout-error">{errors.postalCode}</span>}
+          {errors.postalCode && <span id="address-postal-code-error" className="checkout-error">{errors.postalCode}</span>}
         </label>
 
         <label className="checkout-field">
