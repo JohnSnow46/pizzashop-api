@@ -61,7 +61,14 @@ export function PromotionField({ code, preview, subtotal, deliveryFee, lines, on
       <div className="checkout-form-grid">
         <label className="checkout-field">
           Kod (opcjonalnie)
-          <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="np. PIZZA10" maxLength={50} />
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="np. PIZZA10"
+            maxLength={50}
+            aria-invalid={error !== null}
+            aria-describedby={error ? 'promotion-code-error' : undefined}
+          />
         </label>
       </div>
 
@@ -71,7 +78,11 @@ export function PromotionField({ code, preview, subtotal, deliveryFee, lines, on
         </button>
       </div>
 
-      {error && <p className="checkout-banner checkout-banner--error" role="alert">{error}</p>}
+      {error && (
+        <p id="promotion-code-error" className="checkout-banner checkout-banner--error" role="alert">
+          {error}
+        </p>
+      )}
 
       {hasUncheckedCode && (
         <p className="checkout-hint">Sprawdź kod przed przejściem dalej albo wyczyść pole, żeby pominąć promocję.</p>
