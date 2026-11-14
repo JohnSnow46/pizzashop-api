@@ -51,36 +51,39 @@ export function ContactStep({ contact, onChange, onNext, onBack }: ContactStepPr
           Imię i nazwisko
           <input
             aria-invalid={!!errors.fullName}
+            aria-describedby={errors.fullName ? 'contact-full-name-error' : undefined}
             autoComplete="name"
             value={contact.fullName}
             onChange={(e) => onChange({ ...contact, fullName: e.target.value })}
           />
-          {errors.fullName && <span className="checkout-error">{errors.fullName}</span>}
+          {errors.fullName && <span id="contact-full-name-error" className="checkout-error">{errors.fullName}</span>}
         </label>
 
         <label className="checkout-field">
           Telefon
           <input
             aria-invalid={!!errors.phoneNumber}
+            aria-describedby={errors.phoneNumber ? 'contact-phone-error' : undefined}
             type="tel"
             autoComplete="tel"
             placeholder="123456789"
             value={contact.phoneNumber}
             onChange={(e) => onChange({ ...contact, phoneNumber: e.target.value })}
           />
-          {errors.phoneNumber && <span className="checkout-error">{errors.phoneNumber}</span>}
+          {errors.phoneNumber && <span id="contact-phone-error" className="checkout-error">{errors.phoneNumber}</span>}
         </label>
 
         <label className="checkout-field">
           E-mail (opcjonalnie)
           <input
             aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? 'contact-email-error' : undefined}
             type="email"
             autoComplete="email"
             value={contact.email ?? ''}
             onChange={(e) => onChange({ ...contact, email: e.target.value || null })}
           />
-          {errors.email && <span className="checkout-error">{errors.email}</span>}
+          {errors.email && <span id="contact-email-error" className="checkout-error">{errors.email}</span>}
         </label>
       </div>
 
