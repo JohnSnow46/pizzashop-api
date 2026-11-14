@@ -65,32 +65,33 @@ export function RegisterPage() {
         <div className="checkout-form-grid">
           <label className="checkout-field">
             Imię i nazwisko
-            <input aria-invalid={!!errors.fullName} value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
-            {errors.fullName && <span className="checkout-error">{errors.fullName}</span>}
+            <input aria-invalid={!!errors.fullName} aria-describedby={errors.fullName ? 'register-full-name-error' : undefined} value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
+            {errors.fullName && <span id="register-full-name-error" className="checkout-error">{errors.fullName}</span>}
           </label>
 
           <label className="checkout-field">
             E-mail
-            <input aria-invalid={!!errors.email} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-            {errors.email && <span className="checkout-error">{errors.email}</span>}
+            <input aria-invalid={!!errors.email} aria-describedby={errors.email ? 'register-email-error' : undefined} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+            {errors.email && <span id="register-email-error" className="checkout-error">{errors.email}</span>}
           </label>
 
           <label className="checkout-field">
             Hasło
             <input
               aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? 'register-password-error' : undefined}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
             />
-            {errors.password && <span className="checkout-error">{errors.password}</span>}
+            {errors.password && <span id="register-password-error" className="checkout-error">{errors.password}</span>}
           </label>
 
           <label className="checkout-field">
             Telefon (opcjonalnie)
-            <input aria-invalid={!!errors.phoneNumber} type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} autoComplete="tel" />
-            {errors.phoneNumber && <span className="checkout-error">{errors.phoneNumber}</span>}
+            <input aria-invalid={!!errors.phoneNumber} aria-describedby={errors.phoneNumber ? 'register-phone-number-error' : undefined} type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} autoComplete="tel" />
+            {errors.phoneNumber && <span id="register-phone-number-error" className="checkout-error">{errors.phoneNumber}</span>}
           </label>
         </div>
 

@@ -58,20 +58,21 @@ export function LoginPage() {
         <div className="checkout-form-grid">
           <label className="checkout-field">
             E-mail
-            <input aria-invalid={!!errors.email} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-            {errors.email && <span className="checkout-error">{errors.email}</span>}
+            <input aria-invalid={!!errors.email} aria-describedby={errors.email ? 'login-email-error' : undefined} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+            {errors.email && <span id="login-email-error" className="checkout-error">{errors.email}</span>}
           </label>
 
           <label className="checkout-field">
             Hasło
             <input
               aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? 'login-password-error' : undefined}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
             />
-            {errors.password && <span className="checkout-error">{errors.password}</span>}
+            {errors.password && <span id="login-password-error" className="checkout-error">{errors.password}</span>}
           </label>
         </div>
 
