@@ -282,8 +282,8 @@ export function MyAccountPage() {
         <div className="checkout-form-grid">
           <label className="checkout-field">
             Nazwa adresu (np. Dom, Praca)
-            <input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} aria-invalid={!!addressErrors.label} />
-            {addressErrors.label && <span className="checkout-error">{addressErrors.label}</span>}
+            <input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} aria-invalid={!!addressErrors.label} aria-describedby={addressErrors.label ? 'account-address-label-error' : undefined} />
+            {addressErrors.label && <span id="account-address-label-error" className="checkout-error">{addressErrors.label}</span>}
           </label>
 
           <label className="checkout-field">
@@ -293,8 +293,9 @@ export function MyAccountPage() {
               value={newAddress.street}
               onChange={(e) => setNewAddress((prev) => ({ ...prev, street: e.target.value }))}
               aria-invalid={!!addressErrors.street}
+              aria-describedby={addressErrors.street ? 'account-address-street-error' : undefined}
             />
-            {addressErrors.street && <span className="checkout-error">{addressErrors.street}</span>}
+            {addressErrors.street && <span id="account-address-street-error" className="checkout-error">{addressErrors.street}</span>}
           </label>
 
           <label className="checkout-field">
@@ -303,8 +304,9 @@ export function MyAccountPage() {
               value={newAddress.buildingNumber}
               onChange={(e) => setNewAddress((prev) => ({ ...prev, buildingNumber: e.target.value }))}
               aria-invalid={!!addressErrors.buildingNumber}
+              aria-describedby={addressErrors.buildingNumber ? 'account-address-building-number-error' : undefined}
             />
-            {addressErrors.buildingNumber && <span className="checkout-error">{addressErrors.buildingNumber}</span>}
+            {addressErrors.buildingNumber && <span id="account-address-building-number-error" className="checkout-error">{addressErrors.buildingNumber}</span>}
           </label>
 
           <label className="checkout-field">
@@ -323,8 +325,9 @@ export function MyAccountPage() {
               value={newAddress.city}
               onChange={(e) => setNewAddress((prev) => ({ ...prev, city: e.target.value }))}
               aria-invalid={!!addressErrors.city}
+              aria-describedby={addressErrors.city ? 'account-address-city-error' : undefined}
             />
-            {addressErrors.city && <span className="checkout-error">{addressErrors.city}</span>}
+            {addressErrors.city && <span id="account-address-city-error" className="checkout-error">{addressErrors.city}</span>}
           </label>
 
           <label className="checkout-field">
@@ -335,8 +338,9 @@ export function MyAccountPage() {
               value={newAddress.postalCode}
               onChange={(e) => setNewAddress((prev) => ({ ...prev, postalCode: e.target.value }))}
               aria-invalid={!!addressErrors.postalCode}
+              aria-describedby={addressErrors.postalCode ? 'account-address-postal-code-error' : undefined}
             />
-            {addressErrors.postalCode && <span className="checkout-error">{addressErrors.postalCode}</span>}
+            {addressErrors.postalCode && <span id="account-address-postal-code-error" className="checkout-error">{addressErrors.postalCode}</span>}
           </label>
         </div>
 

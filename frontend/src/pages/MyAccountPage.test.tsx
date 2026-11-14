@@ -160,6 +160,19 @@ describe('MyAccountPage', () => {
     expect(screen.getByLabelText(/^Numer lokalu/).getAttribute('aria-invalid')).toBeNull()
   })
 
+  it('links each address field error to its input via aria-describedby', async () => {
+    renderPage()
+    await screen.findByText('Dom')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dodaj adres' }))
+    await screen.findByText('Podaj ulicę.')
+
+    const errorId = screen.getByLabelText(/^Ulica/).getAttribute('aria-describedby')
+    expect(document.getElementById(errorId!)?.textContent).toBe('Podaj ulicę.')
+    expect(screen.getByLabelText(/^Nazwa adresu/).getAttribute('aria-describedby')).toBeTruthy()
+    expect(screen.getByLabelText(/^Numer lokalu/).hasAttribute('aria-describedby')).toBe(false)
+  })
+
   it('adds a new address, shows it in the list and resets the form', async () => {
     const created = makeAddress({ id: 'addr-2', label: 'Praca', isDefault: false })
     addAddressMock.mockResolvedValue(created)
