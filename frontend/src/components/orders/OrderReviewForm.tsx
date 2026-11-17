@@ -59,6 +59,7 @@ function ReviewItemRow({ orderId, menuItemId, menuItemName, onReviewed }: Review
       </div>
       <textarea
         className="order-review-form__comment"
+        aria-label={`Komentarz do ${menuItemName} (opcjonalnie)`}
         placeholder="Komentarz (opcjonalnie)"
         value={comment}
         onChange={(event) => setComment(event.target.value)}

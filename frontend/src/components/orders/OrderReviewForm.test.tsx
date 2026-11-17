@@ -73,6 +73,18 @@ describe('OrderReviewForm', () => {
     expect(textarea.getAttribute('maxlength')).toBe('1000')
   })
 
+  it('gives each comment textarea an accessible name with its menu item', async () => {
+    getMyReviewsMock.mockResolvedValue([])
+    render(
+      <OrderReviewForm
+        order={makeOrder([makeItem(), makeItem({ id: 'item-2', menuItemId: 'menu-2', menuItemName: 'Capricciosa' })])}
+      />,
+    )
+
+    expect(await screen.findByRole('textbox', { name: 'Komentarz do Margherita (opcjonalnie)' })).toBeTruthy()
+    expect(screen.getByRole('textbox', { name: 'Komentarz do Capricciosa (opcjonalnie)' })).toBeTruthy()
+  })
+
   it('submits a review with the trimmed comment and rating', async () => {
     getMyReviewsMock.mockResolvedValue([])
     createReviewMock.mockResolvedValue('review-1')
